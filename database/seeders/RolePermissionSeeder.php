@@ -26,8 +26,8 @@ class RolePermissionSeeder extends Seeder
 
         $perms = [
             [1, 'dashboard', 1], [1, 'umum_rt', 1], [1, 'aset_logistik', 1], [1, 'pengadaan', 1], [1, 'risalah', 1],
-            [1, 'panduan', 1], [1, 'user_mgmt', 1], [1, 'role_mgmt', 1], [1, 'audit_log', 1], [1, 'ref_akun', 1],
-            [2, 'dashboard', 0], [2, 'umum_rt', 1], [2, 'aset_logistik', 1], [2, 'pengadaan', 1], [2, 'risalah', 0],
+            [1, 'panduan', 1], [1, 'analytics_dw', 1], [1, 'user_mgmt', 1], [1, 'role_mgmt', 1], [1, 'audit_log', 1], [1, 'ref_akun', 1],
+            [2, 'dashboard', 0], [2, 'analytics_dw', 0], [2, 'umum_rt', 1], [2, 'aset_logistik', 1], [2, 'pengadaan', 1], [2, 'risalah', 0],
             [2, 'panduan', 0], [2, 'audit_log', 0], [2, 'ref_akun', 0],
             [3, 'dashboard', 1], [3, 'umum_rt', 1], [3, 'risalah', 1], [3, 'panduan', 0], [3, 'ref_akun', 0],
             [4, 'dashboard', 1], [4, 'aset_logistik', 1], [4, 'risalah', 1], [4, 'panduan', 0], [4, 'ref_akun', 0],

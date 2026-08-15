@@ -13,7 +13,7 @@ class RoleController extends Controller
     use LogsAudit;
 
     const PERM_KEYS = [
-        'dashboard', 'umum_rt', 'aset_logistik', 'pengadaan', 'risalah',
+        'dashboard', 'analytics_dw', 'umum_rt', 'aset_logistik', 'pengadaan', 'risalah',
         'panduan', 'user_mgmt', 'role_mgmt', 'audit_log', 'ref_akun',
     ];
 

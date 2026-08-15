@@ -84,7 +84,7 @@ return [
                 'type' => 'select',
                 'list' => true,
                 'fmt' => 'badge',
-                'req' => false,
+                'req' => true,
                 'opts' => ['BBM', 'Perawatan', 'Rumah Tangga'],
             ],
             'kendaraan' => [
@@ -330,7 +330,7 @@ return [
                 'label' => 'Kategori',
                 'type' => 'text',
                 'list' => true,
-                'req' => false,
+                'req' => true,
             ],
             'lokasi' => [
                 'label' => 'Lokasi',
@@ -988,7 +988,7 @@ return [
                 'label' => 'Kategori',
                 'type' => 'select',
                 'list' => true,
-                'req' => false,
+                'req' => true,
                 'opts' => ['PKS', 'Sewa', 'SPK', 'Pemeliharaan', 'Lainnya'],
             ],
             'tanggal_jatuh_tempo' => [

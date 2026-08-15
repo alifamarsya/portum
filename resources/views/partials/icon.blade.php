@@ -29,6 +29,7 @@
         'file-text'   => '<path d="M7 3.5h7l4 4V19a1.2 1.2 0 0 1-1.2 1.2H7A1.2 1.2 0 0 1 5.8 19V4.7A1.2 1.2 0 0 1 7 3.5Z"/><path d="M14 3.5V8h4.2"/><path d="M8.5 12.5h7M8.5 15.8h4.5"/>',
         'trend-up'    => '<path d="m4 16 5.5-5.5L13 14l7-7"/><path d="M16.5 7H20v3.5"/>',
         'building'    => '<rect x="5" y="3.5" width="10" height="17" rx="1"/><path d="M15 9.5h4.5v10a1 1 0 0 1-1 1H15"/><path d="M8 7.5h1M8 11h1M8 14.5h1M11.5 7.5h1M11.5 11h1M11.5 14.5h1"/>',
+        'bell'        => '<path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/><path d="M10 21h4"/>',
         'menu'        => '<path d="M4 7h16M4 12h16M4 17h16"/>',
         'lock'        => '<rect x="5" y="10.5" width="14" height="9" rx="1.4"/><path d="M8 10.5V7.8a4 4 0 0 1 8 0v2.7"/>',
     ];

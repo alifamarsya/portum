@@ -21,6 +21,8 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
     Route::get('/analitik', [App\Http\Controllers\AnalyticsController::class, 'index'])->name('analitik');
+    Route::get('/analitik/biaya/{kategori}', [App\Http\Controllers\AnalyticsController::class, 'detailKategori'])
+    ->name('analitik.detail-kategori');
 
     // Mesin CRUD generik untuk 20 modul (lihat config/modules.php) --
     // setara routing dinamis {resource}?action=... di portum.py.

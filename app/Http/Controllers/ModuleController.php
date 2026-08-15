@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Concerns\LogsAudit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use App\Services\AmortisasiCalculator;
 
 // Mesin CRUD generik untuk 20 modul transaksional Portum, setara "RES"
 // di portum.py -- satu controller melayani semua modul lewat {key} di
@@ -13,7 +14,9 @@ use Illuminate\Support\Facades\Gate;
 class ModuleController extends Controller
 {
     use LogsAudit;
-
+    public function __construct(private AmortisasiCalculator $amortisasiCalculator)
+    {
+    }
     private function config(string $key): array
     {
         $cfg = config("modules.$key");
@@ -66,6 +69,7 @@ class ModuleController extends Controller
     {
         $cfg = $this->authorizeModule($key, 'write');
         $data = $this->validated($request, $cfg);
+        $data = $this->hitungAmortisasiJikaPerlu($key, $data);
 
         if ($cfg['maker_checker']) {
             $data['maker_id'] = auth()->id();
@@ -93,6 +97,7 @@ class ModuleController extends Controller
         $cfg = $this->authorizeModule($key, 'write');
         $item = $cfg['model']::findOrFail($id);
         $data = $this->validated($request, $cfg);
+        $data = $this->hitungAmortisasiJikaPerlu($key, $data);
 
         $item->update($data);
         $this->audit('UPDATE', $cfg['modul'], $cfg['judul'], $item->id, 'Mengubah data');
@@ -157,13 +162,36 @@ class ModuleController extends Controller
             $rule = ($meta['req'] ?? false) ? 'required' : 'nullable';
             $rule .= match ($type) {
                 'date' => '|date',
-                'number', 'money' => '|numeric',
+                'number', 'money' => '|numeric|min:0',
                 'checkbox' => '|boolean',
                 'file' => '|string',
+                'select' => isset($meta['opts']) ? '|string|in:' . implode(',', $meta['opts']) : '|string|max:2000',
                 default => '|string|max:2000',
             };
             $rules[$field] = $rule;
         }
         return $request->validate($rules);
     }
+
+    private function hitungAmortisasiJikaPerlu(string $key, array $data): array
+{
+    if ($key !== 'amortisasi') {
+        return $data;
+    }
+
+    if (empty($data['nilai_per_bulan']) && !empty($data['nilai_perolehan']) && !empty($data['umur_bulan'])) {
+        $data['nilai_per_bulan'] = $this->amortisasiCalculator->hitungNilaiPerBulan(
+            (float) $data['nilai_perolehan'],
+            (int) $data['umur_bulan']
+        );
+    }
+
+    if (!empty($data['tanggal_mulai']) && !empty($data['nilai_per_bulan'])) {
+        $bulanBerjalan = $this->amortisasiCalculator->hitungBulanBerjalan(new \DateTime($data['tanggal_mulai']));
+        $data['akumulasi'] = $this->amortisasiCalculator->hitungAkumulasi((float) $data['nilai_per_bulan'], $bulanBerjalan);
+        $data['nilai_buku'] = $this->amortisasiCalculator->hitungNilaiBuku((float) $data['nilai_perolehan'], $data['akumulasi']);
+    }
+
+    return $data;
+}
 }
