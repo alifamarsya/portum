@@ -5,8 +5,11 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\ModuleController;
+use App\Http\Controllers\OperatorDashboardController;
 use App\Http\Controllers\PanduanController;
 use App\Http\Controllers\RisalahRapatController;
+use App\Http\Controllers\TicketController;
+use App\Http\Controllers\UserDashboardController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -20,6 +23,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/ganti-password-wajib', [LoginController::class, 'forceChange'])->name('password.force-change.submit');
 
     Route::get('/', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/user/dashboard', [UserDashboardController::class, 'index'])->name('user.dashboard');
+    Route::get('/operator/dashboard', [OperatorDashboardController::class, 'index'])->name('operator.dashboard');
     Route::get('/analitik', [App\Http\Controllers\AnalyticsController::class, 'index'])->name('analitik');
     Route::get('/analitik/biaya/{kategori}', [App\Http\Controllers\AnalyticsController::class, 'detailKategori'])
     ->name('analitik.detail-kategori');
@@ -43,6 +48,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('/panduan/{panduan}', [PanduanController::class, 'destroy'])->name('panduan.destroy');
 
     Route::resource('risalah', RisalahRapatController::class)->except(['show']);
+    Route::resource('tickets', TicketController::class);
+    Route::post('/tickets/{ticket}/confirm-close', [TicketController::class, 'confirmClose'])
+        ->name('tickets.confirm-close');
 
     Route::prefix('admin')->name('admin.')->middleware('superadmin')->group(function () {
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
@@ -56,4 +64,6 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/audit-log', [AuditLogController::class, 'index'])->name('audit-log.index');
     });
+    Route::post('/admin/audit-log/rehash', [App\Http\Controllers\Admin\AuditLogController::class, 'rehash'])
+    ->name('admin.audit-log.rehash');
 });

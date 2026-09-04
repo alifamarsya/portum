@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Ganti Password — Portum</title>
+    <title>Ganti Password — Bank Sulteng</title>
     @include('partials.head-assets')
 </head>
 <body class="bg-canvas text-ink antialiased min-h-screen flex items-center justify-center p-6">
@@ -12,8 +12,7 @@
 
     <div class="w-full max-w-sm bg-white rounded-2xl shadow-hover border border-slate-200 p-8 relative">
         <div class="flex items-center gap-2.5 mb-6">
-            @include('partials.brand-mark', ['class' => 'w-7 h-7 text-brand'])
-            <span class="font-bold text-brand">Portum</span>
+            <img src="{{ asset('images/bank-sulteng.png') }}" alt="Bank Sulteng" class="h-6 w-auto">
         </div>
 
         <div class="w-11 h-11 rounded-xl bg-gold-light text-gold flex items-center justify-center mb-4">

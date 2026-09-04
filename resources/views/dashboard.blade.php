@@ -1,196 +1,313 @@
 @extends('layouts.app')
 @section('title', 'Dashboard')
+
 @section('content')
 @php
-    $firstName = explode(' ', auth()->user()->nama_lengkap)[0];
-    $maxChart = max(max($chartValues ?: [0]), 1);
-    $points = [];
-    $chartWidth = 650;
-    $chartHeight = 180;
-    $left = 40;
-    $right = 12;
-    $top = 18;
-    $bottom = 28;
-    $plotW = $chartWidth - $left - $right;
-    $plotH = $chartHeight - $top - $bottom;
-    $count = max(count($chartValues), 1);
-    foreach ($chartValues as $i => $value) {
-        $x = $left + ($count === 1 ? $plotW / 2 : ($i * $plotW / ($count - 1)));
-        $y = $top + ($plotH - (($value / $maxChart) * $plotH));
-        $points[] = round($x, 2) . ',' . round($y, 2);
-    }
-    $polyline = implode(' ', $points);
+    $user = auth()->user();
+    $firstName = explode(' ', $user->nama_lengkap)[0];
+    $hour = (int) now()->format('H');
+    $greeting = match(true) {
+        $hour >= 4 && $hour < 11 => 'Selamat Pagi',
+        $hour >= 11 && $hour < 15 => 'Selamat Siang',
+        $hour >= 15 && $hour < 18 => 'Selamat Sore',
+        default => 'Selamat Malam',
+    };
 @endphp
 
-<div class="pt-1 mb-5">
-    <h2 class="text-[22px] leading-tight font-bold text-ink">Dashboard</h2>
-    <p class="text-[12px] text-slate-500 mt-1">Selamat datang kembali, {{ $firstName }}!</p>
+{{-- ================= PAGE HEADER ================= --}}
+<div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5">
+    <div>
+        <h1 class="text-xl sm:text-2xl font-extrabold text-ink tracking-tight leading-tight">
+            {{ $greeting }}, {{ $firstName }} 👋
+        </h1>
+        <p class="text-xs text-slate-500 mt-0.5">
+            Ringkasan operasional Bank Sulteng — {{ now()->translatedFormat('l, d F Y') }}
+        </p>
+    </div>
+    <div class="flex items-center gap-2 flex-shrink-0">
+        <a href="{{ route('modul.create', 'biaya_harian') }}"
+           class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs transition-colors">
+            @include('partials.icon', ['name' => 'plus', 'class' => 'w-3.5 h-3.5 text-slate-400'])
+            <span class="hidden sm:inline">Biaya Harian</span>
+            <span class="sm:hidden">Biaya</span>
+        </a>
+        <a href="{{ route('modul.create', 'memo_internal') }}"
+           class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-brand text-white hover:bg-slate-800 shadow-2xs transition-colors">
+            @include('partials.icon', ['name' => 'plus', 'class' => 'w-3.5 h-3.5 text-gold'])
+            <span class="hidden sm:inline">Pengadaan</span>
+            <span class="sm:hidden">Tambah</span>
+        </a>
+    </div>
 </div>
 
-{{-- KPI --}}
-<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3 mb-3">
-    <a href="#" class="group bg-white rounded-xl border border-slate-200/90 p-4 min-h-[137px] hover:shadow-hover transition">
-        <div class="flex items-start gap-3">
-            <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0">
-                @include('partials.icon', ['name' => 'clock', 'class' => 'w-5 h-5'])
-            </div>
-            <div class="min-w-0">
-                <p class="text-[11.5px] leading-4 text-slate-600">Menunggu<br>Persetujuan</p>
-                <p class="text-[23px] font-bold text-ink mt-2">{{ $menunggu }}</p>
+{{-- ================= KPI METRIC CARDS (4 cards, responsive) ================= --}}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+    {{-- Card: Approval Tertunda --}}
+    <a href="{{ route('modul.index', 'biaya_harian') }}"
+       class="group bg-white rounded-xl p-4 border border-slate-200/80 shadow-2xs hover:border-amber-300 hover:shadow-sm transition-all">
+        <div class="flex items-start justify-between mb-3">
+            <p class="text-[11px] font-medium text-slate-500 leading-tight">Approval<br>Tertunda</p>
+            <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center flex-shrink-0">
+                @include('partials.icon', ['name' => 'clock', 'class' => 'w-4 h-4'])
             </div>
         </div>
-        <p class="text-[11px] text-brand mt-2.5">Lihat detail <span class="ml-1">→</span></p>
+        <p class="text-2xl font-bold text-ink tracking-tight">{{ $menunggu }}</p>
+        <p class="text-[10px] text-amber-600 font-medium mt-1 flex items-center gap-0.5">
+            <span>Perlu persetujuan</span>
+            @include('partials.icon', ['name' => 'chevron-right', 'class' => 'w-2.5 h-2.5 group-hover:translate-x-0.5 transition-transform'])
+        </p>
     </a>
 
-    <a href="#" class="group bg-white rounded-xl border border-slate-200/90 p-4 min-h-[137px] hover:shadow-hover transition">
-        <div class="flex items-start gap-3">
-            <div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
-                @include('partials.icon', ['name' => 'clock', 'class' => 'w-5 h-5'])
-            </div>
-            <div class="min-w-0">
-                <p class="text-[11.5px] leading-4 text-slate-600">Reminder<br>&le; 90 Hari</p>
-                <p class="text-[23px] font-bold text-ink mt-2">{{ $reminderAktif }}</p>
+    {{-- Card: PKS Jatuh Tempo --}}
+    <a href="{{ route('modul.index', 'pks') }}"
+       class="group bg-white rounded-xl p-4 border border-slate-200/80 shadow-2xs hover:border-rose-300 hover:shadow-sm transition-all">
+        <div class="flex items-start justify-between mb-3">
+            <p class="text-[11px] font-medium text-slate-500 leading-tight">PKS<br>Jatuh Tempo</p>
+            <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 flex items-center justify-center flex-shrink-0">
+                @include('partials.icon', ['name' => 'alert', 'class' => 'w-4 h-4'])
             </div>
         </div>
-        <p class="text-[11px] text-brand mt-2.5">Lihat detail <span class="ml-1">→</span></p>
+        <p class="text-2xl font-bold text-ink tracking-tight">{{ $pksJatuhTempo }}</p>
+        <p class="text-[10px] text-rose-600 font-medium mt-1 flex items-center gap-0.5">
+            <span>≤ 90 hari ke depan</span>
+            @include('partials.icon', ['name' => 'chevron-right', 'class' => 'w-2.5 h-2.5 group-hover:translate-x-0.5 transition-transform'])
+        </p>
     </a>
 
-    <a href="#" class="group bg-white rounded-xl border border-slate-200/90 p-4 min-h-[137px] hover:shadow-hover transition">
-        <div class="flex items-start gap-3">
-            <div class="w-11 h-11 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center flex-shrink-0">
-                @include('partials.icon', ['name' => 'file-text', 'class' => 'w-5 h-5'])
-            </div>
-            <div class="min-w-0">
-                <p class="text-[11.5px] leading-4 text-slate-600">PKS Jatuh Tempo</p>
-                <p class="text-[23px] font-bold text-ink mt-7">{{ $pksJatuhTempo }}</p>
+    {{-- Card: Total Aset --}}
+    <a href="{{ route('modul.index', 'aset') }}"
+       class="group bg-white rounded-xl p-4 border border-slate-200/80 shadow-2xs hover:border-emerald-300 hover:shadow-sm transition-all">
+        <div class="flex items-start justify-between mb-3">
+            <p class="text-[11px] font-medium text-slate-500 leading-tight">Total<br>Unit Aset</p>
+            <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-500 flex items-center justify-center flex-shrink-0">
+                @include('partials.icon', ['name' => 'layers', 'class' => 'w-4 h-4'])
             </div>
         </div>
-        <p class="text-[11px] text-brand mt-2.5">Lihat detail <span class="ml-1">→</span></p>
+        <p class="text-2xl font-bold text-ink tracking-tight">{{ number_format($totalAset) }}</p>
+        <p class="text-[10px] text-emerald-600 font-medium mt-1 flex items-center gap-0.5">
+            <span>Inventaris kantor</span>
+            @include('partials.icon', ['name' => 'chevron-right', 'class' => 'w-2.5 h-2.5 group-hover:translate-x-0.5 transition-transform'])
+        </p>
     </a>
 
-    <a href="{{ route('modul.index', 'aset') }}" class="group bg-white rounded-xl border border-slate-200/90 p-4 min-h-[137px] hover:shadow-hover transition">
-        <div class="flex items-start gap-3">
-            <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
-                @include('partials.icon', ['name' => 'building', 'class' => 'w-5 h-5'])
-            </div>
-            <div class="min-w-0">
-                <p class="text-[11.5px] leading-4 text-slate-600">Total Aset</p>
-                <p class="text-[23px] font-bold text-ink mt-7">{{ number_format($totalAset, 0, ',', '.') }}</p>
-            </div>
-        </div>
-        <p class="text-[11px] text-brand mt-2.5">Lihat detail <span class="ml-1">→</span></p>
-    </a>
-
-    <a href="{{ route('analitik') }}" class="group bg-white rounded-xl border border-slate-200/90 p-4 min-h-[137px] hover:shadow-hover transition">
-        <div class="flex items-start gap-3">
-            <div class="w-11 h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center flex-shrink-0">
-                @include('partials.icon', ['name' => 'building', 'class' => 'w-5 h-5'])
-            </div>
-            <div class="min-w-0">
-                <p class="text-[11.5px] leading-4 text-slate-600">Total Pengadaan<br>Bulan Ini</p>
-                <p class="text-[21px] font-bold text-ink mt-4">Rp {{ number_format($totalPengadaan / 1000000, 2, ',', '.') }} M</p>
+    {{-- Card: Total Pengadaan --}}
+    <a href="{{ route('analitik') }}"
+       class="group bg-white rounded-xl p-4 border border-slate-200/80 shadow-2xs hover:border-blue-300 hover:shadow-sm transition-all">
+        <div class="flex items-start justify-between mb-3">
+            <p class="text-[11px] font-medium text-slate-500 leading-tight">Total<br>Pengadaan</p>
+            <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center flex-shrink-0">
+                @include('partials.icon', ['name' => 'cart', 'class' => 'w-4 h-4'])
             </div>
         </div>
-        <p class="text-[11px] text-brand mt-2.5">Lihat detail <span class="ml-1">→</span></p>
+        <p class="text-base font-bold text-ink tracking-tight leading-tight">
+            Rp {{ number_format($totalPengadaan / 1000000, 1, ',', '.') }} Jt
+        </p>
+        <p class="text-[10px] text-blue-600 font-medium mt-1 flex items-center gap-0.5">
+            <span>Lihat analitik DW</span>
+            @include('partials.icon', ['name' => 'chevron-right', 'class' => 'w-2.5 h-2.5 group-hover:translate-x-0.5 transition-transform'])
+        </p>
     </a>
 </div>
 
-<div class="grid grid-cols-1 xl:grid-cols-[1.55fr_1fr] gap-3 mb-3">
-    {{-- Trend --}}
-    <section class="bg-white rounded-xl border border-slate-200/90 p-5 min-h-[235px]">
-        <div class="flex items-center justify-between gap-3 mb-3">
-            <h3 class="text-[14px] font-bold text-ink">Tren Biaya Operasional <span class="font-normal text-slate-500">(6 Bulan Terakhir)</span></h3>
-            <select class="text-[11px] border-0 bg-slate-100 rounded-lg px-3 py-2 text-slate-600 focus:ring-0">
-                <option>Semua Kategori</option>
-            </select>
+{{-- ================= CHART + PKS SECTION ================= --}}
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-4">
+
+    {{-- Biaya Chart (Chart.js) --}}
+    <section class="xl:col-span-2 bg-white rounded-xl border border-slate-200/80 shadow-2xs p-4 sm:p-5 min-w-0">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+            <div>
+                <h2 class="text-sm font-bold text-ink">Tren Biaya Operasional</h2>
+                <p class="text-[11px] text-slate-400 mt-0.5">Realisasi 6 bulan terakhir</p>
+            </div>
+            <div class="flex items-center gap-3 text-[10px] font-medium text-slate-500">
+                <span class="flex items-center gap-1">
+                    <span class="w-2.5 h-2.5 rounded-sm inline-block bg-[#3b82f6]"></span> BBM
+                </span>
+                <span class="flex items-center gap-1">
+                    <span class="w-2.5 h-2.5 rounded-sm inline-block bg-[#f59e0b]"></span> Perawatan
+                </span>
+                <span class="flex items-center gap-1">
+                    <span class="w-2.5 h-2.5 rounded-sm inline-block bg-[#10b981]"></span> RT
+                </span>
+            </div>
         </div>
-        <div class="overflow-hidden">
-            <svg viewBox="0 0 {{ $chartWidth }} {{ $chartHeight }}" class="w-full h-[175px]" preserveAspectRatio="none" role="img" aria-label="Tren biaya operasional enam bulan terakhir">
-                @foreach ([0, .25, .5, .75, 1] as $ratio)
-                    @php $gy = $top + ($plotH * $ratio); $value = $maxChart * (1 - $ratio); @endphp
-                    <line x1="{{ $left }}" x2="{{ $chartWidth - $right }}" y1="{{ $gy }}" y2="{{ $gy }}" stroke="#E8EBF0" stroke-width="1" />
-                    <text x="4" y="{{ $gy + 4 }}" font-size="10" fill="#8A93A3">{{ number_format($value / 1000000, 0, ',', '.') }} jt</text>
-                @endforeach
-                <polyline points="{{ $polyline }}" fill="none" stroke="#D99A1D" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
-                @foreach ($points as $i => $point)
-                    @php [$px, $py] = explode(',', $point); @endphp
-                    <circle cx="{{ $px }}" cy="{{ $py }}" r="4" fill="#D99A1D" />
-                    <text x="{{ $px }}" y="{{ $chartHeight - 7 }}" text-anchor="middle" font-size="10" fill="#697386">{{ $chartLabels[$i] ?? '' }}</text>
-                @endforeach
-            </svg>
+        <div class="w-full" style="position:relative; height:180px;">
+            <canvas id="biayaChart"></canvas>
+        </div>
+        <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
+            <p class="text-[11px] text-slate-500">
+                Total 6 bulan: <span class="font-bold text-ink">Rp {{ number_format($totalBiaya6Bln / 1000000, 1, ',', '.') }} Jt</span>
+            </p>
+            <a href="{{ route('analitik') }}" class="text-[11px] font-semibold text-brand hover:underline flex items-center gap-1">
+                Analitik DW
+                @include('partials.icon', ['name' => 'chevron-right', 'class' => 'w-3 h-3'])
+            </a>
         </div>
     </section>
 
-    {{-- Attention --}}
-    <section class="bg-white rounded-xl border border-slate-200/90 p-5 min-h-[235px]">
-        <h3 class="text-[14px] font-bold text-ink mb-4">Perlu Perhatian</h3>
-        <div class="divide-y divide-slate-100">
-            <a href="#" class="flex items-center gap-3 py-3 first:pt-0 group">
-                <span class="w-2.5 h-2.5 rounded-full bg-red-500 flex-shrink-0"></span>
-                <span class="text-[12px] font-medium flex-1">{{ $pksJatuhTempo }} PKS akan jatuh tempo dalam 30 hari</span>
-                <span class="text-[11px] text-brand">Lihat&nbsp; →</span>
-            </a>
-            <a href="#" class="flex items-center gap-3 py-3 group">
-                <span class="w-2.5 h-2.5 rounded-full bg-amber-500 flex-shrink-0"></span>
-                <span class="text-[12px] font-medium flex-1">{{ $menunggu }} dokumen menunggu persetujuan</span>
-                <span class="text-[11px] text-brand">Lihat&nbsp; →</span>
-            </a>
-            <a href="#" class="flex items-center gap-3 py-3 last:pb-0 group">
-                <span class="w-2.5 h-2.5 rounded-full bg-blue-500 flex-shrink-0"></span>
-                <span class="text-[12px] font-medium flex-1">{{ $reminderAktif }} permintaan dari cabang menunggu</span>
-                <span class="text-[11px] text-brand">Lihat&nbsp; →</span>
+    {{-- PKS Akan Jatuh Tempo --}}
+    <section class="bg-white rounded-xl border border-slate-200/80 shadow-2xs p-4 sm:p-5 min-w-0">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-sm font-bold text-ink">Kontrak Segera Berakhir</h2>
+            <a href="{{ route('modul.index', 'pks') }}" class="text-[11px] text-slate-400 hover:text-brand font-semibold transition-colors">
+                Lihat semua
             </a>
         </div>
-    </section>
-</div>
-
-<div class="grid grid-cols-1 xl:grid-cols-[1.55fr_1fr] gap-3">
-    {{-- Activity --}}
-    <section class="bg-white rounded-xl border border-slate-200/90 p-5 min-h-[280px]">
-        <h3 class="text-[14px] font-bold text-ink mb-4">Aktivitas Terbaru</h3>
-        <div class="divide-y divide-slate-100">
-            @forelse ($activities as $activity)
-                <div class="flex items-center gap-3 py-2.5 first:pt-0">
-                    <div class="w-8 h-8 rounded-full bg-slate-100 text-brand flex items-center justify-center text-[11px] font-bold flex-shrink-0">
-                        {{ strtoupper(substr($activity->username ?: 'S', 0, 1)) }}
+        <div class="space-y-2.5">
+            @forelse ($pksNearDue as $pks)
+                @php
+                    $daysLeft = now()->diffInDays($pks->jatuh_tempo, false);
+                    $urgencyColor = $daysLeft <= 30
+                        ? 'bg-rose-100 text-rose-700 border-rose-200'
+                        : 'bg-amber-50 text-amber-700 border-amber-200';
+                    $dotColor = $daysLeft <= 30 ? 'bg-rose-500' : 'bg-amber-400';
+                @endphp
+                <div class="flex items-start gap-2.5 p-2.5 rounded-lg bg-slate-50 border border-slate-100 hover:border-slate-200 transition-colors">
+                    <span class="w-2 h-2 rounded-full {{ $dotColor }} mt-1.5 flex-shrink-0"></span>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-xs font-semibold text-ink truncate leading-tight">{{ $pks->judul }}</p>
+                        <p class="text-[10px] text-slate-400 mt-0.5 truncate">{{ $pks->vendor ?? 'Vendor tidak dicatat' }}</p>
                     </div>
-                    <p class="text-[11.5px] flex-1 min-w-0 truncate">
-                        <span class="font-medium">{{ $activity->username ?: 'Sistem' }}</span>
-                        {{ strtolower($activity->keterangan ?: $activity->aksi) }}
-                    </p>
-                    <span class="hidden sm:inline-flex px-2 py-1 rounded-md bg-slate-100 text-slate-600 text-[9.5px] whitespace-nowrap">{{ $activity->modul ?: 'Sistem' }}</span>
-                    <span class="text-[10.5px] text-slate-500 whitespace-nowrap">{{ optional($activity->created_at)->format('H:i') }}</span>
+                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border {{ $urgencyColor }} flex-shrink-0 whitespace-nowrap">
+                        {{ $daysLeft }} hr
+                    </span>
                 </div>
             @empty
-                <div class="py-10 text-center text-[12px] text-slate-400">Belum ada aktivitas.</div>
+                <div class="py-6 text-center">
+                    <div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-2">
+                        @include('partials.icon', ['name' => 'check', 'class' => 'w-5 h-5 text-emerald-500'])
+                    </div>
+                    <p class="text-xs text-slate-500 font-medium">Tidak ada kontrak<br>yang akan jatuh tempo.</p>
+                </div>
             @endforelse
         </div>
-        @if ($activities->isNotEmpty())
-            <div class="text-center mt-4">
-                <a href="{{ auth()->user()->role->nama === 'superadmin' ? route('admin.audit-log.index') : '#' }}" class="inline-flex items-center gap-2 border border-slate-300 rounded-lg px-4 py-2 text-[11px] text-brand hover:bg-slate-50 transition">Lihat semua aktivitas <span>→</span></a>
-            </div>
-        @endif
-    </section>
-
-    {{-- Audit --}}
-    <section class="bg-white rounded-xl border border-slate-200/90 p-5 min-h-[280px]">
-        <h3 class="text-[14px] font-bold text-ink mb-8">Rantai Audit</h3>
-        <div class="flex items-center gap-5">
-            <div class="w-16 h-16 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center flex-shrink-0">
-                @include('partials.icon', ['name' => 'shield', 'class' => 'w-8 h-8', 'stroke' => 1.5])
-            </div>
-            <div>
-                <p class="text-[12px] font-bold text-ink">Sistem audit aktif dan terverifikasi</p>
-                <p class="text-[10.5px] text-slate-500 mt-1">
-                    Terakhir diverifikasi:
-                    {{ $lastLog?->created_at?->format('d M Y') ?? 'Belum ada data' }}
-                    @if ($lastLog) &nbsp;•&nbsp; {{ $lastLog->created_at->format('H:i') }} @endif
-                </p>
-            </div>
-        </div>
-        @if (auth()->user()->role->nama === 'superadmin')
-            <a href="{{ route('admin.audit-log.index') }}" class="inline-flex mt-10 border border-slate-300 rounded-lg px-4 py-2 text-[11px] text-brand hover:bg-slate-50 transition">Lihat Audit Log</a>
-        @endif
     </section>
 </div>
+
+{{-- ================= ACTIVITY LOG ================= --}}
+<section class="bg-white rounded-xl border border-slate-200/80 shadow-2xs p-4 sm:p-5 min-w-0">
+    <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-bold text-ink">Aktivitas & Audit Trail</h2>
+        @if (auth()->user()->role->nama === 'superadmin')
+            <a href="{{ route('admin.audit-log.index') }}" class="text-[11px] font-semibold text-slate-400 hover:text-brand transition-colors flex items-center gap-1">
+                Lihat semua
+                @include('partials.icon', ['name' => 'chevron-right', 'class' => 'w-3 h-3'])
+            </a>
+        @endif
+    </div>
+    <div class="divide-y divide-slate-100">
+        @forelse ($activities as $activity)
+            <div class="py-2.5 first:pt-0 last:pb-0 flex items-center gap-3 min-w-0">
+                <div class="w-7 h-7 rounded-lg bg-slate-100 font-bold flex items-center justify-center text-xs flex-shrink-0 text-slate-600">
+                    {{ strtoupper(substr($activity->username ?: 'S', 0, 1)) }}
+                </div>
+                <div class="min-w-0 flex-1">
+                    <p class="text-xs text-ink truncate">
+                        <span class="font-semibold">{{ $activity->username ?: 'Sistem' }}</span>
+                        <span class="text-slate-500"> &mdash; {{ $activity->keterangan ?: $activity->aksi }}</span>
+                    </p>
+                    <p class="text-[10px] text-slate-400 mt-0.5">{{ $activity->modul ?? 'Sistem' }}</p>
+                </div>
+                <span class="text-[11px] text-slate-400 font-mono whitespace-nowrap flex-shrink-0">
+                    {{ optional($activity->created_at)->format('H:i') }}
+                </span>
+            </div>
+        @empty
+            <div class="py-6 text-center text-xs text-slate-400">
+                Belum ada aktivitas tercatat.
+            </div>
+        @endforelse
+    </div>
+    @if ($lastLog)
+        <div class="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0"></span>
+            <p class="text-[10px] text-slate-500">
+                Audit SHA-256 aktif &bull;
+                Hash terakhir: <code class="font-mono text-[9px] text-slate-600">{{ substr($lastLog->hash, 0, 20) }}…</code>
+            </p>
+        </div>
+    @endif
+</section>
+
+{{-- ================= CHART.JS SCRIPTS ================= --}}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    const labels = @json($chartLabels);
+    const bbm    = @json($chartBbm);
+    const rawat  = @json($chartPerawatan);
+    const rt     = @json($chartRt);
+
+    const toJt = v => +(v / 1_000_000).toFixed(2);
+
+    new Chart(document.getElementById('biayaChart'), {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: 'BBM',
+                    data: bbm.map(toJt),
+                    backgroundColor: '#3b82f6cc',
+                    borderColor: '#3b82f6',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    borderSkipped: false,
+                },
+                {
+                    label: 'Perawatan',
+                    data: rawat.map(toJt),
+                    backgroundColor: '#f59e0bcc',
+                    borderColor: '#f59e0b',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    borderSkipped: false,
+                },
+                {
+                    label: 'Rumah Tangga',
+                    data: rt.map(toJt),
+                    backgroundColor: '#10b981cc',
+                    borderColor: '#10b981',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    borderSkipped: false,
+                },
+            ],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#0f172a',
+                    titleFont: { size: 11 },
+                    bodyFont: { size: 11 },
+                    callbacks: {
+                        label: ctx => ` ${ctx.dataset.label}: Rp ${ctx.parsed.y.toLocaleString('id-ID')} Jt`,
+                    },
+                },
+            },
+            scales: {
+                x: {
+                    stacked: true,
+                    grid: { display: false },
+                    ticks: { font: { size: 10 }, color: '#94a3b8' },
+                },
+                y: {
+                    stacked: true,
+                    grid: { color: '#f1f5f9' },
+                    border: { dash: [3, 3], display: false },
+                    ticks: {
+                        font: { size: 10 },
+                        color: '#94a3b8',
+                        callback: v => `${v} Jt`,
+                    },
+                },
+            },
+        },
+    });
+})();
+</script>
 @endsection

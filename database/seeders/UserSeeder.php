@@ -16,11 +16,11 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         $users = [
-            ['username' => 'admin', 'nama_lengkap' => 'Administrator Portal', 'email' => 'admin@banksulteng.co.id', 'jabatan' => 'IT Admin', 'bagian' => 'Divisi Umum', 'role_id' => 1],
-            ['username' => 'pimpinan', 'nama_lengkap' => 'Pemimpin Divisi Umum', 'email' => 'pimdiv.umum@banksulteng.co.id', 'jabatan' => 'Pemimpin Divisi', 'bagian' => 'Divisi Umum', 'role_id' => 2],
-            ['username' => 'adol', 'nama_lengkap' => 'Pak Adol', 'jabatan' => 'Staf Umum & RT', 'bagian' => 'Umum & Rumah Tangga', 'role_id' => 3],
-            ['username' => 'irma', 'nama_lengkap' => 'Kaka Irma', 'jabatan' => 'Staf Aset & Logistik', 'bagian' => 'Aset/Inventaris & Logistik', 'role_id' => 4],
-            ['username' => 'pengadaan', 'nama_lengkap' => 'Staf Pengadaan', 'jabatan' => 'Staf Pengadaan', 'bagian' => 'Pengadaan & Pemeliharaan', 'role_id' => 5],
+            ['username' => 'admin', 'nama_lengkap' => 'Superadmin', 'email' => 'admin@banksulteng.co.id', 'jabatan' => 'IT Admin', 'bagian' => 'Divisi Umum', 'role_id' => 1, 'department_id' => null],
+            ['username' => 'pimpinan', 'nama_lengkap' => 'Pemimpin Divisi Umum', 'email' => 'pimdiv.umum@banksulteng.co.id', 'jabatan' => 'Pemimpin Divisi', 'bagian' => 'Divisi Umum', 'role_id' => 2, 'department_id' => null],
+            ['username' => 'umum', 'nama_lengkap' => 'Staf Umum & RT', 'jabatan' => 'Staf Umum & RT', 'bagian' => 'Bagian Umum & Rumah Tangga', 'role_id' => 3, 'department_id' => 1],
+            ['username' => 'aset', 'nama_lengkap' => 'Staf Aset & Logistik', 'jabatan' => 'Staf Aset & Logistik', 'bagian' => 'Bagian Aset/Inventaris & Logistik', 'role_id' => 4, 'department_id' => 2],
+            ['username' => 'pengadaan', 'nama_lengkap' => 'Staf Pengadaan', 'jabatan' => 'Staf Pengadaan', 'bagian' => 'Bagian Pengadaan & Pemeliharaan Aset & Inventaris', 'role_id' => 5, 'department_id' => 3],
         ];
 
         foreach ($users as $u) {
