@@ -27,6 +27,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/user/dashboard', [UserDashboardController::class, 'index'])->name('user.dashboard');
     Route::get('/operator/dashboard', [OperatorDashboardController::class, 'index'])->name('operator.dashboard');
     Route::get('/kabag/dashboard', [App\Http\Controllers\KabagDashboardController::class, 'index'])->name('kabag.dashboard');
+    Route::get('/staf-umum/dashboard', [App\Http\Controllers\StafUmumDashboardController::class, 'index'])->name('staf-umum.dashboard');
     Route::get('/analitik', [App\Http\Controllers\AnalyticsController::class, 'index'])->name('analitik');
     Route::get('/analitik/biaya/{kategori}', [App\Http\Controllers\AnalyticsController::class, 'detailKategori'])
     ->name('analitik.detail-kategori');
