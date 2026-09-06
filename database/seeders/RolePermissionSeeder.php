@@ -55,7 +55,6 @@ class RolePermissionSeeder extends Seeder
             [5, 'pengadaan', 1],
             [5, 'risalah', 1],
             [5, 'ticketing', 1],
-            [6, 'aset_logistik', 0],
             [6, 'dashboard', 1],
             [6, 'ticketing', 1],
             [7, 'dashboard', 1],

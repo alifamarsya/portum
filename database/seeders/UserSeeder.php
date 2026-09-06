@@ -26,9 +26,8 @@ class UserSeeder extends Seeder
 
         // Role Multi-User (Pemohon Layanan Cabang & Divisi)
         $multiRoleUsers = [
-            ['username' => 'user', 'nama_lengkap' => 'Staf Pemohon Layanan', 'email' => 'pemohon@banksulteng.co.id', 'jabatan' => 'Staff Operasional Cabang', 'bagian' => 'Kantor Cabang Utama', 'role_id' => 6, 'department_id' => null],
-            ['username' => 'cabang', 'nama_lengkap' => 'Staf Cabang Tawaeli', 'email' => 'cabang.palu@banksulteng.co.id', 'jabatan' => 'Staff Customer Service', 'bagian' => 'Kantor Cabang Palu', 'role_id' => 6, 'department_id' => null],
-            ['username' => 'kantor pusat', 'nama_lengkap' => 'Staf Divisi SDM', 'email' => 'sdm.pemohon@banksulteng.co.id', 'jabatan' => 'Staff Personalia', 'bagian' => 'Divisi SDM & Umum', 'role_id' => 6, 'department_id' => null],
+            ['username' => 'cabang tawaeli', 'nama_lengkap' => 'Staf Cabang Tawaeli', 'email' => 'cabang.palu@banksulteng.co.id', 'jabatan' => 'Staff Customer Service', 'bagian' => 'Kantor Cabang Palu', 'role_id' => 6, 'department_id' => null],
+            ['username' => 'Reza', 'nama_lengkap' => 'Reza Gilang Kenanza', 'email' => 'ukksiber@banksulteng.co.id', 'jabatan' => 'Pemimpin Unit Kerja Analis Ketahanan &  Keamanan Siber', 'bagian' => 'Divisi Unit Khusus Keamanan Siber Kantor Pusat', 'role_id' => 6, 'department_id' => null],
         ];
 
         foreach (array_merge($singleRoleUsers, $multiRoleUsers) as $u) {

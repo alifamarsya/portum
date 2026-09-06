@@ -29,7 +29,7 @@
 <div class="space-y-6">
     @foreach ($roles as $role)
         @php
-            $isMutlak = in_array($role->nama, ['admin', 'pimpinan', 'kepala_bagian', 'kepala_divisi']);
+            $isMutlak = in_array($role->nama, ['admin', 'pimpinan', 'kabag_umum', 'kabag_aset', 'kabag_pengadaan']);
             $userCount = $role->users->count();
             $assignedUsers = $role->users->pluck('username')->implode(', ');
         @endphp

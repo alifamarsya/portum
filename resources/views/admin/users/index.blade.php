@@ -42,7 +42,7 @@
                 <tbody class="divide-y divide-slate-100">
                     @foreach ($items as $u)
                         @php
-                            $isMutlak = in_array($u->role?->nama, ['admin', 'pimpinan', 'kepala_bagian', 'kepala_divisi']);
+                            $isMutlak = in_array($u->role?->nama, ['admin', 'pimpinan', 'kabag_umum', 'kabag_aset', 'kabag_pengadaan']);
                         @endphp
                         <tr class="hover:bg-slate-50/60 transition">
                             <td class="px-4 py-3">
