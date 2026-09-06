@@ -11,6 +11,10 @@ class AnalyticsController extends Controller
 {
     public function index()
     {
+        if (auth()->user()?->isSuperAdmin()) {
+            return redirect()->route('admin.dashboard');
+        }
+
         // 1. KPI Summary Cards
         $totalBiaya = (float) FactBiayaBulanan::sum('total_biaya');
         $totalPengadaan = (float) FactPengadaan::sum('total_nilai');

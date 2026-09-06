@@ -23,6 +23,10 @@ class DashboardController extends Controller
             return redirect()->route('operator.dashboard');
         }
 
+        if (auth()->user()?->isSuperAdmin()) {
+            return redirect()->route('admin.dashboard');
+        }
+
         $menunggu = UmBiayaHarian::where('approval_status', 'Diajukan')->count();
         $reminderAktif = PgReminder::where('status', 'Aktif')
             ->whereDate('tanggal_jatuh_tempo', '<=', now()->addDays(90))

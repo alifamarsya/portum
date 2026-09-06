@@ -29,6 +29,10 @@ class ModuleController extends Controller
         $cfg = $this->config($key);
         $user = auth()->user();
 
+        if ($user->isSuperAdmin()) {
+            abort(403, 'Role Administrator berfokus pada Administrasi Sistem & Layanan Tiket.');
+        }
+
         $perm = \App\Models\RolePermission::where('role_id', $user->role_id)
             ->where('perm_key', $cfg['perm'])
             ->first();

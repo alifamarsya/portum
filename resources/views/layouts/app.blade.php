@@ -89,7 +89,7 @@
 <aside class="portum-sidebar-rail hidden lg:flex flex-col bg-canvas select-none">
     {{-- 1. Top Logo Area (Seamless with Dashboard Background) --}}
     <div class="h-[72px] px-4 flex items-center justify-center bg-canvas flex-shrink-0">
-        <a href="{{ $user?->isUser() ? route('user.dashboard') : route('dashboard') }}" class="flex items-center" style="max-width:170px;">
+        <a href="{{ $user?->isUser() ? route('user.dashboard') : ($user?->isOperator() ? route('operator.dashboard') : ($user?->isSuperAdmin() ? route('admin.dashboard') : route('dashboard'))) }}" class="flex items-center" style="max-width:170px;">
             <img src="{{ asset('images/bank-sulteng.png') }}"
                  alt="Bank Sulteng"
                  style="max-height:44px; width:auto; max-width:155px; object-fit:contain; display:block;">
@@ -168,6 +168,89 @@
                             @else
                                 <span class="text-white/40 text-xs">▸</span>
                             @endif
+                        </a>
+                    </div>
+                </div>
+            @elseif ($user?->isSuperAdmin())
+                {{-- ================= KHUSUS ROLE: SUPERADMIN / ADMINISTRATOR ================= --}}
+                {{-- Dashboard Admin --}}
+                <div class="space-y-1 px-3">
+                    <a href="{{ route('admin.dashboard') }}"
+                       class="flex items-center justify-between gap-3 py-2 px-3 rounded-xl transition {{ request()->routeIs('admin.dashboard') ? 'bg-canvas text-[#114E84] font-bold shadow-2xs' : 'text-white/90 hover:bg-white/10 hover:text-white' }}">
+                        <div class="flex items-center gap-3">
+                            <div class="w-6 h-6 flex items-center justify-center {{ request()->routeIs('admin.dashboard') ? 'text-[#114E84]' : 'text-white/80' }}">
+                                @include('partials.icon', ['name' => 'home', 'class' => 'w-[18px] h-[18px]'])
+                            </div>
+                            <span class="text-[12.5px]">Dashboard Admin</span>
+                        </div>
+                        <span class="{{ request()->routeIs('admin.dashboard') ? 'text-[#114E84]' : 'text-white/40' }} text-xs">▸</span>
+                    </a>
+                </div>
+
+                {{-- Sistem Tiket --}}
+                <div class="pt-2">
+                    <p class="px-5 mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/40">Layanan</p>
+                    <div class="space-y-0.5 px-3">
+                        <a href="{{ route('tickets.index') }}"
+                           class="flex items-center justify-between gap-3 py-2 px-3 rounded-xl transition {{ request()->routeIs('tickets.*') ? 'bg-canvas text-[#114E84] font-bold shadow-2xs' : 'text-white/90 hover:bg-white/10 hover:text-white' }}">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-6 h-6 flex items-center justify-center {{ request()->routeIs('tickets.*') ? 'text-[#114E84]' : 'text-white/80' }} flex-shrink-0">
+                                    @include('partials.icon', ['name' => 'inbox', 'class' => 'w-[17px] h-[17px]'])
+                                </div>
+                                <span class="text-[12.5px] truncate">Sistem Tiket</span>
+                            </div>
+                            @php
+                                $adminAntriCount = \App\Models\Ticket::where('status', 'Menunggu Verifikasi')->count();
+                            @endphp
+                            @if ($adminAntriCount > 0)
+                                <span class="bg-amber-400 text-[#0E1726] text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center">
+                                    {{ $adminAntriCount }}
+                                </span>
+                            @else
+                                <span class="{{ request()->routeIs('tickets.*') ? 'text-[#114E84]' : 'text-white/40' }} text-xs">▸</span>
+                            @endif
+                        </a>
+                    </div>
+                </div>
+
+                {{-- Modul Administrasi --}}
+                <div class="pt-2">
+                    <p class="px-5 mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/40">Modul Administrasi</p>
+                    <div class="space-y-0.5 px-3">
+                        {{-- User --}}
+                        <a href="{{ route('admin.users.index') }}"
+                           class="flex items-center justify-between gap-3 py-2 px-3 rounded-xl transition {{ request()->routeIs('admin.users.*') ? 'bg-canvas text-[#114E84] font-bold shadow-2xs' : 'text-white/90 hover:bg-white/10 hover:text-white' }}">
+                            <div class="flex items-center gap-3">
+                                <div class="w-6 h-6 flex items-center justify-center {{ request()->routeIs('admin.users.*') ? 'text-[#114E84]' : 'text-white/80' }}">
+                                    @include('partials.icon', ['name' => 'users', 'class' => 'w-[17px] h-[17px]'])
+                                </div>
+                                <span class="text-[12.5px]">Manajemen User</span>
+                            </div>
+                            <span class="{{ request()->routeIs('admin.users.*') ? 'text-[#114E84]' : 'text-white/40' }} text-xs">▸</span>
+                        </a>
+
+                        {{-- Role --}}
+                        <a href="{{ route('admin.roles.index') }}"
+                           class="flex items-center justify-between gap-3 py-2 px-3 rounded-xl transition {{ request()->routeIs('admin.roles.*') ? 'bg-canvas text-[#114E84] font-bold shadow-2xs' : 'text-white/90 hover:bg-white/10 hover:text-white' }}">
+                            <div class="flex items-center gap-3">
+                                <div class="w-6 h-6 flex items-center justify-center {{ request()->routeIs('admin.roles.*') ? 'text-[#114E84]' : 'text-white/80' }}">
+                                    @include('partials.icon', ['name' => 'shield', 'class' => 'w-[17px] h-[17px]'])
+                                </div>
+                                <span class="text-[12.5px]">Peran & Hak Akses</span>
+                            </div>
+                            <span class="{{ request()->routeIs('admin.roles.*') ? 'text-[#114E84]' : 'text-white/40' }} text-xs">▸</span>
+                        </a>
+
+                        {{-- Audit Log --}}
+                        <a href="{{ route('admin.audit-log.index') }}"
+                           class="flex items-center justify-between gap-3 py-2 px-3 rounded-xl transition {{ request()->routeIs('admin.audit-log.*') ? 'bg-canvas text-[#114E84] font-bold shadow-2xs' : 'text-white/90 hover:bg-white/10 hover:text-white' }}">
+                            <div class="flex items-center gap-3">
+                                <div class="w-6 h-6 flex items-center justify-center {{ request()->routeIs('admin.audit-log.*') ? 'text-[#114E84]' : 'text-white/80' }}">
+                                    @include('partials.icon', ['name' => 'lock', 'class' => 'w-[17px] h-[17px]'])
+                                </div>
+                                <span class="text-[12.5px]">Audit Log & Hash</span>
+                            </div>
+                            <span class="{{ request()->routeIs('admin.audit-log.*') ? 'text-[#114E84]' : 'text-white/40' }} text-xs">▸</span>
                         </a>
                     </div>
                 </div>
@@ -420,6 +503,33 @@
                         <span>Semua Tiket</span>
                     </a>
                 </div>
+            @elseif ($user?->isSuperAdmin())
+                <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3 p-2 rounded-xl {{ request()->routeIs('admin.dashboard') ? 'bg-white/20 text-white font-bold' : 'text-white/80' }}">
+                    @include('partials.icon', ['name' => 'home', 'class' => 'w-4 h-4'])
+                    <span>Dashboard Admin</span>
+                </a>
+                <div class="space-y-1 pt-1">
+                    <p class="text-[10px] font-bold text-white/50 uppercase px-2 mb-1">Layanan</p>
+                    <a href="{{ route('tickets.index') }}" class="flex items-center gap-3 p-2 rounded-xl {{ request()->routeIs('tickets.*') ? 'bg-white/20 text-white font-bold' : 'text-white/80' }}">
+                        @include('partials.icon', ['name' => 'inbox', 'class' => 'w-4 h-4'])
+                        <span>Sistem Tiket</span>
+                    </a>
+                </div>
+                <div class="space-y-1 pt-1">
+                    <p class="text-[10px] font-bold text-white/50 uppercase px-2 mb-1">Administrasi</p>
+                    <a href="{{ route('admin.users.index') }}" class="flex items-center gap-3 p-2 rounded-xl {{ request()->routeIs('admin.users.*') ? 'bg-white/20 text-white font-bold' : 'text-white/80' }}">
+                        @include('partials.icon', ['name' => 'users', 'class' => 'w-4 h-4'])
+                        <span>Manajemen User</span>
+                    </a>
+                    <a href="{{ route('admin.roles.index') }}" class="flex items-center gap-3 p-2 rounded-xl {{ request()->routeIs('admin.roles.*') ? 'bg-white/20 text-white font-bold' : 'text-white/80' }}">
+                        @include('partials.icon', ['name' => 'shield', 'class' => 'w-4 h-4'])
+                        <span>Peran & Hak Akses</span>
+                    </a>
+                    <a href="{{ route('admin.audit-log.index') }}" class="flex items-center gap-3 p-2 rounded-xl {{ request()->routeIs('admin.audit-log.*') ? 'bg-white/20 text-white font-bold' : 'text-white/80' }}">
+                        @include('partials.icon', ['name' => 'lock', 'class' => 'w-4 h-4'])
+                        <span>Audit Log & Hash</span>
+                    </a>
+                </div>
             @else
                 <a href="{{ route('dashboard') }}" class="flex items-center gap-3 p-2 rounded-xl {{ request()->routeIs('dashboard') ? 'bg-white/20 text-white font-bold' : 'text-white/80' }}">
                     @include('partials.icon', ['name' => 'home', 'class' => 'w-4 h-4'])
@@ -449,23 +559,6 @@
                         </div>
                     @endif
                 @endforeach
-
-                @if ($user?->role?->nama === 'superadmin')
-                    <div class="pt-1">
-                        <p class="text-[10px] font-bold text-white/50 uppercase px-2 mb-1">Administrasi</p>
-                        <div class="space-y-0.5 pl-2">
-                            <a href="{{ route('admin.users.index') }}" class="block px-2 py-1.5 rounded-lg text-white/80 hover:text-white {{ request()->routeIs('admin.users.*') ? 'text-white font-bold bg-white/20' : '' }}">
-                                • User
-                            </a>
-                            <a href="{{ route('admin.roles.index') }}" class="block px-2 py-1.5 rounded-lg text-white/80 hover:text-white {{ request()->routeIs('admin.roles.*') ? 'text-white font-bold bg-white/20' : '' }}">
-                                • Role
-                            </a>
-                            <a href="{{ route('admin.audit-log.index') }}" class="block px-2 py-1.5 rounded-lg text-white/80 hover:text-white {{ request()->routeIs('admin.audit-log.*') ? 'text-white font-bold bg-white/20' : '' }}">
-                                • Audit Log
-                            </a>
-                        </div>
-                    </div>
-                @endif
             @endif
         </nav>
         <div class="p-3 border-t border-white/10 flex items-center justify-between bg-black/10">
@@ -490,7 +583,7 @@
         {{-- Breadcrumb / Current Route Context --}}
         <div class="flex items-center gap-2 min-w-0">
             <div class="flex items-center gap-1.5 text-xs text-slate-500 font-medium min-w-0">
-                <a href="{{ route('dashboard') }}" class="hover:text-brand transition-colors flex-shrink-0">Bank Sulteng</a>
+                <a href="{{ $user?->isUser() ? route('user.dashboard') : ($user?->isOperator() ? route('operator.dashboard') : ($user?->isSuperAdmin() ? route('admin.dashboard') : route('dashboard'))) }}" class="hover:text-brand transition-colors flex-shrink-0">Bank Sulteng</a>
                 <span class="text-slate-300 flex-shrink-0">/</span>
                 <span class="text-ink font-semibold truncate">@yield('title', 'Dashboard')</span>
             </div>
