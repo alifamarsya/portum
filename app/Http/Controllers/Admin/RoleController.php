@@ -6,33 +6,118 @@ use App\Concerns\LogsAudit;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\RolePermission;
+use App\Services\SeederSyncService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class RoleController extends Controller
 {
     use LogsAudit;
 
-    const PERM_KEYS = [
-        'dashboard', 'analytics_dw', 'umum_rt', 'aset_logistik', 'pengadaan', 'risalah',
-        'panduan', 'user_mgmt', 'role_mgmt', 'audit_log', 'ref_akun',
+    const PERMISSIONS = [
+        'Layanan & Monitoring' => [
+            'dashboard' => ['label' => 'Dashboard', 'desc' => 'Akses halaman dashboard pemantauan utama sistem'],
+            'ticketing' => ['label' => 'Sistem Tiket', 'desc' => 'Akses modul tiket layanan (pemohon, operator, atau unit kerja)'],
+        ],
+        'Modul Operasional' => [
+            'umum_rt' => ['label' => 'Umum & Rumah Tangga', 'desc' => 'Pengelolaan kendaraan, biaya BBM/RT, dan permintaan ATK cabang'],
+            'aset_logistik' => ['label' => 'Aset & Logistik', 'desc' => 'Pengelolaan inventaris, invoice sewa, amortisasi, dan PKS'],
+            'pengadaan' => ['label' => 'Pengadaan & Pemeliharaan', 'desc' => 'Pengelolaan memo internal, penawaran vendor, SPK, dan reminder'],
+        ],
+        'Dokumentasi & Referensi' => [
+            'risalah' => ['label' => 'Risalah Rapat', 'desc' => 'Notulensi agenda rapat, daftar hadir, dan tindak lanjut keputusan'],
+            'panduan' => ['label' => 'Buku Panduan & SOP', 'desc' => 'Dokumentasi pedoman teknis dan panduan operasional perbankan'],
+            'ref_akun' => ['label' => 'Referensi Akun (COA)', 'desc' => 'Master data rekening debet dan akun beban biaya'],
+        ],
+        'Administrasi Sistem' => [
+            'user_mgmt' => ['label' => 'Manajemen User', 'desc' => 'Pengelolaan data pengguna, reset kata sandi, dan status aktif'],
+            'role_mgmt' => ['label' => 'Manajemen Role', 'desc' => 'Konfigurasi matriks izin modul dan peran jabatan (RBAC)'],
+            'audit_log' => ['label' => 'Audit Log & Hash', 'desc' => 'Jejak audit digital seluruh aktivitas dan integritas SHA-256'],
+        ],
     ];
+
+    public static function allKeys(): array
+    {
+        $keys = [];
+        foreach (self::PERMISSIONS as $group) {
+            foreach (array_keys($group) as $k) {
+                $keys[] = $k;
+            }
+        }
+        return $keys;
+    }
 
     public function index()
     {
-        $roles = Role::with('permissions')->orderBy('id')->get();
-        return view('admin.roles.index', ['roles' => $roles, 'permKeys' => self::PERM_KEYS]);
+        $roles = Role::with(['permissions', 'users'])->orderBy('id')->get();
+        return view('admin.roles.index', [
+            'roles' => $roles,
+            'groupedPermissions' => self::PERMISSIONS,
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'label' => 'required|string|max:255',
+            'nama' => 'nullable|string|max:100|regex:/^[a-zA-Z0-9_\-]+$/|unique:roles,nama',
+            'deskripsi' => 'nullable|string|max:500',
+        ]);
+
+        $slug = !empty($data['nama']) 
+            ? Str::slug($data['nama'], '_') 
+            : Str::slug($data['label'], '_');
+
+        if (Role::where('nama', $slug)->exists()) {
+            $slug = $slug . '_' . time();
+        }
+
+        $role = Role::create([
+            'nama' => $slug,
+            'label' => $data['label'],
+            'deskripsi' => $data['deskripsi'] ?? null,
+        ]);
+
+        // Berikan izin default dashboard
+        DB::table('role_permissions')->insert([
+            'role_id' => $role->id,
+            'perm_key' => 'dashboard',
+            'can_write' => 0,
+        ]);
+
+        $this->audit('CREATE', 'Manajemen Role', 'Role', $role->id, "Menambah role baru {$role->nama} ({$role->label})");
+
+        // Otomatis sinkronkan ke RolePermissionSeeder.php
+        SeederSyncService::syncRolePermissions();
+
+        return back()->with('status', "Role '{$role->label}' berhasil ditambahkan ke sistem.");
     }
 
     public function updatePermissions(Request $request, Role $role)
     {
-        foreach (self::PERM_KEYS as $key) {
-            RolePermission::updateOrCreate(
-                ['role_id' => $role->id, 'perm_key' => $key],
-                ['can_write' => $request->boolean("write_{$key}")]
-            );
-        }
-        $this->audit('UPDATE', 'Manajemen Role', 'Role', $role->id, "Mengubah matriks permission role {$role->nama}");
+        foreach (self::allKeys() as $key) {
+            $hasAccess = $request->boolean("access_{$key}");
+            $canWrite = $request->boolean("write_{$key}");
 
-        return back()->with('status', "Permission role {$role->label} diperbarui.");
+            if ($hasAccess) {
+                DB::table('role_permissions')->updateOrInsert(
+                    ['role_id' => $role->id, 'perm_key' => $key],
+                    ['can_write' => $canWrite ? 1 : 0]
+                );
+            } else {
+                DB::table('role_permissions')
+                    ->where('role_id', $role->id)
+                    ->where('perm_key', $key)
+                    ->delete();
+            }
+        }
+
+        $this->audit('UPDATE', 'Manajemen Role', 'Role', $role->id, "Mengubah matriks permission role {$role->nama} ({$role->label})");
+
+        // Otomatis sinkronkan ke hardcode RolePermissionSeeder.php
+        SeederSyncService::syncRolePermissions();
+
+        return back()->with('status', "Hak akses untuk role {$role->label} berhasil diperbarui.");
     }
 }

@@ -13,7 +13,7 @@ class EnsureSuperadmin
 {
     public function handle(Request $request, Closure $next): Response
     {
-        abort_unless($request->user()?->role?->nama === 'superadmin', 403, 'Halaman ini khusus Super Administrator.');
+        abort_unless($request->user()?->isSuperAdmin(), 403, 'Halaman ini khusus Administrator.');
         return $next($request);
     }
 }

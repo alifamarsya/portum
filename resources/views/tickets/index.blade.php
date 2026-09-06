@@ -21,7 +21,7 @@
         </div>
 
         {{-- Actions --}}
-        @if (!auth()->user()->isKepalaDivisi() || auth()->user()->hasRole('superadmin'))
+        @if (!auth()->user()->hasRole('superadmin'))
             <a href="{{ route('tickets.create') }}"
                class="inline-flex items-center gap-2 bg-[#114E84] hover:bg-[#0E4272] text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-md transition duration-200">
                 @include('partials.icon', ['name' => 'plus', 'class' => 'w-4 h-4'])
