@@ -6,7 +6,9 @@ use App\Concerns\LogsAudit;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\RolePermission;
+use App\Services\SeederSyncService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class RoleController extends Controller
 {
@@ -16,7 +18,6 @@ class RoleController extends Controller
         'Layanan & Monitoring' => [
             'dashboard' => ['label' => 'Dashboard', 'desc' => 'Akses halaman dashboard pemantauan utama sistem'],
             'ticketing' => ['label' => 'Sistem Tiket', 'desc' => 'Akses modul tiket layanan (pemohon, operator, atau unit kerja)'],
-            'analytics_dw' => ['label' => 'Analitik DW', 'desc' => 'Akses laporan analitik biaya operasional & data warehouse'],
         ],
         'Modul Operasional' => [
             'umum_rt' => ['label' => 'Umum & Rumah Tangga', 'desc' => 'Pengelolaan kendaraan, biaya BBM/RT, dan permintaan ATK cabang'],
@@ -62,16 +63,22 @@ class RoleController extends Controller
             $canWrite = $request->boolean("write_{$key}");
 
             if ($hasAccess) {
-                RolePermission::updateOrCreate(
+                DB::table('role_permissions')->updateOrInsert(
                     ['role_id' => $role->id, 'perm_key' => $key],
                     ['can_write' => $canWrite ? 1 : 0]
                 );
             } else {
-                RolePermission::where('role_id', $role->id)->where('perm_key', $key)->delete();
+                DB::table('role_permissions')
+                    ->where('role_id', $role->id)
+                    ->where('perm_key', $key)
+                    ->delete();
             }
         }
 
         $this->audit('UPDATE', 'Manajemen Role', 'Role', $role->id, "Mengubah matriks permission role {$role->nama} ({$role->label})");
+
+        // Otomatis sinkronkan ke hardcode RolePermissionSeeder.php
+        SeederSyncService::syncRolePermissions();
 
         return back()->with('status', "Hak akses untuk role {$role->label} berhasil diperbarui.");
     }

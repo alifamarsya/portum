@@ -81,19 +81,38 @@
                                 </span>
                             </td>
                             <td class="px-4 py-3 text-right whitespace-nowrap">
-                                <div class="inline-flex items-center gap-3 text-xs">
+                                <div class="inline-flex items-center gap-2.5 text-xs">
+                                    <button type="button"
+                                            onclick="openEditModal({{ json_encode([
+                                                'id' => $u->id,
+                                                'username' => $u->username,
+                                                'nama_lengkap' => $u->nama_lengkap,
+                                                'email' => $u->email,
+                                                'jabatan' => $u->jabatan,
+                                                'bagian' => $u->bagian,
+                                                'role_id' => $u->role_id,
+                                                'is_active' => (bool)$u->is_active,
+                                                'role_nama' => $u->role?->nama,
+                                            ]) }})"
+                                            class="px-2.5 py-1 rounded-lg text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 font-semibold transition flex items-center gap-1">
+                                        @include('partials.icon', ['name' => 'pencil', 'class' => 'w-3 h-3'])
+                                        Edit
+                                    </button>
+
                                     <form method="POST" action="{{ route('admin.users.reset-password', $u) }}" class="inline" onsubmit="return confirm('Reset password pengguna {{ $u->username }}?')">
                                         @csrf
-                                        <button class="text-[#114E84] font-semibold hover:underline">Reset Password</button>
+                                        <button class="px-2.5 py-1 rounded-lg text-[#114E84] bg-blue-50/80 hover:bg-blue-100 border border-blue-200/80 font-semibold transition">
+                                            Reset
+                                        </button>
                                     </form>
 
                                     @if ($isMulti)
                                         <form method="POST" action="{{ route('admin.users.destroy', $u) }}" class="inline" onsubmit="return confirm('Hapus pengguna pemohon {{ $u->username }}?')">
                                             @csrf @method('DELETE')
-                                            <button class="text-rose-500 hover:text-rose-700 font-medium transition">Hapus</button>
+                                            <button class="px-2 py-1 rounded-lg text-rose-600 hover:bg-rose-50 font-medium transition">Hapus</button>
                                         </form>
                                     @else
-                                        <span class="text-slate-300 select-none" title="Role akun operasional tunggal tidak dapat dihapus">Hapus</span>
+                                        <span class="px-2 py-1 text-slate-300 select-none cursor-not-allowed text-[11px]" title="Role operasional tunggal tidak dapat dihapus">Tunggal</span>
                                     @endif
                                 </div>
                             </td>
@@ -115,12 +134,6 @@
                 <p class="text-xs text-slate-500">Buat akun untuk kantor cabang / pemohon</p>
             </div>
         </div>
-
-        <div class="p-3 rounded-xl bg-blue-50/70 border border-blue-200/60 text-[11.5px] text-slate-600 mb-4 leading-relaxed">
-            <p class="font-bold text-ink mb-0.5">Ketentuan Role:</p>
-            Role <strong>User (Pemohon Layanan)</strong> dapat dibuat berulang kali untuk cabang &amp; divisi. Role lainnya masing-masing hanya memiliki 1 akun tunggal.
-        </div>
-
         <form method="POST" action="{{ route('admin.users.store') }}" class="space-y-3">
             @csrf
             <div>
@@ -170,4 +183,138 @@
         </form>
     </div>
 </div>
+
+{{-- Modal Edit User --}}
+<div id="editUserModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity" onclick="closeEditModal()"></div>
+
+    <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+        <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-slate-200">
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-700 flex items-center justify-center">
+                        @include('partials.icon', ['name' => 'pencil', 'class' => 'w-4 h-4 text-amber-600'])
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-ink text-base" id="modal-title">Edit Data Pengguna</h3>
+                        <p class="text-xs text-slate-500">Perbarui username, role jabatan, profil, atau status akun</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600 transition p-1.5 rounded-lg hover:bg-slate-100">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <form id="editUserForm" method="POST" action="" class="p-5 sm:p-6 space-y-4">
+                @csrf
+                @method('PUT')
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Username <span class="text-rose-500">*</span></label>
+                        <input type="text" name="username" id="edit_username" required class="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-ink focus:border-[#114E84] focus:ring-1 focus:ring-[#114E84] transition">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Peran / Role <span class="text-rose-500">*</span></label>
+                        <select name="role_id" id="edit_role_id" required class="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-ink focus:border-[#114E84] focus:ring-1 focus:ring-[#114E84] transition bg-white">
+                            @foreach ($roles as $r)
+                                <option value="{{ $r->id }}" data-nama="{{ $r->nama }}" data-count="{{ $r->users_count }}" data-base-label="{{ $r->label }}">
+                                    {{ $r->label }} {{ $r->nama === 'user' ? '(Multi-User)' : '' }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap <span class="text-rose-500">*</span></label>
+                    <input type="text" name="nama_lengkap" id="edit_nama_lengkap" required class="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-ink focus:border-[#114E84] focus:ring-1 focus:ring-[#114E84] transition">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Email</label>
+                        <input type="email" name="email" id="edit_email" class="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-ink focus:border-[#114E84] focus:ring-1 focus:ring-[#114E84] transition">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Jabatan</label>
+                        <input type="text" name="jabatan" id="edit_jabatan" class="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-ink focus:border-[#114E84] focus:ring-1 focus:ring-[#114E84] transition">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Bagian / Kantor Cabang</label>
+                    <input type="text" name="bagian" id="edit_bagian" class="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-ink focus:border-[#114E84] focus:ring-1 focus:ring-[#114E84] transition">
+                </div>
+
+                <div class="pt-2 border-t border-slate-100">
+                    <label class="flex items-center gap-2.5 cursor-pointer select-none">
+                        <input type="checkbox" name="is_active" id="edit_is_active" value="1" class="w-4 h-4 rounded text-[#114E84] border-slate-300 focus:ring-[#114E84]">
+                        <span class="text-xs font-semibold text-slate-700">Status Akun Aktif (Bisa Login)</span>
+                    </label>
+                </div>
+
+                <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                    <button type="button" onclick="closeEditModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-[#114E84] text-white text-xs font-bold hover:bg-[#0E4272] transition shadow-xs">
+                        Simpan Perubahan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openEditModal(user) {
+        const modal = document.getElementById('editUserModal');
+        const form = document.getElementById('editUserForm');
+        form.action = "{{ url('admin/users') }}/" + user.id;
+
+        document.getElementById('edit_username').value = user.username || '';
+        document.getElementById('edit_nama_lengkap').value = user.nama_lengkap || '';
+        document.getElementById('edit_email').value = user.email || '';
+        document.getElementById('edit_jabatan').value = user.jabatan || '';
+        document.getElementById('edit_bagian').value = user.bagian || '';
+        document.getElementById('edit_is_active').checked = Boolean(user.is_active);
+
+        const selectRole = document.getElementById('edit_role_id');
+        Array.from(selectRole.options).forEach(opt => {
+            const roleNama = opt.getAttribute('data-nama');
+            const userCount = parseInt(opt.getAttribute('data-count') || '0', 10);
+            const optVal = parseInt(opt.value, 10);
+            const baseLabel = opt.getAttribute('data-base-label') || opt.text;
+
+            // Jika role tunggal dan sudah diisi user lain (bukan role user ini saat ini), disable
+            if (roleNama !== 'user' && userCount >= 1 && optVal !== user.role_id) {
+                opt.disabled = true;
+                opt.textContent = baseLabel + ' (1 User - Sudah Terisi)';
+            } else {
+                opt.disabled = false;
+                opt.textContent = baseLabel + (roleNama === 'user' ? ' (Multi-User)' : ' (1 User)');
+            }
+        });
+
+        selectRole.value = user.role_id;
+
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeEditModal() {
+        const modal = document.getElementById('editUserModal');
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            closeEditModal();
+        }
+    });
+</script>
 @endsection

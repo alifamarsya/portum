@@ -6,6 +6,7 @@ use App\Concerns\LogsAudit;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\SeederSyncService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -47,19 +48,24 @@ class UserController extends Controller
         $user = User::create($data);
         $this->audit('CREATE', 'Manajemen User', 'User', $user->id, "Menambah user {$user->username} pada role {$role->label}");
 
+        // Otomatis sinkronkan ke hardcode UserSeeder.php
+        SeederSyncService::syncUsers();
+
         return back()->with('status', "User {$user->username} berhasil dibuat. Password sementara: {$plain}");
     }
 
     public function update(Request $request, User $user)
     {
         $data = $request->validate([
+            'username' => 'required|string|max:100|unique:users,username,' . $user->id,
             'nama_lengkap' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',
             'jabatan' => 'nullable|string|max:255',
             'bagian' => 'nullable|string|max:255',
             'role_id' => 'required|exists:roles,id',
-            'is_active' => 'boolean',
         ]);
+
+        $data['is_active'] = $request->boolean('is_active');
 
         // Aturan sistem: Hanya role 'user' yang dapat memiliki banyak user.
         $role = Role::findOrFail($request->role_id);
@@ -72,7 +78,10 @@ class UserController extends Controller
         $user->update($data);
         $this->audit('UPDATE', 'Manajemen User', 'User', $user->id, "Mengubah data user {$user->username}");
 
-        return back()->with('status', 'User diperbarui.');
+        // Otomatis sinkronkan ke hardcode UserSeeder.php
+        SeederSyncService::syncUsers();
+
+        return back()->with('status', "User {$user->username} berhasil diperbarui.");
     }
 
     public function resetPassword(User $user)
@@ -97,6 +106,9 @@ class UserController extends Controller
         $username = $user->username;
         $user->delete();
         $this->audit('DELETE', 'Manajemen User', 'User', $id, "Menghapus user {$username}");
+
+        // Otomatis sinkronkan ke hardcode UserSeeder.php
+        SeederSyncService::syncUsers();
 
         return back()->with('status', "User {$username} berhasil dihapus.");
     }

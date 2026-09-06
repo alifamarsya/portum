@@ -11,9 +11,11 @@ class AnalyticsController extends Controller
 {
     public function index()
     {
-        if (auth()->user()?->isSuperAdmin()) {
-            return redirect()->route('admin.dashboard');
-        }
+        $user = auth()->user();
+        $perm = \App\Models\RolePermission::where('role_id', $user?->role_id)
+            ->where('perm_key', 'analytics_dw')
+            ->first();
+        abort_if(!$perm, 403, 'Role Anda tidak memiliki akses ke modul Analitik DW.');
 
         // 1. KPI Summary Cards
         $totalBiaya = (float) FactBiayaBulanan::sum('total_biaya');

@@ -8,8 +8,6 @@
             @include('partials.icon', ['name' => 'shield', 'class' => 'w-3 h-3 text-[#114E84]'])
             RBAC Management
         </span>
-        <span class="text-slate-300">•</span>
-        <span class="text-xs text-slate-500 font-medium">7 Role Standar Bank Sulteng</span>
     </div>
     <h1 class="text-2xl sm:text-3xl font-extrabold text-ink tracking-tight">
         Peran &amp; Hak Akses (Role Permission)
@@ -17,20 +15,6 @@
     <p class="text-xs sm:text-sm text-slate-500 mt-1">
         Atur matriks perizinan modul dan hak akses baca/tulis untuk 7 peran di sistem Portum Bank Sulteng.
     </p>
-</div>
-
-{{-- Kebijakan Role Info Banner --}}
-<div class="mb-6 p-4 rounded-2xl bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-200/80 flex items-start gap-3.5 text-xs text-slate-700">
-    <div class="w-8 h-8 rounded-xl bg-[#114E84] text-white flex items-center justify-center flex-shrink-0 mt-0.5">
-        @include('partials.icon', ['name' => 'shield', 'class' => 'w-4 h-4 text-amber-300'])
-    </div>
-    <div class="space-y-1 leading-relaxed">
-        <p class="font-bold text-ink text-sm">Ketentuan Struktur 7 Role &amp; Kapasitas Akun:</p>
-        <p>
-            • <strong>Role User (Pemohon):</strong> Bersifat <em>multi-user</em> dan dapat memiliki banyak akun untuk digunakan oleh staf dari berbagai kantor cabang dan divisi pemohon tiket layanan.<br>
-            • <strong>6 Role Lainnya:</strong> (Admin, Pimpinan Divisi, Operator, Staf Umum &amp; RT, Staf Aset/Inventaris &amp; Logistik, Staf Pengadaan serta Pemeliharaan) bertindak sebagai akun operasional tunggal (1 role = 1 user penanggung jawab).
-        </p>
-    </div>
 </div>
 
 <div class="space-y-6">
