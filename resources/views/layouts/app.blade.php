@@ -215,7 +215,7 @@
 
                 {{-- Modul Administrasi --}}
                 <div class="pt-2">
-                    <p class="px-5 mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/40">Modul Administrasi</p>
+                    <p class="px-5 mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/40">Administrasi</p>
                     <div class="space-y-0.5 px-3">
                         {{-- User --}}
                         <a href="{{ route('admin.users.index') }}"
