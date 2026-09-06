@@ -58,6 +58,11 @@ class User extends Authenticatable
         return $this->hasMany(TicketHistory::class, 'user_id');
     }
 
+    public function assignedTickets()
+    {
+        return $this->hasMany(Ticket::class, 'assigned_to');
+    }
+
     /**
      * Check if user has specific role by name.
      */
@@ -81,14 +86,45 @@ class User extends Authenticatable
         return $this->hasRole('operator');
     }
 
+    public function isKabag(): bool
+    {
+        return $this->hasRole(['kabag_umum', 'kabag_aset', 'kabag_pengadaan']);
+    }
+
+    public function kabagDepartmentId(): ?int
+    {
+        $roleName = strtolower($this->role?->nama ?? '');
+        return match ($roleName) {
+            'kabag_umum' => 1,
+            'kabag_aset' => 2,
+            'kabag_pengadaan' => 3,
+            default => $this->department_id,
+        };
+    }
+
+    public function effectiveDepartmentId(): ?int
+    {
+        if ($this->department_id) {
+            return (int) $this->department_id;
+        }
+
+        $roleName = strtolower($this->role?->nama ?? '');
+        return match ($roleName) {
+            'umum_rt', 'kabag_umum' => 1,
+            'aset', 'kabag_aset' => 2,
+            'pengadaan', 'kabag_pengadaan' => 3,
+            default => null,
+        };
+    }
+
     public function isInternalStaff(): bool
     {
-        return !is_null($this->department_id);
+        return !is_null($this->effectiveDepartmentId()) && !$this->isKabag();
     }
 
     public function isBagianInternal(): bool
     {
-        return !is_null($this->department_id);
+        return !is_null($this->effectiveDepartmentId());
     }
 
     public function isKepalaDivisi(): bool
@@ -98,6 +134,6 @@ class User extends Authenticatable
 
     public function isUser(): bool
     {
-        return $this->hasRole('user') || (is_null($this->department_id) && !$this->isOperator() && !$this->isSuperAdmin() && !$this->hasRole(['pimpinan', 'kepala_divisi']));
+        return $this->hasRole('user');
     }
 }

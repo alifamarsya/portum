@@ -77,6 +77,10 @@ class TicketController extends Controller
      */
     public function create()
     {
+        if (!auth()->user()->isUser()) {
+            abort(403, 'Hanya role User (Pemohon Layanan) yang berwenang membuat tiket baru. Role lainnya hanya dapat memantau dan memproses tiket.');
+        }
+
         $categories = TicketCategory::all();
         return view('tickets.create', compact('categories'));
     }
@@ -86,6 +90,10 @@ class TicketController extends Controller
      */
     public function store(Request $request)
     {
+        if (!auth()->user()->isUser()) {
+            abort(403, 'Hanya role User (Pemohon Layanan) yang berwenang membuat tiket baru.');
+        }
+
         $validated = $request->validate([
             'category_id' => 'required|exists:ticket_categories,id',
             'priority' => 'required|in:Rendah,Normal,Sedang,Tinggi,Darurat',
@@ -119,11 +127,12 @@ class TicketController extends Controller
         $user = auth()->user();
 
         // Check view authorization
-        if (!is_null($user->department_id) && $ticket->department_id !== $user->department_id) {
+        $userDeptId = $user->effectiveDepartmentId();
+        if (!is_null($userDeptId) && !$user->isSuperAdmin() && !$user->isOperator() && !$user->isKepalaDivisi() && $ticket->department_id !== $userDeptId) {
             abort(403, 'Tiket ini tidak ditugaskan ke bagian Anda.');
         }
 
-        if ($user->hasRole('user') && is_null($user->department_id) && $ticket->user_id !== $user->id) {
+        if ($user->isUser() && $ticket->user_id !== $user->id) {
             abort(403, 'Anda tidak memiliki akses untuk melihat tiket ini.');
         }
 
@@ -131,12 +140,33 @@ class TicketController extends Controller
             'user',
             'category',
             'department',
+            'assignedStaff',
+            'disposedBy',
             'histories' => function ($q) {
                 $q->with('user')->latest();
             }
         ]);
 
         $departments = InternalDepartment::all();
+
+        // Daftar staf aktif di bagian ini untuk dipilih oleh Kabag saat mendisposisikan tiket
+        $departmentStaff = collect();
+        if ($ticket->department_id) {
+            $departmentStaff = \App\Models\User::where(function ($q) use ($ticket) {
+                    $q->where('department_id', $ticket->department_id);
+                    if ($ticket->department_id == 1) {
+                        $q->orWhereHas('role', fn($r) => $r->where('nama', 'umum_rt'));
+                    } elseif ($ticket->department_id == 2) {
+                        $q->orWhereHas('role', fn($r) => $r->where('nama', 'aset'));
+                    } elseif ($ticket->department_id == 3) {
+                        $q->orWhereHas('role', fn($r) => $r->where('nama', 'pengadaan'));
+                    }
+                })
+                ->where('is_active', true)
+                ->whereDoesntHave('role', fn($q) => $q->whereIn('nama', ['kabag_umum', 'kabag_aset', 'kabag_pengadaan']))
+                ->orderBy('nama_lengkap')
+                ->get();
+        }
 
         // Audit: Pemohon membuka detail tiket miliknya — catat sebagai aksi VIEW
         if ($user->isUser() && $ticket->user_id === $user->id) {
@@ -149,7 +179,81 @@ class TicketController extends Controller
             );
         }
 
-        return view('tickets.show', compact('ticket', 'departments'));
+        return view('tickets.show', compact('ticket', 'departments', 'departmentStaff'));
+    }
+
+    /**
+     * Disposisi tiket oleh Kepala Bagian (Kabag) kepada staf tertentu di timnya
+     * setelah pengecekan kesesuaian RBB / pagu anggaran.
+     */
+    public function dispose(Request $request, Ticket $ticket)
+    {
+        $user = auth()->user();
+
+        $isAuthorizedKabag = ($user->isKabag() && $user->effectiveDepartmentId() == $ticket->department_id) || $user->isSuperAdmin();
+        if (!$isAuthorizedKabag) {
+            abort(403, 'Hanya Kepala Bagian penanggung jawab yang berwenang mendisposisikan tiket ini.');
+        }
+
+        $validated = $request->validate([
+            'assigned_to' => 'required|exists:users,id',
+            'disposition_notes' => 'required|string|min:5|max:1000',
+        ]);
+
+        $staff = \App\Models\User::findOrFail($validated['assigned_to']);
+        if ($staff->department_id != $ticket->department_id) {
+            return back()->withErrors(['assigned_to' => 'Staf yang dipilih bukan anggota bagian ini.'])->withInput();
+        }
+
+        $this->ticketService->disposeTicket($ticket, $staff, $validated['disposition_notes'], $user);
+
+        $this->audit(
+            'DISPOSE',
+            'Ticketing',
+            'Ticket',
+            $ticket->id,
+            "Kepala Bagian {$user->nama_lengkap} mendisposisikan tiket {$ticket->ticket_number} ke staf {$staff->nama_lengkap} ({$staff->username}). Catatan RBB/Anggaran: {$validated['disposition_notes']}"
+        );
+
+        return redirect()->route('tickets.show', $ticket)
+            ->with('status', "Tiket {$ticket->ticket_number} berhasil disetujui & didisposisikan kepada staf {$staff->nama_lengkap}.");
+    }
+
+    /**
+     * Penolakan tiket oleh Kepala Bagian atau Operator (misal: tidak sesuai RBB / pagu habis).
+     */
+    public function reject(Request $request, Ticket $ticket)
+    {
+        $user = auth()->user();
+
+        $isAuthorized = ($user->isKabag() && $user->effectiveDepartmentId() == $ticket->department_id) 
+            || $user->isOperator() 
+            || $user->isSuperAdmin();
+
+        if (!$isAuthorized) {
+            abort(403, 'Anda tidak berwenang menolak tiket ini.');
+        }
+
+        $validated = $request->validate([
+            'notes' => 'required|string|min:5|max:1000',
+        ]);
+
+        $oldStatus = $ticket->status;
+        $this->ticketService->updateTicket($ticket, [
+            'status' => 'Ditolak',
+            'notes' => "Tiket ditolak oleh {$user->nama_lengkap} ({$user->role?->label}). Alasan: {$validated['notes']}",
+        ], $user);
+
+        $this->audit(
+            'REJECT',
+            'Ticketing',
+            'Ticket',
+            $ticket->id,
+            "Menolak tiket {$ticket->ticket_number}. Alasan: {$validated['notes']}"
+        );
+
+        return redirect()->route('tickets.show', $ticket)
+            ->with('status', "Tiket {$ticket->ticket_number} telah ditolak.");
     }
 
     /**
@@ -159,20 +263,20 @@ class TicketController extends Controller
     {
         $user = auth()->user();
         $isOperator = $user->isOperator() || $user->isSuperAdmin();
-        $isInternal = !is_null($user->department_id);
+        $isInternal = !is_null($user->effectiveDepartmentId());
 
         if (!$isOperator && !$isInternal) {
-            abort(403, 'Hanya Operator dan Staf Bagian Internal yang berwenang mengubah tiket.');
+            abort(403, 'Hanya Operator dan Staf/Kepala Bagian Internal yang berwenang mengubah tiket.');
         }
 
-        if ($isInternal && !$isOperator && $ticket->department_id !== $user->department_id) {
+        if ($isInternal && !$isOperator && $ticket->department_id !== $user->effectiveDepartmentId()) {
             abort(403, 'Tiket ini tidak ditugaskan ke bagian Anda.');
         }
 
         $categories = TicketCategory::all();
         $departments = InternalDepartment::all();
 
-        $ticket->load(['user', 'category', 'department', 'histories' => fn($q) => $q->with('user')->latest()]);
+        $ticket->load(['user', 'category', 'department', 'assignedStaff', 'disposedBy', 'histories' => fn($q) => $q->with('user')->latest()]);
 
         return view('tickets.edit', compact('ticket', 'categories', 'departments'));
     }
@@ -185,14 +289,14 @@ class TicketController extends Controller
     {
         $user = auth()->user();
         $isOperator = $user->isOperator() || $user->isSuperAdmin();
-        $isInternal = !is_null($user->department_id);
+        $isInternal = !is_null($user->effectiveDepartmentId());
 
         // Authorization check
         if (!$isOperator && !$isInternal) {
             abort(403, 'Anda tidak memiliki hak akses untuk mengubah tiket.');
         }
 
-        if ($isInternal && !$isOperator && $ticket->department_id !== $user->department_id) {
+        if ($isInternal && !$isOperator && $ticket->department_id !== $user->effectiveDepartmentId()) {
             abort(403, 'Tiket ini tidak ditugaskan ke bagian Anda.');
         }
 
@@ -201,7 +305,7 @@ class TicketController extends Controller
             'notes' => 'nullable|string|max:1000',
         ];
 
-        // Only operator or superadmin can re-assign department, category & change priority
+        // Operator verifies and directs to department (not assigning directly to staff)
         if ($isOperator) {
             $rules['department_id'] = 'nullable|exists:internal_departments,id';
             $rules['category_id']   = 'nullable|exists:ticket_categories,id';

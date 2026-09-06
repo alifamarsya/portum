@@ -89,7 +89,7 @@
 <aside class="portum-sidebar-rail hidden lg:flex flex-col bg-canvas select-none">
     {{-- 1. Top Logo Area (Seamless with Dashboard Background) --}}
     <div class="h-[72px] px-4 flex items-center justify-center bg-canvas flex-shrink-0">
-        <a href="{{ $user?->isUser() ? route('user.dashboard') : ($user?->isOperator() ? route('operator.dashboard') : ($user?->isSuperAdmin() ? route('admin.dashboard') : route('dashboard'))) }}" class="flex items-center" style="max-width:170px;">
+        <a href="{{ $user?->isUser() ? route('user.dashboard') : ($user?->isOperator() ? route('operator.dashboard') : ($user?->isSuperAdmin() ? route('admin.dashboard') : ($user?->isKabag() ? route('kabag.dashboard') : route('dashboard')))) }}" class="flex items-center" style="max-width:170px;">
             <img src="{{ asset('images/bank-sulteng.png') }}"
                  alt="Bank Sulteng"
                  style="max-height:44px; width:auto; max-width:155px; object-fit:contain; display:block;">
@@ -118,6 +118,9 @@
                                 } elseif ($user?->isSuperAdmin()) {
                                     $dashboardRoute = route('admin.dashboard');
                                     $dashboardLabel = 'Dashboard Admin';
+                                } elseif ($user?->isKabag()) {
+                                    $dashboardRoute = route('kabag.dashboard');
+                                    $dashboardLabel = 'Dashboard Kabag';
                                 }
                                 $isDashActive = request()->url() === $dashboardRoute;
                             @endphp
@@ -142,7 +145,21 @@
                                     </div>
                                     <span class="text-[12.5px] truncate">{{ $user?->isUser() ? 'Tiket Saya' : 'Sistem Tiket' }}</span>
                                 </div>
-                                @if (!$user?->isUser())
+                                @if ($user?->isKabag())
+                                    @php
+                                        $kabagAntri = \App\Models\Ticket::where('department_id', $user->effectiveDepartmentId())
+                                            ->where('status', 'Diverifikasi')
+                                            ->whereNull('assigned_to')
+                                            ->count();
+                                    @endphp
+                                    @if ($kabagAntri > 0)
+                                        <span class="bg-amber-400 text-[#0E1726] text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center" title="{{ $kabagAntri }} tiket butuh disposisi">
+                                            {{ $kabagAntri }}
+                                        </span>
+                                    @else
+                                        <span class="{{ request()->routeIs('tickets.*') ? 'text-[#114E84]' : 'text-white/40' }} text-xs">▸</span>
+                                    @endif
+                                @elseif (!$user?->isUser())
                                     @php
                                         $antriCount = \App\Models\Ticket::where('status', 'Menunggu Verifikasi')->count();
                                     @endphp
@@ -346,6 +363,9 @@
                             } elseif ($user?->isSuperAdmin()) {
                                 $mobileDashRoute = route('admin.dashboard');
                                 $mobileDashLabel = 'Dashboard Admin';
+                            } elseif ($user?->isKabag()) {
+                                $mobileDashRoute = route('kabag.dashboard');
+                                $mobileDashLabel = 'Dashboard Kabag';
                             }
                             $isMobileDashActive = request()->url() === $mobileDashRoute;
                         @endphp
@@ -361,6 +381,19 @@
                                 @include('partials.icon', ['name' => 'inbox', 'class' => 'w-4 h-4'])
                                 <span class="truncate">{{ $user?->isUser() ? 'Tiket Saya' : 'Sistem Tiket' }}</span>
                             </div>
+                            @if ($user?->isKabag())
+                                @php
+                                    $kabagAntriMobile = \App\Models\Ticket::where('department_id', $user->effectiveDepartmentId())
+                                        ->where('status', 'Diverifikasi')
+                                        ->whereNull('assigned_to')
+                                        ->count();
+                                @endphp
+                                @if ($kabagAntriMobile > 0)
+                                    <span class="bg-amber-400 text-[#0E1726] text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center">
+                                        {{ $kabagAntriMobile }}
+                                    </span>
+                                @endif
+                            @endif
                         </a>
                     @endif
                 </div>

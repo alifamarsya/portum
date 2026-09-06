@@ -202,10 +202,14 @@
                         <label for="status" class="block text-sm font-bold text-slate-700 mb-1.5">
                             Status Tiket <span class="text-rose-500">*</span>
                         </label>
+                        @php
+                            $availableStatuses = ['Diverifikasi', 'Didistribusikan', 'Dalam Proses', 'Selesai', 'Ditolak'];
+                            $currentStatus = old('status', $ticket->status === 'Menunggu Verifikasi' ? 'Diverifikasi' : $ticket->status);
+                        @endphp
                         <select name="status" id="status" required
                                 class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm focus:ring-1 focus:ring-brand focus:border-brand transition">
-                            @foreach (['Menunggu Verifikasi', 'Diverifikasi', 'Didistribusikan', 'Dalam Proses', 'Selesai', 'Ditolak'] as $st)
-                                <option value="{{ $st }}" {{ old('status', $ticket->status) === $st ? 'selected' : '' }}>{{ $st }}</option>
+                            @foreach ($availableStatuses as $st)
+                                <option value="{{ $st }}" {{ $currentStatus === $st ? 'selected' : '' }}>{{ $st }}</option>
                             @endforeach
                         </select>
                         <p class="text-xs text-slate-400 mt-1">

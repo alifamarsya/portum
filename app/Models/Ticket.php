@@ -18,18 +18,42 @@ class Ticket extends Model
         'user_id',
         'category_id',
         'department_id',
+        'assigned_to',
+        'disposed_by',
         'priority',
         'status',
         'description',
+        'disposition_notes',
+        'disposed_at',
         'attachment_path',
     ];
 
-    /**
-     * Get the user who created the ticket.
-     */
+    protected function casts(): array
+    {
+        return [
+            'disposed_at' => 'datetime',
+        ];
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /**
+     * Get the staff user assigned to process the ticket.
+     */
+    public function assignedStaff(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    /**
+     * Get the Kabag user who disposed the ticket.
+     */
+    public function disposedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'disposed_by');
     }
 
     /**
@@ -67,18 +91,34 @@ class Ticket extends Model
             return $query->whereRaw('1 = 0');
         }
 
-        // 1. Jika user memiliki department_id yang terisi (Staf Internal: Umum & RT, Aset, Pengadaan)
-        if (!is_null($user->department_id)) {
-            return $query->where('department_id', $user->department_id);
+        // 1. Superadmin, Operator, Pimpinan/Kepala Divisi: melihat semua tiket
+        if ($user->isSuperAdmin() || $user->isOperator() || $user->isKepalaDivisi()) {
+            return $query;
         }
 
-        // 2. User Pemohon: hanya tiket miliknya sendiri
-        if ($user->hasRole('user')) {
+        // 2. Kepala Bagian (kabag_umum, kabag_aset, kabag_pengadaan): melihat tiket di bagiannya
+        if ($user->isKabag()) {
+            return $query->where('department_id', $user->effectiveDepartmentId());
+        }
+
+        // 3. Staf Bagian Internal (umum_rt, aset, pengadaan):
+        // Tiket yang dialokasikan ke bagiannya dan sudah diverifikasi/didisposisikan
+        if ($user->isInternalStaff()) {
+            return $query->where('department_id', $user->effectiveDepartmentId())
+                         ->where('status', '!=', 'Menunggu Verifikasi');
+        }
+
+        // 4. User Pemohon: hanya tiket miliknya sendiri
+        if ($user->isUser()) {
             return $query->where('user_id', $user->id);
         }
 
-        // 3. Operator, Pimpinan/Kepala Divisi, dan Superadmin: melihat semua tiket
-        return $query;
+        return $query->whereRaw('1 = 0');
+    }
+
+    public function isAwaitingKabagDisposition(): bool
+    {
+        return $this->status === 'Diverifikasi' && is_null($this->assigned_to);
     }
 
     /**

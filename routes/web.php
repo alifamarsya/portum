@@ -26,6 +26,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
     Route::get('/user/dashboard', [UserDashboardController::class, 'index'])->name('user.dashboard');
     Route::get('/operator/dashboard', [OperatorDashboardController::class, 'index'])->name('operator.dashboard');
+    Route::get('/kabag/dashboard', [App\Http\Controllers\KabagDashboardController::class, 'index'])->name('kabag.dashboard');
     Route::get('/analitik', [App\Http\Controllers\AnalyticsController::class, 'index'])->name('analitik');
     Route::get('/analitik/biaya/{kategori}', [App\Http\Controllers\AnalyticsController::class, 'detailKategori'])
     ->name('analitik.detail-kategori');
@@ -50,6 +51,8 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('risalah', RisalahRapatController::class)->except(['show']);
     Route::resource('tickets', TicketController::class);
+    Route::post('/tickets/{ticket}/dispose', [TicketController::class, 'dispose'])->name('tickets.dispose');
+    Route::post('/tickets/{ticket}/reject', [TicketController::class, 'reject'])->name('tickets.reject');
     Route::post('/tickets/{ticket}/confirm-close', [TicketController::class, 'confirmClose'])
         ->name('tickets.confirm-close');
 

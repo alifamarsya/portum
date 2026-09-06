@@ -8,8 +8,10 @@
             <p class="text-[12px] font-semibold uppercase tracking-wider text-gold mb-1">Layanan Terpusat &amp; Helpdesk</p>
             <h1 class="text-2xl font-bold text-ink flex items-center gap-2.5">
                 <span>Daftar Tiket Layanan</span>
-                @if (!is_null(auth()->user()->department_id))
-                    <span class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800">Bagian: {{ auth()->user()->department?->name ?? 'Internal' }}</span>
+                @if (auth()->user()->isKabag())
+                    <span class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800">Kepala Bagian: {{ auth()->user()->department?->name ?? 'Internal' }}</span>
+                @elseif (auth()->user()->isInternalStaff())
+                    <span class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800">Staf Bagian: {{ auth()->user()->department?->name ?? 'Internal' }}</span>
                 @elseif (auth()->user()->isUser())
                     <span class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800">Tiket Saya</span>
                 @elseif (auth()->user()->isOperator())
@@ -20,8 +22,8 @@
             </h1>
         </div>
 
-        {{-- Actions --}}
-        @if (!auth()->user()->hasRole('superadmin'))
+        {{-- Actions: Khusus role 'user' yang berhak membuat tiket --}}
+        @if (auth()->user()->isUser())
             <a href="{{ route('tickets.create') }}"
                class="inline-flex items-center gap-2 bg-[#114E84] hover:bg-[#0E4272] text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-md transition duration-200">
                 @include('partials.icon', ['name' => 'plus', 'class' => 'w-4 h-4'])
@@ -41,7 +43,7 @@
             <p class="text-2xl font-bold text-amber-800">{{ $stats['menunggu'] }}</p>
         </div>
         <div class="bg-blue-50/50 p-4 rounded-xl border border-blue-200 shadow-2xs">
-            <p class="text-xs font-medium text-blue-700 mb-1">Dalam Proses</p>
+            <p class="text-xs font-medium text-blue-700 mb-1">Dalam Proses / Disposisi</p>
             <p class="text-2xl font-bold text-blue-800">{{ $stats['dalam_proses'] + $stats['diverifikasi'] }}</p>
         </div>
         <div class="bg-emerald-50/50 p-4 rounded-xl border border-emerald-200 shadow-2xs">
@@ -69,7 +71,7 @@
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Status</label>
                 <select name="status" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand focus:border-brand">
                     <option value="">-- Semua Status --</option>
-                    @foreach (['Menunggu Verifikasi', 'Diverifikasi', 'Didistribusikan', 'Dalam Proses', 'Selesai', 'Ditutup Pemohon', 'Ditolak'] as $st)
+                    @foreach (['Diverifikasi', 'Didistribusikan', 'Dalam Proses', 'Selesai', 'Ditutup Pemohon', 'Ditolak'] as $st)
                         <option value="{{ $st }}" {{ request('status') === $st ? 'selected' : '' }}>
                             {{ auth()->user()->isUser() ? match($st) {
                                 'Menunggu Verifikasi' => 'Diajukan',
@@ -118,6 +120,7 @@
                         <th class="px-4 py-3.5 font-semibold">Kategori &amp; Uraian</th>
                         <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Prioritas</th>
                         <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Tujuan Bagian</th>
+                        <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Staf Pelaksana</th>
                         <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Status</th>
                         <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Tanggal</th>
                         <th class="px-4 py-3.5 font-semibold text-right whitespace-nowrap">Aksi</th>
@@ -135,11 +138,11 @@
                                 <div class="font-medium text-ink">{{ $t->user?->nama_lengkap ?? '-' }}</div>
                                 <div class="text-[11px] text-slate-500">{{ $t->user?->bagian ?? '-' }}</div>
                             </td>
-                            <td class="px-4 py-3.5 min-w-[220px]">
+                            <td class="px-4 py-3.5 min-w-[200px]">
                                 <span class="inline-block text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded mb-1">
                                     {{ $t->category?->name ?? 'Umum' }}
                                 </span>
-                                <p class="text-slate-700 text-xs line-clamp-2">{{ $t->description }}</p>
+                                <p class="text-slate-700 text-xs line-clamp-2 leading-relaxed">{{ $t->description }}</p>
                             </td>
                             <td class="px-4 py-3.5 whitespace-nowrap">
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold {{ $t->priority_badge }}">
@@ -156,6 +159,26 @@
                                     <span class="text-slate-400 italic">Belum dialokasikan</span>
                                 @endif
                             </td>
+                            <td class="px-4 py-3.5 whitespace-nowrap text-xs">
+                                @if ($t->assignedStaff)
+                                    <div class="flex items-center gap-1.5">
+                                        <div class="w-6 h-6 rounded-md bg-[#114E84]/10 text-[#114E84] font-bold text-[10px] flex items-center justify-center flex-shrink-0">
+                                            {{ strtoupper(substr($t->assignedStaff->nama_lengkap, 0, 1)) }}
+                                        </div>
+                                        <div class="leading-tight">
+                                            <p class="font-semibold text-slate-800 text-xs">{{ $t->assignedStaff->nama_lengkap }}</p>
+                                            <p class="text-[10px] text-slate-400 font-mono">{{ $t->assignedStaff->username }}</p>
+                                        </div>
+                                    </div>
+                                @elseif ($t->isAwaitingKabagDisposition())
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                        Menunggu Disposisi Kabag
+                                    </span>
+                                @else
+                                    <span class="text-slate-400 text-xs">-</span>
+                                @endif
+                            </td>
                             <td class="px-4 py-3.5 whitespace-nowrap">
                                 <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11.5px] font-medium border {{ $t->status_badge }}">
                                     {{ auth()->user()->isUser() ? $t->pemohon_status_label : $t->status }}
@@ -166,11 +189,21 @@
                             </td>
                             <td class="px-4 py-3.5 text-right whitespace-nowrap">
                                 <div class="inline-flex items-center gap-2">
-                                    <a href="{{ route('tickets.show', $t) }}"
-                                       class="inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition">
-                                        Detail
-                                    </a>
-                                    @if ((auth()->user()->isOperator() || !is_null(auth()->user()->department_id)) && !auth()->user()->isKepalaDivisi())
+                                    {{-- Tombol Disposisi Cepat untuk Kabag --}}
+                                    @if (auth()->user()->isKabag() && auth()->user()->effectiveDepartmentId() == $t->department_id && $t->isAwaitingKabagDisposition())
+                                        <a href="{{ route('tickets.show', $t) }}"
+                                           class="inline-flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg shadow-xs transition">
+                                            @include('partials.icon', ['name' => 'pencil', 'class' => 'w-3 h-3'])
+                                            Disposisi
+                                        </a>
+                                    @else
+                                        <a href="{{ route('tickets.show', $t) }}"
+                                           class="inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition">
+                                            Detail
+                                        </a>
+                                    @endif
+
+                                    @if ((auth()->user()->isOperator() || (!is_null(auth()->user()->effectiveDepartmentId()) && !auth()->user()->isKabag())) && !auth()->user()->isKepalaDivisi())
                                         <a href="{{ route('tickets.edit', $t) }}"
                                            class="inline-flex items-center gap-1 bg-brand-light/10 text-[#114E84] hover:bg-brand-light/20 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition">
                                             Proses
@@ -181,7 +214,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-4 py-12 text-center">
+                            <td colspan="9" class="px-4 py-12 text-center">
                                 <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
                                     @include('partials.icon', ['name' => 'inbox', 'class' => 'w-6 h-6'])
                                 </div>

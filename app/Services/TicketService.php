@@ -106,6 +106,18 @@ class TicketService
             if (isset($data['description'])) {
                 $updateData['description'] = $data['description'];
             }
+            if (array_key_exists('assigned_to', $data)) {
+                $updateData['assigned_to'] = $data['assigned_to'];
+            }
+            if (isset($data['disposition_notes'])) {
+                $updateData['disposition_notes'] = $data['disposition_notes'];
+            }
+            if (isset($data['disposed_by'])) {
+                $updateData['disposed_by'] = $data['disposed_by'];
+            }
+            if (isset($data['disposed_at'])) {
+                $updateData['disposed_at'] = $data['disposed_at'];
+            }
 
             if (!empty($updateData)) {
                 $ticket->update($updateData);
@@ -135,6 +147,35 @@ class TicketService
                     'notes' => $notes,
                 ]);
             }
+
+            return $ticket;
+        });
+    }
+
+    /**
+     * Dispose ticket by Kabag to a specific staff member with RBB/budget verification notes.
+     */
+    public function disposeTicket(Ticket $ticket, User $staff, string $notes, User $kabag): Ticket
+    {
+        return DB::transaction(function () use ($ticket, $staff, $notes, $kabag) {
+            $oldStatus = $ticket->status;
+            $newStatus = 'Didistribusikan';
+
+            $ticket->update([
+                'assigned_to' => $staff->id,
+                'disposed_by' => $kabag->id,
+                'disposed_at' => now(),
+                'disposition_notes' => $notes,
+                'status' => $newStatus,
+            ]);
+
+            TicketHistory::create([
+                'ticket_id' => $ticket->id,
+                'user_id' => $kabag->id,
+                'old_status' => $oldStatus,
+                'new_status' => $newStatus,
+                'notes' => "Disposisi oleh Kepala Bagian ke {$staff->nama_lengkap} ({$staff->username}). Catatan RBB/Anggaran: {$notes}",
+            ]);
 
             return $ticket;
         });

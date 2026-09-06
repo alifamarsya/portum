@@ -48,6 +48,24 @@ class UserController extends Controller
             ])->withInput();
         }
 
+        // Otomatis tentukan department_id untuk peran staf bagian dan kabag
+        $departmentId = match ($role->nama) {
+            'umum_rt', 'kabag_umum' => 1,
+            'aset', 'kabag_aset' => 2,
+            'pengadaan', 'kabag_pengadaan' => 3,
+            default => null,
+        };
+        $data['department_id'] = $departmentId;
+
+        if (empty($data['bagian']) && $departmentId) {
+            $data['bagian'] = match ($departmentId) {
+                1 => 'Bagian Umum & Rumah Tangga',
+                2 => 'Bagian Aset/Inventaris & Logistik',
+                3 => 'Bagian Pengadaan & Pemeliharaan Aset & Inventaris',
+                default => null,
+            };
+        }
+
         $plain = Str::random(12);
         $data['password'] = bcrypt($plain);
         $data['must_change_pwd'] = true;
@@ -82,6 +100,24 @@ class UserController extends Controller
             return back()->withErrors([
                 'role_id' => "Role {$role->label} bersifat mutlak dan sudah memiliki 1 akun penanggung jawab."
             ])->withInput();
+        }
+
+        // Sinkronkan department_id dengan role yang dipilih
+        $departmentId = match ($role->nama) {
+            'umum_rt', 'kabag_umum' => 1,
+            'aset', 'kabag_aset' => 2,
+            'pengadaan', 'kabag_pengadaan' => 3,
+            default => null,
+        };
+        $data['department_id'] = $departmentId;
+
+        if (empty($data['bagian']) && $departmentId) {
+            $data['bagian'] = match ($departmentId) {
+                1 => 'Bagian Umum & Rumah Tangga',
+                2 => 'Bagian Aset/Inventaris & Logistik',
+                3 => 'Bagian Pengadaan & Pemeliharaan Aset & Inventaris',
+                default => null,
+            };
         }
 
         $user->update($data);
