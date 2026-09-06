@@ -89,7 +89,7 @@
 <aside class="portum-sidebar-rail hidden lg:flex flex-col bg-canvas select-none">
     {{-- 1. Top Logo Area (Seamless with Dashboard Background) --}}
     <div class="h-[72px] px-4 flex items-center justify-center bg-canvas flex-shrink-0">
-        <a href="{{ $user?->isUser() ? route('user.dashboard') : ($user?->isOperator() ? route('operator.dashboard') : ($user?->isSuperAdmin() ? route('admin.dashboard') : ($user?->isKabag() ? route('kabag.dashboard') : route('dashboard')))) }}" class="flex items-center" style="max-width:170px;">
+        <a href="{{ $user?->isUser() ? route('user.dashboard') : ($user?->isOperator() ? route('operator.dashboard') : ($user?->isSuperAdmin() ? route('admin.dashboard') : ($user?->isKabag() ? route('kabag.dashboard') : ($user?->hasRole('umum_rt') ? route('staf-umum.dashboard') : route('dashboard'))))) }}" class="flex items-center" style="max-width:170px;">
             <img src="{{ asset('images/bank-sulteng.png') }}"
                  alt="Bank Sulteng"
                  style="max-height:44px; width:auto; max-width:155px; object-fit:contain; display:block;">
@@ -121,6 +121,9 @@
                                 } elseif ($user?->isKabag()) {
                                     $dashboardRoute = route('kabag.dashboard');
                                     $dashboardLabel = 'Dashboard Kabag';
+                                } elseif ($user?->hasRole('umum_rt')) {
+                                    $dashboardRoute = route('staf-umum.dashboard');
+                                    $dashboardLabel = 'Dashboard Staf Umum';
                                 }
                                 $isDashActive = request()->url() === $dashboardRoute;
                             @endphp
@@ -155,6 +158,19 @@
                                     @if ($kabagAntri > 0)
                                         <span class="bg-amber-400 text-[#0E1726] text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center" title="{{ $kabagAntri }} tiket butuh disposisi">
                                             {{ $kabagAntri }}
+                                        </span>
+                                    @else
+                                        <span class="{{ request()->routeIs('tickets.*') ? 'text-[#114E84]' : 'text-white/40' }} text-xs">▸</span>
+                                    @endif
+                                @elseif ($user?->hasRole('umum_rt'))
+                                    @php
+                                        $stafAntri = \App\Models\Ticket::where('assigned_to', $user->id)
+                                            ->whereIn('status', ['Didistribusikan', 'Dalam Proses'])
+                                            ->count();
+                                    @endphp
+                                    @if ($stafAntri > 0)
+                                        <span class="bg-blue-400 text-[#0E1726] text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center" title="{{ $stafAntri }} tiket tugas Anda">
+                                            {{ $stafAntri }}
                                         </span>
                                     @else
                                         <span class="{{ request()->routeIs('tickets.*') ? 'text-[#114E84]' : 'text-white/40' }} text-xs">▸</span>
@@ -366,6 +382,9 @@
                             } elseif ($user?->isKabag()) {
                                 $mobileDashRoute = route('kabag.dashboard');
                                 $mobileDashLabel = 'Dashboard Kabag';
+                            } elseif ($user?->hasRole('umum_rt')) {
+                                $mobileDashRoute = route('staf-umum.dashboard');
+                                $mobileDashLabel = 'Dashboard Staf Umum';
                             }
                             $isMobileDashActive = request()->url() === $mobileDashRoute;
                         @endphp
@@ -476,7 +495,7 @@
         {{-- Breadcrumb / Current Route Context --}}
         <div class="flex items-center gap-2 min-w-0">
             <div class="flex items-center gap-1.5 text-xs text-slate-500 font-medium min-w-0">
-                <a href="{{ $user?->isUser() ? route('user.dashboard') : ($user?->isOperator() ? route('operator.dashboard') : ($user?->isSuperAdmin() ? route('admin.dashboard') : route('dashboard'))) }}" class="hover:text-brand transition-colors flex-shrink-0">Bank Sulteng</a>
+                <a href="{{ $user?->isUser() ? route('user.dashboard') : ($user?->isOperator() ? route('operator.dashboard') : ($user?->isSuperAdmin() ? route('admin.dashboard') : ($user?->isKabag() ? route('kabag.dashboard') : ($user?->hasRole('umum_rt') ? route('staf-umum.dashboard') : route('dashboard'))))) }}" class="hover:text-brand transition-colors flex-shrink-0">Bank Sulteng</a>
                 <span class="text-slate-300 flex-shrink-0">/</span>
                 <span class="text-ink font-semibold truncate">@yield('title', 'Dashboard')</span>
             </div>
