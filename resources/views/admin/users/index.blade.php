@@ -27,9 +27,6 @@
                 <h2 class="font-bold text-ink text-sm sm:text-base">Daftar Pengguna Sistem</h2>
                 <p class="text-xs text-slate-500">Total {{ $items->count() }} pengguna aktif terdaftar di sistem</p>
             </div>
-            <span class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-blue-50 text-[#114E84]">
-                {{ $items->where('role.nama', 'user')->count() }} Pemohon Cabang/Divisi
-            </span>
         </div>
 
         <div class="overflow-x-auto">
@@ -45,7 +42,7 @@
                 <tbody class="divide-y divide-slate-100">
                     @foreach ($items as $u)
                         @php
-                            $isMulti = $u->role?->nama === 'user';
+                            $isMutlak = in_array($u->role?->nama, ['admin', 'pimpinan', 'kepala_bagian', 'kepala_divisi']);
                         @endphp
                         <tr class="hover:bg-slate-50/60 transition">
                             <td class="px-4 py-3">
@@ -66,7 +63,7 @@
                                 </div>
                             </td>
                             <td class="px-4 py-3 whitespace-nowrap">
-                                <span class="px-2.5 py-1 rounded-lg text-xs font-semibold {{ $isMulti ? 'bg-blue-50 text-[#114E84] border border-blue-200' : 'bg-slate-100 text-slate-700 border border-slate-200' }}">
+                                <span class="px-2.5 py-1 rounded-lg text-xs font-semibold {{ $isMutlak ? 'bg-slate-100 text-slate-700 border border-slate-200' : 'bg-blue-50 text-[#114E84] border border-blue-200' }}">
                                     {{ $u->role?->label ?? '-' }}
                                 </span>
                             </td>
@@ -106,13 +103,13 @@
                                         </button>
                                     </form>
 
-                                    @if ($isMulti)
-                                        <form method="POST" action="{{ route('admin.users.destroy', $u) }}" class="inline" onsubmit="return confirm('Hapus pengguna pemohon {{ $u->username }}?')">
+                                    @if (!$isMutlak)
+                                        <form method="POST" action="{{ route('admin.users.destroy', $u) }}" class="inline" onsubmit="return confirm('Hapus pengguna {{ $u->username }}?')">
                                             @csrf @method('DELETE')
                                             <button class="px-2 py-1 rounded-lg text-rose-600 hover:bg-rose-50 font-medium transition">Hapus</button>
                                         </form>
                                     @else
-                                        <span class="px-2 py-1 text-slate-300 select-none cursor-not-allowed text-[11px]" title="Role operasional tunggal tidak dapat dihapus">Tunggal</span>
+                                        <span class="px-2 py-1 text-slate-300 select-none cursor-not-allowed text-[11px]" title="Role mutlak tidak dapat dihapus">Mutlak</span>
                                     @endif
                                 </div>
                             </td>
@@ -131,7 +128,7 @@
             </div>
             <div>
                 <h2 class="font-bold text-ink text-base">Tambah Pengguna Baru</h2>
-                <p class="text-xs text-slate-500">Buat akun untuk kantor cabang / pemohon</p>
+                <p class="text-xs text-slate-500">Buat akun untuk staf bagian atau cabang/pemohon</p>
             </div>
         </div>
         <form method="POST" action="{{ route('admin.users.store') }}" class="space-y-3">
@@ -139,17 +136,13 @@
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Peran / Role</label>
                 <select name="role_id" required class="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-ink focus:border-[#114E84] focus:ring-1 focus:ring-[#114E84] transition bg-white">
-                    @foreach ($roles as $r)
-                        @php
-                            $isSingleAndFilled = ($r->nama !== 'user' && $r->users_count >= 1);
-                        @endphp
-                        <option value="{{ $r->id }}"
-                                @disabled($isSingleAndFilled)
-                                @selected($r->nama === 'user')>
-                            {{ $r->label }} {{ $r->nama === 'user' ? '(Multi-User / Kantor Cabang & Divisi)' : ($isSingleAndFilled ? '(1 User - Sudah Terisi)' : '(1 User)') }}
+                    @foreach ($creatableRoles as $r)
+                        <option value="{{ $r->id }}" @selected($r->nama === 'user')>
+                            {{ $r->label }}
                         </option>
                     @endforeach
                 </select>
+                <p class="text-[11px] text-slate-400 mt-1">Role staf 3 bagian &amp; pemohon tiket dapat memiliki lebih dari 1 akun pengguna.</p>
             </div>
 
             <div>
@@ -219,8 +212,11 @@
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Peran / Role <span class="text-rose-500">*</span></label>
                         <select name="role_id" id="edit_role_id" required class="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-ink focus:border-[#114E84] focus:ring-1 focus:ring-[#114E84] transition bg-white">
                             @foreach ($roles as $r)
-                                <option value="{{ $r->id }}" data-nama="{{ $r->nama }}" data-count="{{ $r->users_count }}" data-base-label="{{ $r->label }}">
-                                    {{ $r->label }} {{ $r->nama === 'user' ? '(Multi-User)' : '' }}
+                                @php
+                                    $isMutlak = in_array($r->nama, ['admin', 'pimpinan', 'kepala_bagian', 'kepala_divisi']);
+                                @endphp
+                                <option value="{{ $r->id }}" data-nama="{{ $r->nama }}" data-is-mutlak="{{ $isMutlak ? '1' : '0' }}" data-count="{{ $r->users_count }}" data-base-label="{{ $r->label }}">
+                                    {{ $r->label }} {{ $isMutlak ? '(Peran Mutlak)' : '' }}
                                 </option>
                             @endforeach
                         </select>
@@ -283,19 +279,22 @@
         document.getElementById('edit_is_active').checked = Boolean(user.is_active);
 
         const selectRole = document.getElementById('edit_role_id');
+        const mutlakRoles = ['admin', 'pimpinan', 'kepala_bagian', 'kepala_divisi'];
+
         Array.from(selectRole.options).forEach(opt => {
             const roleNama = opt.getAttribute('data-nama');
+            const isMutlak = mutlakRoles.includes(roleNama);
             const userCount = parseInt(opt.getAttribute('data-count') || '0', 10);
             const optVal = parseInt(opt.value, 10);
             const baseLabel = opt.getAttribute('data-base-label') || opt.text;
 
-            // Jika role tunggal dan sudah diisi user lain (bukan role user ini saat ini), disable
-            if (roleNama !== 'user' && userCount >= 1 && optVal !== user.role_id) {
+            // Jika role mutlak dan sudah diisi user lain (bukan user yang sedang diedit), disable
+            if (isMutlak && userCount >= 1 && optVal !== user.role_id) {
                 opt.disabled = true;
-                opt.textContent = baseLabel + ' (1 User - Sudah Terisi)';
+                opt.textContent = baseLabel + ' (Mutlak - Sudah Terisi)';
             } else {
                 opt.disabled = false;
-                opt.textContent = baseLabel + (roleNama === 'user' ? ' (Multi-User)' : ' (1 User)');
+                opt.textContent = baseLabel + (isMutlak ? ' (Mutlak)' : '');
             }
         });
 

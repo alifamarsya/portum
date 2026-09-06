@@ -62,6 +62,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
 
         Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
+        Route::post('/roles', [RoleController::class, 'store'])->name('roles.store');
         Route::post('/roles/{role}/permissions', [RoleController::class, 'updatePermissions'])->name('roles.permissions');
 
         Route::get('/audit-log', [AuditLogController::class, 'index'])->name('audit-log.index');

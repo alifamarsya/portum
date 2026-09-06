@@ -14,11 +14,18 @@ class UserController extends Controller
 {
     use LogsAudit;
 
+    const MUTLAK_ROLES = ['admin', 'pimpinan', 'kepala_bagian', 'kepala_divisi'];
+
     public function index()
     {
         $items = User::with('role')->orderBy('role_id')->orderBy('username')->get();
         $roles = Role::withCount('users')->orderBy('id')->get();
-        return view('admin.users.index', compact('items', 'roles'));
+        // Dropdown untuk form tambah user: hilangkan role yang mutlak (admin, pimpinan divisi, kepala bagian)
+        $creatableRoles = $roles->filter(function ($r) {
+            return !in_array($r->nama, self::MUTLAK_ROLES);
+        });
+
+        return view('admin.users.index', compact('items', 'roles', 'creatableRoles'));
     }
 
     public function store(Request $request)
@@ -32,11 +39,12 @@ class UserController extends Controller
             'role_id' => 'required|exists:roles,id',
         ]);
 
-        // Aturan sistem: Hanya role 'user' yang dapat memiliki banyak user. Role lainnya hanya 1 user.
         $role = Role::findOrFail($request->role_id);
-        if ($role->nama !== 'user' && $role->users()->count() >= 1) {
+
+        // Aturan: Role mutlak (admin, pimpinan divisi, kepala bagian) tidak boleh ditambah user baru
+        if (in_array($role->nama, self::MUTLAK_ROLES)) {
             return back()->withErrors([
-                'role_id' => "Role {$role->label} hanya dapat memiliki 1 akun user. Hanya role User (Pemohon Layanan) yang dapat memiliki banyak akun."
+                'role_id' => "Role {$role->label} bersifat mutlak dan tidak dapat ditambah akun pengguna baru."
             ])->withInput();
         }
 
@@ -67,11 +75,12 @@ class UserController extends Controller
 
         $data['is_active'] = $request->boolean('is_active');
 
-        // Aturan sistem: Hanya role 'user' yang dapat memiliki banyak user.
         $role = Role::findOrFail($request->role_id);
-        if ($role->nama !== 'user' && $role->users()->where('id', '!=', $user->id)->count() >= 1) {
+        
+        // Jika dipindah ke role mutlak yang sudah terisi oleh user lain, cegah
+        if (in_array($role->nama, self::MUTLAK_ROLES) && $user->role_id != $role->id && $role->users()->count() >= 1) {
             return back()->withErrors([
-                'role_id' => "Role {$role->label} sudah memiliki 1 akun user. Hanya role User (Pemohon Layanan) yang dapat memiliki banyak akun."
+                'role_id' => "Role {$role->label} bersifat mutlak dan sudah memiliki 1 akun penanggung jawab."
             ])->withInput();
         }
 
@@ -95,10 +104,10 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
-        // Proteksi: Role tunggal tidak boleh dihapus agar sistem tidak kehilangan akun penanggung jawab
-        if ($user->role?->nama !== 'user') {
+        // Proteksi: Role mutlak tidak boleh dihapus
+        if (in_array($user->role?->nama, self::MUTLAK_ROLES)) {
             return back()->withErrors([
-                'error' => "Akun {$user->username} ({$user->role?->label}) tidak dapat dihapus karena role ini harus memiliki 1 akun penanggung jawab. Anda hanya dapat mengubah informasinya."
+                'error' => "Akun {$user->username} ({$user->role?->label}) bersifat mutlak dan tidak dapat dihapus."
             ]);
         }
 

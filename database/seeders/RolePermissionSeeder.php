@@ -19,6 +19,9 @@ class RolePermissionSeeder extends Seeder
             ['id' => 5, 'nama' => 'pengadaan', 'label' => 'Staf Pengadaan serta Pemeliharaan Aset dan Inventaris', 'deskripsi' => 'Bagian Pengadaan & Pemeliharaan (memo internal, penawaran vendor, SPK, dan reminder)'],
             ['id' => 6, 'nama' => 'user', 'label' => 'User', 'deskripsi' => 'User / Pemohon layanan tiket dari berbagai unit kerja divisi dan kantor cabang (Multi-user)'],
             ['id' => 7, 'nama' => 'operator', 'label' => 'Operator', 'deskripsi' => 'Operator Helpdesk penerima, verifikator, dan distributor tiket layanan'],
+            ['id' => 10, 'nama' => 'kabag_umum', 'label' => 'Kepala Bagian Umum & Rumah Tangga', 'deskripsi' => 'Mengecek dan menindaklanjuti  permintaan sebelum di serahkan ke staf'],
+            ['id' => 11, 'nama' => 'kabag_aset', 'label' => 'Kepala Bagian Aset/Inventaris & Logistik', 'deskripsi' => 'Mengecek dan menindaklanjuti permintaan sebelum di serahkan ke staf'],
+            ['id' => 12, 'nama' => 'kabag_pengadaan', 'label' => 'Kepala Bagian Pengadaan serta Pemeliharaan Aset dan Inventaris', 'deskripsi' => 'Mengecek dan menindaklanjuti permintaan sebelum di serahkan ke staf'],
         ];
 
         foreach ($roles as $r) {
@@ -57,6 +60,12 @@ class RolePermissionSeeder extends Seeder
             [6, 'ticketing', 1],
             [7, 'dashboard', 1],
             [7, 'ticketing', 1],
+            [10, 'dashboard', 0],
+            [10, 'ticketing', 1],
+            [11, 'dashboard', 0],
+            [11, 'ticketing', 1],
+            [12, 'dashboard', 0],
+            [12, 'ticketing', 1],
         ];
 
         DB::table('role_permissions')->truncate();
