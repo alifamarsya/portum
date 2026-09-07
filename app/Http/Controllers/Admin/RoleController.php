@@ -15,6 +15,19 @@ class RoleController extends Controller
 {
     use LogsAudit;
 
+    const SYSTEM_ROLES = [
+        'admin',
+        'pimpinan',
+        'kabag_umum',
+        'kabag_aset',
+        'kabag_pengadaan',
+        'umum_rt',
+        'aset',
+        'pengadaan',
+        'user',
+        'operator',
+    ];
+
     const PERMISSIONS = [
         'Layanan & Monitoring' => [
             'dashboard' => ['label' => 'Dashboard', 'desc' => 'Akses halaman dashboard pemantauan utama sistem'],
@@ -54,6 +67,7 @@ class RoleController extends Controller
         return view('admin.roles.index', [
             'roles' => $roles,
             'groupedPermissions' => self::PERMISSIONS,
+            'systemRoles' => self::SYSTEM_ROLES,
         ]);
     }
 
@@ -79,7 +93,7 @@ class RoleController extends Controller
             'deskripsi' => $data['deskripsi'] ?? null,
         ]);
 
-        // Berikan izin default dashboard
+        // Default initial permission (dashboard)
         DB::table('role_permissions')->insert([
             'role_id' => $role->id,
             'perm_key' => 'dashboard',
@@ -92,6 +106,41 @@ class RoleController extends Controller
         SeederSyncService::syncRolePermissions();
 
         return back()->with('status', "Role '{$role->label}' berhasil ditambahkan ke sistem.");
+    }
+
+    public function update(Request $request, Role $role)
+    {
+        $isSystemRole = in_array($role->nama, self::SYSTEM_ROLES);
+
+        $rules = [
+            'label' => 'required|string|max:255',
+            'deskripsi' => 'nullable|string|max:500',
+        ];
+
+        // Jika bukan role sistem, izinkan edit slug unik
+        if (!$isSystemRole) {
+            $rules['nama'] = 'required|string|max:100|regex:/^[a-zA-Z0-9_\-]+$/|unique:roles,nama,' . $role->id;
+        }
+
+        $data = $request->validate($rules);
+
+        $updateData = [
+            'label' => $data['label'],
+            'deskripsi' => $data['deskripsi'] ?? null,
+        ];
+
+        if (!$isSystemRole && !empty($data['nama'])) {
+            $updateData['nama'] = Str::slug($data['nama'], '_');
+        }
+
+        $role->update($updateData);
+
+        $this->audit('UPDATE', 'Manajemen Role', 'Role', $role->id, "Mengubah informasi data role {$role->nama} ({$role->label})");
+
+        // Otomatis sinkronkan ke RolePermissionSeeder.php
+        SeederSyncService::syncRolePermissions();
+
+        return back()->with('status', "Data role '{$role->label}' berhasil diperbarui.");
     }
 
     public function updatePermissions(Request $request, Role $role)
@@ -120,4 +169,38 @@ class RoleController extends Controller
 
         return back()->with('status', "Hak akses untuk role {$role->label} berhasil diperbarui.");
     }
+
+    public function destroy(Role $role)
+    {
+        // Proteksi 1: Role sistem mutlak tidak boleh dihapus
+        if (in_array($role->nama, self::SYSTEM_ROLES)) {
+            return back()->withErrors([
+                'role' => "Role '{$role->label}' ({$role->nama}) merupakan peran bawaan sistem dan tidak dapat dihapus."
+            ]);
+        }
+
+        // Proteksi 2: Role yang masih memiliki pengguna terdaftar tidak boleh dihapus
+        $activeUsersCount = $role->users()->count();
+        if ($activeUsersCount > 0) {
+            return back()->withErrors([
+                'role' => "Role '{$role->label}' tidak dapat dihapus karena masih digunakan oleh {$activeUsersCount} pengguna aktif. Silakan alihkan peran pengguna tersebut terlebih dahulu."
+            ]);
+        }
+
+        $roleId = $role->id;
+        $roleNama = $role->nama;
+        $roleLabel = $role->label;
+
+        // Hapus matriks perizinan terkait dan hapus role
+        DB::table('role_permissions')->where('role_id', $roleId)->delete();
+        $role->delete();
+
+        $this->audit('DELETE', 'Manajemen Role', 'Role', $roleId, "Menghapus role {$roleNama} ({$roleLabel})");
+
+        // Otomatis sinkronkan ke RolePermissionSeeder.php
+        SeederSyncService::syncRolePermissions();
+
+        return back()->with('status', "Role '{$roleLabel}' berhasil dihapus dari sistem.");
+    }
 }
+
