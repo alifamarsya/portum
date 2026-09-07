@@ -31,6 +31,14 @@ class DashboardController extends Controller
             return redirect()->route('kabag.dashboard');
         }
 
+        if (auth()->user()?->hasRole('umum_rt')) {
+            return redirect()->route('staf-umum.dashboard');
+        }
+
+        if (auth()->user()?->hasRole('aset')) {
+            return redirect()->route('staf-aset.dashboard');
+        }
+
         $menunggu = UmBiayaHarian::where('approval_status', 'Diajukan')->count();
         $reminderAktif = PgReminder::where('status', 'Aktif')
             ->whereDate('tanggal_jatuh_tempo', '<=', now()->addDays(90))
