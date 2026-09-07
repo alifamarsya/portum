@@ -17,8 +17,8 @@ class RolePermissionSeeder extends Seeder
             ['id' => 3, 'nama' => 'umum_rt', 'label' => 'Staf Umum & Rumah Tangga', 'deskripsi' => 'Bagian Umum & Rumah Tangga (kendaraan operasional, biaya BBM/RT, dan permintaan ATK)'],
             ['id' => 4, 'nama' => 'aset', 'label' => 'Staf Aset/Inventaris & Logistik', 'deskripsi' => 'Bagian Aset/Inventaris & Logistik (data aset, invoice sewa, amortisasi, dan PKS)'],
             ['id' => 5, 'nama' => 'pengadaan', 'label' => 'Staf Pengadaan serta Pemeliharaan Aset dan Inventaris', 'deskripsi' => 'Bagian Pengadaan & Pemeliharaan (memo internal, penawaran vendor, SPK, dan reminder)'],
-            ['id' => 6, 'nama' => 'user', 'label' => 'User', 'deskripsi' => 'User / Pemohon layanan tiket dari berbagai unit kerja divisi dan kantor cabang (Multi-user)'],
-            ['id' => 7, 'nama' => 'operator', 'label' => 'Operator', 'deskripsi' => 'Operator Helpdesk penerima, verifikator, dan distributor tiket layanan'],
+            ['id' => 6, 'nama' => 'user', 'label' => 'User', 'deskripsi' => 'User / Pemohon tiket layanan'],
+            ['id' => 7, 'nama' => 'operator', 'label' => 'Operator', 'deskripsi' => 'Operator / Helpdesk penerima dan verifikator tiket'],
             ['id' => 10, 'nama' => 'kabag_umum', 'label' => 'Kepala Bagian Umum & Rumah Tangga', 'deskripsi' => 'Mengecek dan menindaklanjuti  permintaan sebelum di serahkan ke staf'],
             ['id' => 11, 'nama' => 'kabag_aset', 'label' => 'Kepala Bagian Aset/Inventaris & Logistik', 'deskripsi' => 'Mengecek dan menindaklanjuti permintaan sebelum di serahkan ke staf'],
             ['id' => 12, 'nama' => 'kabag_pengadaan', 'label' => 'Kepala Bagian Pengadaan serta Pemeliharaan Aset dan Inventaris', 'deskripsi' => 'Mengecek dan menindaklanjuti permintaan sebelum di serahkan ke staf'],
@@ -29,10 +29,13 @@ class RolePermissionSeeder extends Seeder
         }
 
         $perms = [
+            [1, 'aset_logistik', 1],
             [1, 'audit_log', 1],
             [1, 'dashboard', 1],
+            [1, 'pengadaan', 1],
             [1, 'role_mgmt', 1],
-            [1, 'ticketing', 0],
+            [1, 'ticketing', 1],
+            [1, 'umum_rt', 1],
             [1, 'user_mgmt', 1],
             [2, 'aset_logistik', 1],
             [2, 'dashboard', 0],

@@ -554,6 +554,8 @@
     </main>
 </div>
 
+@stack('modals')
+
 <script>
     const mobileMenuBtn = document.getElementById('mobileMenuBtn');
     const mobileDrawer = document.getElementById('mobileDrawer');

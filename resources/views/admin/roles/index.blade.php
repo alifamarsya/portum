@@ -124,78 +124,79 @@
     @endforeach
 </div>
 
+@push('modals')
 {{-- Modal Tambah Role Baru --}}
-<div id="createRoleModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity" onclick="closeCreateRoleModal()"></div>
+<div id="createRoleModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 sm:p-6 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" onclick="closeCreateRoleModal()"></div>
 
-    <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-        <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-slate-200">
-            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
-                <div class="flex items-center gap-2.5">
-                    <div class="w-9 h-9 rounded-xl bg-[#114E84]/10 text-[#114E84] flex items-center justify-center">
-                        @include('partials.icon', ['name' => 'shield', 'class' => 'w-4 h-4 text-[#114E84]'])
-                    </div>
-                    <div>
-                        <h3 class="font-bold text-ink text-base" id="modal-title">Tambah Role / Peran Baru</h3>
-                        <p class="text-xs text-slate-500">Definisikan peran baru untuk operasional sistem perbankan</p>
-                    </div>
+    <div class="relative w-full max-w-lg my-auto bg-white rounded-2xl text-left shadow-2xl border border-slate-200 overflow-hidden z-10">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-[#114E84]/10 text-[#114E84] flex items-center justify-center">
+                    @include('partials.icon', ['name' => 'shield', 'class' => 'w-4 h-4 text-[#114E84]'])
                 </div>
-                <button type="button" onclick="closeCreateRoleModal()" class="text-slate-400 hover:text-slate-600 transition p-1.5 rounded-lg hover:bg-slate-100">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
+                <div>
+                    <h3 class="font-bold text-ink text-base" id="modal-title">Tambah Role / Peran Baru</h3>
+                    <p class="text-xs text-slate-500">Definisikan peran baru untuk operasional sistem perbankan</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeCreateRoleModal()" class="text-slate-400 hover:text-slate-600 transition p-1.5 rounded-lg hover:bg-slate-100">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <form method="POST" action="{{ route('admin.roles.store') }}" class="p-5 sm:p-6 space-y-4">
+            @csrf
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Peran / Label <span class="text-rose-500">*</span></label>
+                <input type="text"
+                       name="label"
+                       id="role_label_input"
+                       required
+                       placeholder="Contoh: Kepala Bagian Operasional"
+                       class="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-ink focus:border-[#114E84] focus:ring-1 focus:ring-[#114E84] transition"
+                       oninput="autoGenerateSlug(this.value)">
             </div>
 
-            <form method="POST" action="{{ route('admin.roles.store') }}" class="p-5 sm:p-6 space-y-4">
-                @csrf
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Kode / Slug Sistem <span class="text-rose-500">*</span></label>
+                <input type="text"
+                       name="nama"
+                       id="role_nama_input"
+                       required
+                       placeholder="Contoh: kepala_bagian"
+                       class="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-mono text-ink focus:border-[#114E84] focus:ring-1 focus:ring-[#114E84] transition">
+                <p class="text-[11px] text-slate-400 mt-1">Gunakan huruf kecil dan garis bawah (contoh: staf_audit, kepala_bagian).</p>
+            </div>
 
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Peran / Label <span class="text-rose-500">*</span></label>
-                    <input type="text"
-                           name="label"
-                           id="role_label_input"
-                           required
-                           placeholder="Contoh: Kepala Bagian Operasional"
-                           class="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-ink focus:border-[#114E84] focus:ring-1 focus:ring-[#114E84] transition"
-                           oninput="autoGenerateSlug(this.value)">
-                </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Deskripsi Wewenang &amp; Tanggung Jawab</label>
+                <textarea name="deskripsi"
+                          rows="3"
+                          placeholder="Penjelasan ringkas tanggung jawab dan wewenang peran ini di sistem..."
+                          class="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-ink focus:border-[#114E84] focus:ring-1 focus:ring-[#114E84] transition resize-none"></textarea>
+            </div>
 
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Kode / Slug Sistem <span class="text-rose-500">*</span></label>
-                    <input type="text"
-                           name="nama"
-                           id="role_nama_input"
-                           required
-                           placeholder="Contoh: kepala_bagian"
-                           class="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-mono text-ink focus:border-[#114E84] focus:ring-1 focus:ring-[#114E84] transition">
-                    <p class="text-[11px] text-slate-400 mt-1">Gunakan huruf kecil dan garis bawah (contoh: staf_audit, kepala_bagian).</p>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Deskripsi Wewenang &amp; Tanggung Jawab</label>
-                    <textarea name="deskripsi"
-                              rows="3"
-                              placeholder="Penjelasan ringkas tanggung jawab dan wewenang peran ini di sistem..."
-                              class="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-ink focus:border-[#114E84] focus:ring-1 focus:ring-[#114E84] transition resize-none"></textarea>
-                </div>
-
-                <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
-                    <button type="button" onclick="closeCreateRoleModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition">
-                        Batal
-                    </button>
-                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-[#114E84] text-white text-xs font-bold hover:bg-[#0E4272] transition shadow-xs flex items-center gap-1.5">
-                        @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-3.5 h-3.5 text-amber-300'])
-                        Simpan Role Baru
-                    </button>
-                </div>
-            </form>
-        </div>
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <button type="button" onclick="closeCreateRoleModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition">
+                    Batal
+                </button>
+                <button type="submit" class="px-5 py-2.5 rounded-xl bg-[#114E84] text-white text-xs font-bold hover:bg-[#0E4272] transition shadow-xs flex items-center gap-1.5">
+                    @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-3.5 h-3.5 text-amber-300'])
+                    Simpan Role Baru
+                </button>
+            </div>
+        </form>
     </div>
 </div>
+@endpush
 
 <script>
     function openCreateRoleModal() {
         const modal = document.getElementById('createRoleModal');
         modal.classList.remove('hidden');
+        modal.classList.add('flex');
         document.body.style.overflow = 'hidden';
         setTimeout(() => {
             const input = document.getElementById('role_label_input');
@@ -206,6 +207,7 @@
     function closeCreateRoleModal() {
         const modal = document.getElementById('createRoleModal');
         modal.classList.add('hidden');
+        modal.classList.remove('flex');
         document.body.style.overflow = '';
     }
 
