@@ -388,6 +388,12 @@
                             } elseif ($user?->hasRole('aset')) {
                                 $mobileDashRoute = route('staf-aset.dashboard');
                                 $mobileDashLabel = 'Dashboard Staf Aset';
+                            } elseif ($user?->isKabag()) {
+                                $mobileDashRoute = route('kabag.dashboard');
+                                $mobileDashLabel = 'Dashboard Kabag';
+                            } elseif ($user?->hasRole('umum_rt')) {
+                                $mobileDashRoute = route('staf-umum.dashboard');
+                                $mobileDashLabel = 'Dashboard Staf Umum';
                             }
                             $isMobileDashActive = request()->url() === $mobileDashRoute;
                         @endphp
@@ -499,6 +505,7 @@
         <div class="flex items-center gap-2 min-w-0">
             <div class="flex items-center gap-1.5 text-xs text-slate-500 font-medium min-w-0">
                 <a href="{{ $user?->isUser() ? route('user.dashboard') : ($user?->isOperator() ? route('operator.dashboard') : ($user?->isSuperAdmin() ? route('admin.dashboard') : ($user?->isKabag() ? route('kabag.dashboard') : ($user?->hasRole('umum_rt') ? route('staf-umum.dashboard') : ($user?->hasRole('aset') ? route('staf-aset.dashboard') : route('dashboard')))))) }}" class="hover:text-brand transition-colors flex-shrink-0">Bank Sulteng</a>
+                <a href="{{ $user?->isUser() ? route('user.dashboard') : ($user?->isOperator() ? route('operator.dashboard') : ($user?->isSuperAdmin() ? route('admin.dashboard') : ($user?->isKabag() ? route('kabag.dashboard') : ($user?->hasRole('umum_rt') ? route('staf-umum.dashboard') : route('dashboard'))))) }}" class="hover:text-brand transition-colors flex-shrink-0">Bank Sulteng</a>
                 <span class="text-slate-300 flex-shrink-0">/</span>
                 <span class="text-ink font-semibold truncate">@yield('title', 'Dashboard')</span>
             </div>
