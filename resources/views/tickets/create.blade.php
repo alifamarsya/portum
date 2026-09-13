@@ -2,7 +2,7 @@
 @section('title', 'Buat Tiket Layanan Baru')
 
 @section('content')
-    <div class="max-w-3xl">
+    <div class="max-w-7xl">
         <div class="mb-6">
             <a href="{{ route('tickets.index') }}" class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-brand transition mb-2">
                 &larr; Kembali ke Daftar Tiket
@@ -32,23 +32,16 @@
                 </div>
             </div>
 
-            {{-- Kategori Layanan --}}
+            {{-- Jenis Pengajuan --}}
             <div>
-                <label for="category_id" class="block text-sm font-semibold text-slate-700 mb-1.5">
-                    Kategori Layanan <span class="text-rose-500">*</span>
+                <label class="block text-sm font-semibold text-slate-700 mb-1.5">
+                    Jenis Pengajuan <span class="text-rose-500">*</span>
                 </label>
-                <select name="category_id" id="category_id" required
-                        class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm focus:border-brand focus:ring-1 focus:ring-brand transition @error('category_id') border-rose-400 @enderror">
-                    <option value="">-- Pilih Kategori Layanan --</option>
-                    @foreach ($categories as $cat)
-                        <option value="{{ $cat->id }}" {{ old('category_id') == $cat->id ? 'selected' : '' }}>
-                            {{ $cat->name }} (SLA: {{ $cat->default_sla_hours }} Jam)
-                        </option>
-                    @endforeach
+                <select name="jenis_pengajuan" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand focus:border-brand">
+                    <option value="">-- Semua Jenis --</option>
+                    <option value="Permintaan" {{ request('jenis_pengajuan') === 'Permintaan' ? 'selected' : '' }}>Permintaan</option>
+                    <option value="Permasalahan" {{ request('jenis_pengajuan') === 'Permasalahan' ? 'selected' : '' }}>Permasalahan</option>
                 </select>
-                @error('category_id')
-                    <p class="text-rose-500 text-xs mt-1">{{ $message }}</p>
-                @enderror
             </div>
 
             {{-- Tingkat Prioritas --}}
@@ -58,10 +51,10 @@
                 </label>
                 <select name="priority" id="priority" required
                         class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm focus:border-brand focus:ring-1 focus:ring-brand transition @error('priority') border-rose-400 @enderror">
-                    <option value="Rendah" {{ old('priority') === 'Rendah' ? 'selected' : '' }}>Rendah (Pekerjaan umum/tidak mendesak)</option>
-                    <option value="Normal" {{ old('priority', 'Normal') === 'Normal' ? 'selected' : '' }}>Normal (Kebutuhan standar operasional)</option>
-                    <option value="Tinggi" {{ old('priority') === 'Tinggi' ? 'selected' : '' }}>Tinggi (Mempengaruhi operasional kerja)</option>
-                    <option value="Darurat" {{ old('priority') === 'Darurat' ? 'selected' : '' }}>Darurat (Sistem/layanan terhenti kritis)</option>
+                    <option value="Rendah" {{ old('priority') === 'Rendah' ? 'selected' : '' }}>Rendah (SLA 72 Jam)</option>
+                    <option value="Sedang" {{ old('priority', 'Sedang') === 'Normal' ? 'selected' : '' }}>Sedang (SLA 48 Jam)</option>
+                    <option value="Tinggi" {{ old('priority') === 'Tinggi' ? 'selected' : '' }}>Tinggi (SLA 12 Jam)</option>
+                    <option value="Kritis" {{ old('priority') === 'Kritis' ? 'selected' : '' }}>Kritis (SLA 4 Jam)</option>
                 </select>
                 @error('priority')
                     <p class="text-rose-500 text-xs mt-1">{{ $message }}</p>
