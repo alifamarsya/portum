@@ -117,7 +117,8 @@
                     <tr class="bg-slate-50 border-b border-slate-200 text-left text-[12px] uppercase tracking-wider text-slate-500">
                         <th class="px-4 py-3.5 font-semibold whitespace-nowrap">No. Tiket</th>
                         <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Pemohon</th>
-                        <th class="px-4 py-3.5 font-semibold">Kategori &amp; Uraian</th>
+                        <th class="px-4 py-3.5 font-semibold">Kategori</th>
+                        <th class="px-4 py-3.5 font-semibold">Uraian/Masalah</th>
                         <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Jenis</th>
                         <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Prioritas</th>
                         <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Tujuan Bagian</th>
@@ -143,6 +144,7 @@
                                 <span class="inline-block text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded mb-1">
                                     {{ $t->category?->name ?? 'Umum' }}
                                 </span>
+                            <td class="px-4 py-3.5 min-w-[200px]">
                                 <p class="text-slate-700 text-xs line-clamp-2 leading-relaxed">{{ $t->description }}</p>
                             </td>
                             {{-- Jenis Pengajuan badge --}}

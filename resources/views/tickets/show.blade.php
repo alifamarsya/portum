@@ -27,7 +27,7 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 gap-6">
         {{-- Left Column: Informasi Utama Permintaan --}}
         <div class="lg:col-span-2 space-y-6">
             <div class="bg-white rounded-2xl border border-slate-200 shadow-card p-6">
