@@ -54,6 +54,8 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('risalah', RisalahRapatController::class)->except(['show']);
     Route::resource('tickets', TicketController::class);
+    Route::get('/tickets/{ticket}/attachment', [TicketController::class, 'viewAttachment'])->name('tickets.attachment');
+    Route::get('/tickets/{ticket}/attachment/download', [TicketController::class, 'downloadAttachment'])->name('tickets.attachment.download');
     Route::post('/tickets/{ticket}/dispose', [TicketController::class, 'dispose'])->name('tickets.dispose');
     Route::post('/tickets/{ticket}/reject', [TicketController::class, 'reject'])->name('tickets.reject');
     Route::post('/tickets/{ticket}/confirm-close', [TicketController::class, 'confirmClose'])

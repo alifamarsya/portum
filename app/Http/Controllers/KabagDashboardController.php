@@ -31,7 +31,7 @@ class KabagDashboardController extends Controller
         $stats = [
             'total'            => (clone $baseQuery)->count(),
             'perlu_disposisi'  => (clone $baseQuery)->where(function ($q) {
-                $q->whereIn('status', ['Diverifikasi', 'Didistribusikan'])->whereNull('assigned_to');
+                $q->whereIn('status', ['Dialokasikan', 'Diverifikasi', 'Didistribusikan'])->whereNull('assigned_to');
             })->count(),
             'sedang_dikerjakan'=> (clone $baseQuery)->whereIn('status', ['Didistribusikan', 'Dalam Proses'])->whereNotNull('assigned_to')->count(),
             'selesai'          => (clone $baseQuery)->whereIn('status', ['Selesai', 'Ditutup Pemohon'])->count(),
@@ -41,7 +41,7 @@ class KabagDashboardController extends Controller
         // Antrean tiket yang membutuhkan verifikasi RBB & disposisi dari Kabag
         $antreanDisposisi = (clone $baseQuery)
             ->where(function ($q) {
-                $q->whereIn('status', ['Diverifikasi', 'Didistribusikan'])->whereNull('assigned_to');
+                $q->whereIn('status', ['Dialokasikan', 'Diverifikasi', 'Didistribusikan'])->whereNull('assigned_to');
             })
             ->with(['user', 'category'])
             ->latest()

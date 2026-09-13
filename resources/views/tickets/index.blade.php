@@ -71,10 +71,11 @@
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Status</label>
                 <select name="status" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand focus:border-brand">
                     <option value="">-- Semua Status --</option>
-                    @foreach (['Diverifikasi', 'Didistribusikan', 'Dalam Proses', 'Selesai', 'Ditutup Pemohon', 'Ditolak'] as $st)
+                    @foreach (['Menunggu Verifikasi', 'Dialokasikan', 'Diverifikasi', 'Didistribusikan', 'Dalam Proses', 'Selesai', 'Ditutup Pemohon', 'Ditolak'] as $st)
                         <option value="{{ $st }}" {{ request('status') === $st ? 'selected' : '' }}>
                             {{ auth()->user()->isUser() ? match($st) {
                                 'Menunggu Verifikasi' => 'Diajukan',
+                                'Dialokasikan' => 'Dialokasikan',
                                 'Didistribusikan' => 'Sedang Ditangani',
                                 'Dalam Proses' => 'Sedang Dikerjakan',
                                 'Ditutup Pemohon' => 'Ditutup (Dikonfirmasi)',
@@ -85,17 +86,6 @@
                     @endforeach
                 </select>
             </div>
-
-            <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Kategori</label>
-                <select name="category_id" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand focus:border-brand">
-                    <option value="">-- Semua Kategori --</option>
-                    @foreach ($categories as $cat)
-                        <option value="{{ $cat->id }}" {{ request('category_id') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-
             {{-- Filter Jenis Pengajuan (Fase 1) --}}
             <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Pengajuan</label>

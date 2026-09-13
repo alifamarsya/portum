@@ -22,7 +22,7 @@ class OperatorDashboardController extends Controller
         // 1. Stat cards – scope all tickets (Operator sees everything)
         $stats = [
             'baru_masuk'  => Ticket::where('status', 'Menunggu Verifikasi')->count(),
-            'diproses'    => Ticket::whereIn('status', ['Didistribusikan', 'Diverifikasi', 'Dalam Proses'])->count(),
+            'diproses'    => Ticket::whereIn('status', ['Dialokasikan', 'Didistribusikan', 'Diverifikasi', 'Dalam Proses'])->count(),
             'terlambat'   => Ticket::whereNotIn('status', ['Selesai', 'Ditolak'])
                                 ->whereHas('category', function ($q) use ($now) {
                                     $q->whereRaw('tickets.created_at < NOW() - INTERVAL ticket_categories.default_sla_hours HOUR');

@@ -145,7 +145,7 @@ class Ticket extends Model
 
     public function isAwaitingKabagDisposition(): bool
     {
-        return in_array($this->status, ['Diverifikasi', 'Didistribusikan']) && is_null($this->assigned_to);
+        return in_array($this->status, ['Dialokasikan', 'Diverifikasi', 'Didistribusikan']) && is_null($this->assigned_to);
     }
 
     /**
@@ -155,6 +155,7 @@ class Ticket extends Model
     {
         return match ($this->status) {
             'Menunggu Verifikasi' => 'bg-amber-50 text-amber-700 border-amber-200',
+            'Dialokasikan'        => 'bg-blue-50 text-blue-700 border-blue-200',
             'Diverifikasi'        => 'bg-blue-50 text-blue-700 border-blue-200',
             'Didistribusikan'     => 'bg-indigo-50 text-indigo-700 border-indigo-200',
             'Dalam Proses'        => 'bg-violet-50 text-violet-700 border-violet-200',
@@ -173,6 +174,7 @@ class Ticket extends Model
     {
         return match ($this->status) {
             'Menunggu Verifikasi' => 'Diajukan',
+            'Dialokasikan'        => 'Dialokasikan',
             'Diverifikasi'        => 'Diverifikasi',
             'Didistribusikan'     => 'Sedang Ditangani',
             'Dalam Proses'        => 'Sedang Dikerjakan',
