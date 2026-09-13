@@ -18,7 +18,7 @@ class StafAsetDashboardController extends Controller
     {
         $user = auth()->user();
 
-        if (!$user->hasRole('aset') && !$user->isSuperAdmin()) {
+        if (!$user->hasRole(['aset', 'uk_administrasi_aset', 'uk_logistik']) && !$user->isSuperAdmin()) {
             abort(403, 'Akses dashboard ini khusus untuk Staf Bagian Aset/Inventaris & Logistik.');
         }
 

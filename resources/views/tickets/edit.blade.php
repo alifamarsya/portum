@@ -195,6 +195,37 @@
                                 <p class="text-rose-500 text-xs mt-1">{{ $message }}</p>
                             @enderror
                         </div>
+
+                        {{-- Jenis Pengajuan (Permintaan / Permasalahan) --}}
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1.5">
+                                Jenis Pengajuan
+                                <span class="text-xs text-slate-400 font-normal ml-1">(opsional — diisi saat verifikasi)</span>
+                            </label>
+                            <div class="flex gap-3">
+                                @foreach (['Permintaan' => 'sky', 'Permasalahan' => 'orange'] as $jenis => $color)
+                                    <label class="flex-1 relative cursor-pointer">
+                                        <input type="radio" name="jenis_pengajuan" value="{{ $jenis }}" class="sr-only peer"
+                                               {{ old('jenis_pengajuan', $ticket->jenis_pengajuan) === $jenis ? 'checked' : '' }}>
+                                        <div class="border-2 rounded-xl p-3 text-center transition
+                                            border-slate-200 bg-slate-50 peer-checked:border-{{ $color }}-500 peer-checked:bg-{{ $color }}-50">
+                                            <p class="text-xs font-bold text-slate-700">{{ $jenis }}</p>
+                                        </div>
+                                    </label>
+                                @endforeach
+                                {{-- opsi kosong --}}
+                                <label class="flex-1 relative cursor-pointer">
+                                    <input type="radio" name="jenis_pengajuan" value="" class="sr-only peer"
+                                           {{ old('jenis_pengajuan', $ticket->jenis_pengajuan) === null || old('jenis_pengajuan', $ticket->jenis_pengajuan) === '' ? 'checked' : '' }}>
+                                    <div class="border-2 rounded-xl p-3 text-center transition border-slate-200 bg-slate-50 peer-checked:border-slate-400 peer-checked:bg-slate-100">
+                                        <p class="text-xs font-bold text-slate-400">Belum Ditentukan</p>
+                                    </div>
+                                </label>
+                            </div>
+                            @error('jenis_pengajuan')
+                                <p class="text-rose-500 text-xs mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
                     @endif
 
                     {{-- Status --}}
@@ -213,7 +244,7 @@
                             @endforeach
                         </select>
                         <p class="text-xs text-slate-400 mt-1">
-                            * Saat menekan "Verifikasi &amp; Distribusi", status akan otomatis diset ke <strong>Didistribusikan</strong> jika Anda memilih departemen.
+                            * Saat menekan "Verifikasi &amp; Alokasikan ke Bagian", status akan diset ke <strong>Diverifikasi</strong> untuk diteruskan ke Kepala Bagian terkait guna verifikasi RBB &amp; penunjukan staf.
                         </p>
                         @error('status')
                             <p class="text-rose-500 text-xs mt-1">{{ $message }}</p>
@@ -240,7 +271,7 @@
                             <button type="submit" id="btnDistribute"
                                     class="w-full sm:w-auto bg-gradient-to-r from-[#114E84] to-[#0E4272] hover:from-[#0E4272] hover:to-[#0A335A] text-white text-sm font-bold px-8 py-3 rounded-xl shadow-md transition duration-200 flex items-center justify-center gap-2">
                                 @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-4 h-4'])
-                                Verifikasi &amp; Distribusi Tiket
+                                Verifikasi &amp; Alokasikan ke Bagian
                             </button>
                         @else
                             <button type="submit"
@@ -286,12 +317,12 @@
 
 @push('scripts')
 <script>
-    // Auto-set status to Didistribusikan when a department radio is selected
+    // Auto-set status to Diverifikasi when a department radio is selected by Operator
     document.querySelectorAll('input[name="department_id"]').forEach(radio => {
         radio.addEventListener('change', function() {
             const statusSelect = document.getElementById('status');
             if (statusSelect && this.checked) {
-                statusSelect.value = 'Didistribusikan';
+                statusSelect.value = 'Diverifikasi';
             }
         });
     });

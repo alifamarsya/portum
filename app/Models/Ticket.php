@@ -18,9 +18,11 @@ class Ticket extends Model
         'user_id',
         'category_id',
         'department_id',
+        'unit_kerja_id',
         'assigned_to',
         'disposed_by',
         'priority',
+        'jenis_pengajuan',
         'status',
         'description',
         'disposition_notes',
@@ -73,6 +75,14 @@ class Ticket extends Model
     }
 
     /**
+     * Get the unit kerja assigned to the ticket.
+     */
+    public function unitKerja(): BelongsTo
+    {
+        return $this->belongsTo(UnitKerja::class, 'unit_kerja_id');
+    }
+
+    /**
      * Get the history records for the ticket.
      */
     public function histories(): HasMany
@@ -96,19 +106,36 @@ class Ticket extends Model
             return $query;
         }
 
-        // 2. Kepala Bagian (kabag_umum, kabag_aset, kabag_pengadaan): melihat tiket di bagiannya
+        // 2. Kepala Bagian (kabag_umum, kabag_aset, kabag_pengadaan): melihat semua tiket di bagiannya
         if ($user->isKabag()) {
             return $query->where('department_id', $user->effectiveDepartmentId());
         }
 
-        // 3. Staf Bagian Internal (umum_rt, aset, pengadaan):
+        // 3. Staf Unit Kerja Baru (uk_umum_rt, uk_dokumen):
+        // Hanya melihat tiket yang di-assign ke unit kerjanya (dan sudah diverifikasi/didisposisikan)
+        if ($user->isUnitKerjaStaf()) {
+            $q = $query->where('department_id', $user->effectiveDepartmentId())
+                       ->where('status', '!=', 'Menunggu Verifikasi');
+
+            // Jika punya unit_kerja_id, filter lebih spesifik ke unit kerja tersebut
+            if ($user->effectiveUnitKerjaId()) {
+                $q->where(function ($inner) use ($user) {
+                    $inner->where('unit_kerja_id', $user->effectiveUnitKerjaId())
+                          ->orWhereNull('unit_kerja_id'); // tiket yg belum di-assign ke UK spesifik
+                });
+            }
+
+            return $q;
+        }
+
+        // 4. Staf Bagian Internal Legacy (umum_rt, aset, pengadaan):
         // Tiket yang dialokasikan ke bagiannya dan sudah diverifikasi/didisposisikan
         if ($user->isInternalStaff()) {
             return $query->where('department_id', $user->effectiveDepartmentId())
                          ->where('status', '!=', 'Menunggu Verifikasi');
         }
 
-        // 4. User Pemohon: hanya tiket miliknya sendiri
+        // 5. User Pemohon: hanya tiket miliknya sendiri
         if ($user->isUser()) {
             return $query->where('user_id', $user->id);
         }
@@ -118,7 +145,7 @@ class Ticket extends Model
 
     public function isAwaitingKabagDisposition(): bool
     {
-        return $this->status === 'Diverifikasi' && is_null($this->assigned_to);
+        return in_array($this->status, ['Diverifikasi', 'Didistribusikan']) && is_null($this->assigned_to);
     }
 
     /**
@@ -169,6 +196,18 @@ class Ticket extends Model
             'Sedang'  => 'bg-amber-100 text-amber-800',
             'Rendah'  => 'bg-emerald-100 text-emerald-800',
             default   => 'bg-slate-100 text-slate-800',
+        };
+    }
+
+    /**
+     * Get CSS badge classes for jenis_pengajuan.
+     */
+    public function getJenisBadgeAttribute(): string
+    {
+        return match ($this->jenis_pengajuan) {
+            'Permintaan'   => 'bg-sky-50 text-sky-700 border-sky-200',
+            'Permasalahan' => 'bg-orange-50 text-orange-700 border-orange-200',
+            default        => 'bg-slate-50 text-slate-500 border-slate-200',
         };
     }
 }

@@ -6,6 +6,8 @@ use App\Concerns\LogsAudit;
 use App\Models\InternalDepartment;
 use App\Models\Ticket;
 use App\Models\TicketCategory;
+use App\Models\UnitKerja;
+use App\Models\User;
 use App\Services\TicketService;
 use Illuminate\Http\Request;
 
@@ -63,6 +65,11 @@ class TicketController extends Controller
                   ->orWhere('description', 'LIKE', "%{$search}%")
                   ->orWhereHas('user', fn ($u) => $u->where('nama_lengkap', 'LIKE', "%{$search}%"));
             });
+        }
+
+        // Filter by jenis_pengajuan if provided
+        if ($request->filled('jenis_pengajuan')) {
+            $query->where('jenis_pengajuan', $request->jenis_pengajuan);
         }
 
         $tickets = $query->paginate(15)->withQueryString();
@@ -152,14 +159,15 @@ class TicketController extends Controller
         // Daftar staf aktif di bagian ini untuk dipilih oleh Kabag saat mendisposisikan tiket
         $departmentStaff = collect();
         if ($ticket->department_id) {
-            $departmentStaff = \App\Models\User::where(function ($q) use ($ticket) {
+            $departmentStaff = User::where(function ($q) use ($ticket) {
                     $q->where('department_id', $ticket->department_id);
                     if ($ticket->department_id == 1) {
-                        $q->orWhereHas('role', fn($r) => $r->where('nama', 'umum_rt'));
+                        // Sertakan role lama (umum_rt) dan role baru (uk_umum_rt, uk_dokumen)
+                        $q->orWhereHas('role', fn($r) => $r->whereIn('nama', ['umum_rt', 'uk_umum_rt', 'uk_dokumen']));
                     } elseif ($ticket->department_id == 2) {
-                        $q->orWhereHas('role', fn($r) => $r->where('nama', 'aset'));
+                        $q->orWhereHas('role', fn($r) => $r->whereIn('nama', ['aset', 'uk_administrasi_aset', 'uk_logistik']));
                     } elseif ($ticket->department_id == 3) {
-                        $q->orWhereHas('role', fn($r) => $r->where('nama', 'pengadaan'));
+                        $q->orWhereHas('role', fn($r) => $r->whereIn('nama', ['pengadaan', 'uk_pengadaan', 'uk_pemeliharaan']));
                     }
                 })
                 ->where('is_active', true)
@@ -179,7 +187,9 @@ class TicketController extends Controller
             );
         }
 
-        return view('tickets.show', compact('ticket', 'departments', 'departmentStaff'));
+        $unitKerjaList = UnitKerja::where('is_active', true)->get();
+
+        return view('tickets.show', compact('ticket', 'departments', 'departmentStaff', 'unitKerjaList'));
     }
 
     /**
@@ -201,7 +211,7 @@ class TicketController extends Controller
         ]);
 
         $staff = \App\Models\User::findOrFail($validated['assigned_to']);
-        if ($staff->department_id != $ticket->department_id) {
+        if ($staff->effectiveDepartmentId() != $ticket->department_id) {
             return back()->withErrors(['assigned_to' => 'Staf yang dipilih bukan anggota bagian ini.'])->withInput();
         }
 
@@ -307,9 +317,11 @@ class TicketController extends Controller
 
         // Operator verifies and directs to department (not assigning directly to staff)
         if ($isOperator) {
-            $rules['department_id'] = 'nullable|exists:internal_departments,id';
-            $rules['category_id']   = 'nullable|exists:ticket_categories,id';
-            $rules['priority']      = 'nullable|in:Rendah,Normal,Sedang,Tinggi,Kritis,Darurat';
+            $rules['department_id']    = 'nullable|exists:internal_departments,id';
+            $rules['unit_kerja_id']    = 'nullable|exists:unit_kerja,id';
+            $rules['category_id']      = 'nullable|exists:ticket_categories,id';
+            $rules['priority']         = 'nullable|in:Rendah,Normal,Sedang,Tinggi,Kritis,Darurat';
+            $rules['jenis_pengajuan']  = 'nullable|in:Permintaan,Permasalahan';
         }
 
         $validated = $request->validate($rules);

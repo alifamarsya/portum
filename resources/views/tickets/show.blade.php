@@ -98,6 +98,23 @@
                         @endif
                     </div>
 
+                    {{-- Jenis Pengajuan & Unit Kerja (hanya tampil jika sudah diisi oleh Operator) --}}
+                    @if ($ticket->jenis_pengajuan || $ticket->unit_kerja_id)
+                        <div class="sm:col-span-2 flex flex-wrap gap-2 items-center">
+                            @if ($ticket->jenis_pengajuan)
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border {{ $ticket->jenis_badge }}">
+                                    {{ $ticket->jenis_pengajuan }}
+                                </span>
+                            @endif
+                            @if ($ticket->unitKerja)
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-violet-50 text-violet-700 border border-violet-200">
+                                    @include('partials.icon', ['name' => 'briefcase', 'class' => 'w-3 h-3'])
+                                    {{ $ticket->unitKerja->nama }}
+                                </span>
+                            @endif
+                        </div>
+                    @endif
+
                     {{-- Informasi Disposisi Kabag jika sudah didisposisi --}}
                     @if ($ticket->disposed_at)
                         <div class="sm:col-span-2 p-4 rounded-xl bg-gradient-to-r from-blue-50/80 to-indigo-50/50 border border-blue-200/80">

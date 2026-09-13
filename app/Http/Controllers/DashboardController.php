@@ -31,12 +31,16 @@ class DashboardController extends Controller
             return redirect()->route('kabag.dashboard');
         }
 
-        if (auth()->user()?->hasRole('umum_rt')) {
+        if (auth()->user()?->hasRole(['umum_rt', 'uk_umum_rt', 'uk_dokumen'])) {
             return redirect()->route('staf-umum.dashboard');
         }
 
-        if (auth()->user()?->hasRole('aset')) {
+        if (auth()->user()?->hasRole(['aset', 'uk_administrasi_aset', 'uk_logistik'])) {
             return redirect()->route('staf-aset.dashboard');
+        }
+
+        if (auth()->user()?->hasRole(['pengadaan', 'uk_pengadaan', 'uk_pemeliharaan'])) {
+            return redirect()->route('staf-pengadaan.dashboard');
         }
 
         $menunggu = UmBiayaHarian::where('approval_status', 'Diajukan')->count();

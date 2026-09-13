@@ -31,9 +31,9 @@ class KabagDashboardController extends Controller
         $stats = [
             'total'            => (clone $baseQuery)->count(),
             'perlu_disposisi'  => (clone $baseQuery)->where(function ($q) {
-                $q->where('status', 'Diverifikasi')->whereNull('assigned_to');
+                $q->whereIn('status', ['Diverifikasi', 'Didistribusikan'])->whereNull('assigned_to');
             })->count(),
-            'sedang_dikerjakan'=> (clone $baseQuery)->whereIn('status', ['Didistribusikan', 'Dalam Proses'])->count(),
+            'sedang_dikerjakan'=> (clone $baseQuery)->whereIn('status', ['Didistribusikan', 'Dalam Proses'])->whereNotNull('assigned_to')->count(),
             'selesai'          => (clone $baseQuery)->whereIn('status', ['Selesai', 'Ditutup Pemohon'])->count(),
             'ditolak'          => (clone $baseQuery)->where('status', 'Ditolak')->count(),
         ];
@@ -41,7 +41,7 @@ class KabagDashboardController extends Controller
         // Antrean tiket yang membutuhkan verifikasi RBB & disposisi dari Kabag
         $antreanDisposisi = (clone $baseQuery)
             ->where(function ($q) {
-                $q->where('status', 'Diverifikasi')->whereNull('assigned_to');
+                $q->whereIn('status', ['Diverifikasi', 'Didistribusikan'])->whereNull('assigned_to');
             })
             ->with(['user', 'category'])
             ->latest()
@@ -51,6 +51,7 @@ class KabagDashboardController extends Controller
         // Tiket yang sedang ditangani staf
         $tiketBerjalan = (clone $baseQuery)
             ->whereIn('status', ['Didistribusikan', 'Dalam Proses'])
+            ->whereNotNull('assigned_to')
             ->with(['user', 'assignedStaff', 'category'])
             ->latest()
             ->take(6)
@@ -60,11 +61,11 @@ class KabagDashboardController extends Controller
         $staffMembers = User::where(function ($q) use ($deptId) {
                 $q->where('department_id', $deptId);
                 if ($deptId == 1) {
-                    $q->orWhereHas('role', fn($r) => $r->where('nama', 'umum_rt'));
+                    $q->orWhereHas('role', fn($r) => $r->whereIn('nama', ['umum_rt', 'uk_umum_rt', 'uk_dokumen']));
                 } elseif ($deptId == 2) {
-                    $q->orWhereHas('role', fn($r) => $r->where('nama', 'aset'));
+                    $q->orWhereHas('role', fn($r) => $r->whereIn('nama', ['aset', 'uk_administrasi_aset', 'uk_logistik']));
                 } elseif ($deptId == 3) {
-                    $q->orWhereHas('role', fn($r) => $r->where('nama', 'pengadaan'));
+                    $q->orWhereHas('role', fn($r) => $r->whereIn('nama', ['pengadaan', 'uk_pengadaan', 'uk_pemeliharaan']));
                 }
             })
             ->where('is_active', true)
