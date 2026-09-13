@@ -203,7 +203,7 @@
                                 @if ($user?->isKabag())
                                     @php
                                         $kabagAntri = \App\Models\Ticket::where('department_id', $user->effectiveDepartmentId())
-                                            ->where('status', 'Diverifikasi')
+                                            ->whereIn('status', ['Diverifikasi', 'Dialokasikan'])
                                             ->whereNull('assigned_to')
                                             ->count();
                                     @endphp
@@ -464,7 +464,7 @@
                             @if ($user?->isKabag())
                                 @php
                                     $kabagAntriMobile = \App\Models\Ticket::where('department_id', $user->effectiveDepartmentId())
-                                        ->where('status', 'Diverifikasi')
+                                        ->whereIn('status', ['Diverifikasi', 'Dialokasikan'])
                                         ->whereNull('assigned_to')
                                         ->count();
                                 @endphp
