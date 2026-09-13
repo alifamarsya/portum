@@ -15,7 +15,7 @@
                     Selamat Datang, {{ $user->nama_lengkap }}
                 </h1>
                 <p class="text-sm text-blue-100/90 mt-1 max-w-2xl leading-relaxed">
-                    Pusat penanganan tugas tiket layanan umum perorangan serta pemantauan operasional harian (Biaya BBM/Perawatan, Kendaraan Dinas, dan Permintaan Cabang).
+                    Pusat penanganan tugas tiket layanan umum perorangan serta pemantauan operasional harian (Biaya Operasional, Kendaraan Dinas, Fasilitas Kantor, dan Kebersihan).
                 </p>
             </div>
 
@@ -144,18 +144,18 @@
                 <p class="text-[11px] text-slate-400 mt-1 font-medium">{{ $kendaraanServis }} unit dalam servis/perawatan</p>
             </div>
 
-            {{-- Card 4: Permintaan Cabang --}}
+            {{-- Card 4: Fasilitas Kantor --}}
             <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs group hover:border-purple-300 transition-all">
                 <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Permintaan Cabang</span>
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Fasilitas Kantor</span>
                     <span class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center font-bold">
                         @include('partials.icon', ['name' => 'layers', 'class' => 'w-4 h-4'])
                     </span>
                 </div>
                 <p class="text-xl sm:text-2xl font-black text-purple-900 tracking-tight">
-                    {{ $permintaanPending }} <span class="text-xs font-normal text-slate-500">Pending</span>
+                    {{ $fasilitasTotal }} <span class="text-xs font-normal text-slate-500">Total Item</span>
                 </p>
-                <p class="text-[11px] text-slate-400 mt-1 font-medium">ATK &amp; Inventaris menunggu diproses</p>
+                <p class="text-[11px] text-slate-400 mt-1 font-medium">{{ $fasilitasPerluPerawatan }} unit perlu perawatan/perbaikan</p>
             </div>
         </div>
     </div>
@@ -461,38 +461,38 @@
                 </div>
             </div>
 
-            {{-- 3. PERMINTAAN CABANG TERBARU --}}
+            {{-- 3. FASILITAS KANTOR TERBARU --}}
             <div class="bg-white rounded-2xl border border-slate-200/90 shadow-card p-5">
                 <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
                     <div>
-                        <h2 class="font-bold text-ink text-sm">Permintaan Cabang</h2>
-                        <p class="text-xs text-slate-400">Pengajuan ATK &amp; perbaikan inventaris</p>
+                        <h2 class="font-bold text-ink text-sm">Fasilitas Kantor</h2>
+                        <p class="text-xs text-slate-400">Monitoring fasilitas &amp; utilitas gedung</p>
                     </div>
-                    <a href="{{ route('modul.index', 'permintaan_cabang') }}" class="text-xs font-bold text-[#114E84] hover:underline">
+                    <a href="{{ route('modul.index', 'fasilitas_kantor') }}" class="text-xs font-bold text-[#114E84] hover:underline">
                         Lihat
                     </a>
                 </div>
 
                 <div class="space-y-2.5">
-                    @forelse ($permintaanTerbaru as $p)
+                    @forelse ($fasilitasTerbaru as $f)
                         <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs">
                             <div class="flex items-center justify-between mb-1">
-                                <span class="font-bold text-slate-800">{{ $p->unit_kerja }}</span>
+                                <span class="font-bold text-slate-800">{{ $f->nama_fasilitas }}</span>
                                 <span class="text-[10px] font-mono text-slate-400">
-                                    {{ $p->tanggal ? $p->tanggal->format('d/m/Y') : '' }}
+                                    {{ $f->lokasi ?? '-' }}
                                 </span>
                             </div>
-                            <p class="text-[11px] text-slate-600 truncate">{{ $p->uraian ?? $p->jenis }}</p>
+                            <p class="text-[11px] text-slate-600 truncate">{{ $f->kode ? '[' . $f->kode . '] ' : '' }}{{ $f->kategori ?? 'Umum' }}</p>
                             <div class="flex items-center justify-between mt-1.5">
-                                <span class="text-[10.5px] text-slate-400">Jenis: <strong class="text-slate-600">{{ $p->jenis }}</strong></span>
+                                <span class="text-[10.5px] text-slate-400">PJ: <strong class="text-slate-600">{{ $f->penanggung_jawab ?? '-' }}</strong></span>
                                 <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold
-                                    {{ $p->status === 'Selesai' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">
-                                    {{ $p->status ?? 'Diajukan' }}
+                                    {{ $f->kondisi === 'Baik' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : ($f->kondisi === 'Perlu Perawatan' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-rose-50 text-rose-700 border border-rose-200') }}">
+                                    {{ $f->kondisi ?? 'Baik' }}
                                 </span>
                             </div>
                         </div>
                     @empty
-                        <p class="text-xs text-slate-400 text-center py-3">Belum ada permohonan cabang.</p>
+                        <p class="text-xs text-slate-400 text-center py-3">Belum ada data fasilitas kantor.</p>
                     @endforelse
                 </div>
             </div>
@@ -516,10 +516,10 @@
                         @include('partials.icon', ['name' => 'shield', 'class' => 'w-3.5 h-3.5 text-blue-600'])
                         <span>Kendaraan</span>
                     </a>
-                    <a href="{{ route('modul.index', 'permintaan_cabang') }}"
+                    <a href="{{ route('modul.index', 'fasilitas_kantor') }}"
                        class="flex items-center gap-2 p-2.5 rounded-xl bg-white hover:bg-blue-50 border border-slate-200/80 text-slate-700 hover:text-[#114E84] text-xs font-semibold shadow-2xs transition">
-                        @include('partials.icon', ['name' => 'inbox', 'class' => 'w-3.5 h-3.5 text-purple-600'])
-                        <span>Cabang</span>
+                        @include('partials.icon', ['name' => 'layers', 'class' => 'w-3.5 h-3.5 text-purple-600'])
+                        <span>Fasilitas</span>
                     </a>
                 </div>
             </div>

@@ -4,25 +4,31 @@ namespace App\Http\Controllers;
 
 use App\Models\Ticket;
 use App\Models\UmBiayaHarian;
+use App\Models\UmChecklistKebersihan;
+use App\Models\UmFasilitasKantor;
 use App\Models\UmKendaraan;
-use App\Models\UmPermintaanCabang;
 use Illuminate\Http\Request;
 
 class StafUmumDashboardController extends Controller
 {
     /**
      * Tampilan Dashboard khusus Staf Bagian Umum & Rumah Tangga.
-     * Tiket difilter secara personal khusus untuk staf yang sedang login (assigned_to = auth()->id()).
+     * Mencakup staf lama (umum_rt) dan staf unit kerja baru (uk_umum_rt, uk_dokumen).
+     * Tiket difilter secara personal khusus untuk staf yang sedang login.
      */
     public function index()
     {
         $user = auth()->user();
 
-        if (!$user->hasRole('umum_rt') && !$user->isSuperAdmin()) {
+        $isAuthorized = $user->hasRole('umum_rt')
+            || $user->isUnitKerjaStaf()
+            || $user->isSuperAdmin();
+
+        if (!$isAuthorized) {
             abort(403, 'Akses dashboard ini khusus untuk Staf Bagian Umum & Rumah Tangga.');
         }
 
-        // 1. Metrik Tiket Personal Staf Ini (strictly scoped to assigned_to = $user->id)
+        // 1. Metrik Tiket Personal Staf Ini
         $ticketStats = [
             'tugas_aktif'       => Ticket::where('assigned_to', $user->id)->whereIn('status', ['Didistribusikan', 'Dalam Proses'])->count(),
             'sedang_dikerjakan' => Ticket::where('assigned_to', $user->id)->where('status', 'Dalam Proses')->count(),
@@ -30,7 +36,7 @@ class StafUmumDashboardController extends Controller
             'total_tugas'       => Ticket::where('assigned_to', $user->id)->count(),
         ];
 
-        // 2. Daftar Antrean Tiket Aktif Milik Staf Ini (prioritas darurat/kritis di atas)
+        // 2. Daftar Antrean Tiket Aktif (prioritas darurat/kritis di atas)
         $antreanTiket = Ticket::where('assigned_to', $user->id)
             ->whereIn('status', ['Didistribusikan', 'Dalam Proses'])
             ->with(['user', 'category', 'disposedBy'])
@@ -38,7 +44,7 @@ class StafUmumDashboardController extends Controller
             ->latest()
             ->get();
 
-        // 3. Tiket Selesai Terakhir yang Ditangani Staf Ini
+        // 3. Tiket Selesai Terakhir
         $tiketSelesai = Ticket::where('assigned_to', $user->id)
             ->whereIn('status', ['Selesai', 'Ditutup Pemohon'])
             ->with(['user', 'category'])
@@ -46,8 +52,7 @@ class StafUmumDashboardController extends Controller
             ->take(5)
             ->get();
 
-        // 4. Metrik Operasional Modul Umum & RT
-        // A. Biaya Harian
+        // 4. Metrik Operasional — Biaya Harian
         $totalBiayaBulanIni = (float) UmBiayaHarian::whereYear('tanggal', now()->year)
             ->whereMonth('tanggal', now()->month)
             ->where('approval_status', 'Disetujui')
@@ -69,15 +74,19 @@ class StafUmumDashboardController extends Controller
             ->take(5)
             ->get();
 
-        // B. Kendaraan & Driver
-        $totalKendaraan = UmKendaraan::count();
-        $kendaraanAktif = UmKendaraan::where('status', 'Aktif')->count();
+        // 5. Kendaraan & Driver
+        $totalKendaraan  = UmKendaraan::count();
+        $kendaraanAktif  = UmKendaraan::where('status', 'Aktif')->count();
         $kendaraanServis = UmKendaraan::where('status', 'Servis')->count();
-        $kendaraanList = UmKendaraan::latest()->take(5)->get();
+        $kendaraanList   = UmKendaraan::latest()->take(5)->get();
 
-        // C. Permintaan Cabang
-        $permintaanPending = UmPermintaanCabang::whereIn('status', ['Diajukan', 'Diproses'])->count();
-        $permintaanTerbaru = UmPermintaanCabang::latest('tanggal')->latest('id')->take(4)->get();
+        // 6. Modul Baru UK-URT (hanya tampil jika punya akses)
+        $fasilitasTotal       = UmFasilitasKantor::count();
+        $fasilitasPerluPerawatan = UmFasilitasKantor::whereIn('kondisi', ['Perlu Perawatan', 'Rusak Ringan', 'Rusak Berat'])->count();
+        $fasilitasTerbaru     = UmFasilitasKantor::latest()->take(4)->get();
+        $checklistHariIni     = UmChecklistKebersihan::whereDate('tanggal', today())->count();
+        $checklistBelumSelesai = UmChecklistKebersihan::whereDate('tanggal', today())
+            ->where('status', 'Belum Dilakukan')->count();
 
         return view('staf.umum.dashboard', compact(
             'user',
@@ -92,8 +101,11 @@ class StafUmumDashboardController extends Controller
             'kendaraanAktif',
             'kendaraanServis',
             'kendaraanList',
-            'permintaanPending',
-            'permintaanTerbaru'
+            'fasilitasTotal',
+            'fasilitasPerluPerawatan',
+            'fasilitasTerbaru',
+            'checklistHariIni',
+            'checklistBelumSelesai',
         ));
     }
 }
