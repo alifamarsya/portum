@@ -286,5 +286,81 @@
             });
         }
     </script>
+    @if(isset($showForceChangeModal) && $showForceChangeModal)
+    <!-- Modal Backdrop -->
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/60 backdrop-blur-sm">
+        <!-- Modal Content -->
+        <div class="w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-slate-200 p-8 relative animate-[fadeIn_0.2s_ease-out]">
+            <div class="flex items-center gap-2.5 mb-6">
+                <img src="{{ asset('images/bank-sulteng.png') }}" alt="Bank Sulteng" class="h-6 w-auto">
+            </div>
+
+            <div class="w-11 h-11 rounded-xl flex items-center justify-center mb-4" style="background-color: #F6EEDB; color: #D4A038;">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+                </svg>
+            </div>
+
+            <h1 class="text-lg font-bold mb-1 text-slate-900">Ganti password Anda</h1>
+            <p class="text-sm text-slate-500 mb-6">Ini login pertama Anda &mdash; buat password baru sebelum melanjutkan.</p>
+
+            @if ($errors->any())
+                <div class="mb-4 flex items-start gap-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 px-3.5 py-2.5 text-sm">
+                    <svg class="w-4 h-4 flex-shrink-0 mt-0.5 text-rose-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span class="font-medium">{{ $errors->first() }}</span>
+                </div>
+            @endif
+
+            <form method="POST" action="{{ route('password.force-change.submit') }}" class="space-y-4" id="forceChangeForm">
+                @csrf
+                <div>
+                    <label class="block text-[13px] font-semibold mb-1.5 text-slate-700">Password Baru</label>
+                    <input type="password" name="password" required minlength="8"
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm font-medium focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500 transition outline-none">
+                </div>
+                <div>
+                    <label class="block text-[13px] font-semibold mb-1.5 text-slate-700">Konfirmasi Password</label>
+                    <input type="password" name="password_confirmation" required minlength="8"
+                           class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm font-medium focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500 transition outline-none">
+                </div>
+                <button type="submit" id="forceChangeSubmitBtn" class="btn-sulteng w-full rounded-xl py-3.5 mt-2 text-sm font-bold text-white tracking-wide shadow-md flex items-center justify-center gap-2">
+                    <span>Simpan &amp; Lanjutkan</span>
+                </button>
+            </form>
+            
+            <form method="POST" action="{{ route('logout') }}" class="mt-5 text-center">
+                @csrf
+                <button type="submit" class="text-xs text-slate-500 font-medium hover:text-slate-800 transition underline underline-offset-2">
+                    Batalkan &amp; Keluar
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+    </style>
+    
+    <script>
+        const forceForm = document.getElementById('forceChangeForm');
+        const forceSubmitBtn = document.getElementById('forceChangeSubmitBtn');
+        if (forceForm && forceSubmitBtn) {
+            forceForm.addEventListener('submit', function() {
+                forceSubmitBtn.disabled = true;
+                forceSubmitBtn.classList.add('opacity-80', 'cursor-wait');
+                forceSubmitBtn.innerHTML = `
+                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Menyimpan...</span>
+                `;
+            });
+        }
+    </script>
+    @endif
 </body>
 </html>
