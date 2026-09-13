@@ -29,9 +29,9 @@ class RoleController extends Controller
     ];
 
     const PERMISSIONS = [
-        'Layanan & Monitoring' => [
+        'Pengajuan & Monitoring' => [
             'dashboard' => ['label' => 'Dashboard', 'desc' => 'Akses halaman dashboard pemantauan utama sistem'],
-            'ticketing' => ['label' => 'Sistem Tiket', 'desc' => 'Akses modul tiket layanan (pemohon, operator, atau unit kerja)'],
+            'ticketing' => ['label' => 'Sistem Tiket', 'desc' => 'Akses modul tiket pengajuan (pemohon, operator, atau unit kerja)'],
         ],
         'Modul Operasional' => [
             'umum_rt' => [

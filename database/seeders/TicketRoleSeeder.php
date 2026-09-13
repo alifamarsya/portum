@@ -36,7 +36,7 @@ class TicketRoleSeeder extends Seeder
             UnitKerja::updateOrCreate(['id' => $uk['id']], $uk);
         }
 
-        // 3. Kategori Layanan Tiket (Fase 1 — sesuai unit kerja)
+        // 3. Kategori Sistem Tiket (Fase 1 — sesuai unit kerja)
         $categories = [
             // UK-URT
             ['id' => 1, 'name' => 'Permintaan Sarana & Prasarana',   'default_sla_hours' => 24],

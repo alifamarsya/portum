@@ -113,7 +113,7 @@ class UserSeeder extends Seeder
         \$singleRoleUsers = [
 {$singleUsersCode}        ];
 
-        // Role Multi-User (Pemohon Layanan Cabang & Divisi)
+        // Role Multi-User (Pemohon Cabang & Divisi)
         \$multiRoleUsers = [
 {$multiUsersCode}        ];
 

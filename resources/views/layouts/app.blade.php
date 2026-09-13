@@ -170,10 +170,10 @@
     <div class="flex-1 flex flex-col bg-gradient-to-b from-[#114E84] via-[#0E4272] to-[#0A335A] text-white rounded-tr-[36px] rounded-br-[36px] overflow-hidden shadow-2xl">
         {{-- Navigation Menu --}}
         <nav class="flex-1 overflow-y-auto pt-4 pb-2 space-y-4 text-[13px]">
-            {{-- 1. LAYANAN & MONITORING --}}
+            {{-- 1. PENGAJUAN & MONITORING --}}
             @if ($canAccess('dashboard') || $canAccess('ticketing'))
                 <div class="pt-1">
-                    <p class="px-5 mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/40">Layanan &amp; Monitoring</p>
+                    <p class="px-5 mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/40">Pengajuan &amp; Monitoring</p>
                     <div class="space-y-0.5 px-3">
                         @if ($canAccess('dashboard'))
                             @php
@@ -441,10 +441,10 @@
             </button>
         </div>
         <nav class="flex-1 p-3 space-y-3 text-xs">
-            {{-- 1. LAYANAN & MONITORING --}}
+            {{-- 1. PENGAJUAN & MONITORING --}}
             @if ($canAccess('dashboard') || $canAccess('ticketing'))
                 <div class="space-y-1">
-                    <p class="text-[10px] font-bold text-white/50 uppercase px-2 mb-1">Layanan &amp; Monitoring</p>
+                    <p class="text-[10px] font-bold text-white/50 uppercase px-2 mb-1">Pengajuan &amp; Monitoring</p>
                     @if ($canAccess('dashboard'))
                         @php
                             $isMobileDashActive = request()->url() === $userDashboardRoute;

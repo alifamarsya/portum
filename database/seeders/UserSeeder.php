@@ -27,7 +27,7 @@ class UserSeeder extends Seeder
             ['username' => 'staf 6', 'nama_lengkap' => 'Zahra', 'email' => 'pengadaan@banksulteng.co.id', 'jabatan' => 'Staf Unit Kerja Pemeliharaan & Pengawasan', 'bagian' => 'Bagian Pengadaan & Pemeliharaan Aset & Inventaris', 'role_id' => 18, 'department_id' => null],
         ];
 
-        // Role Multi-User (Pemohon Layanan Cabang & Divisi)
+        // Role Multi-User (Pemohon Cabang & Divisi)
         $multiRoleUsers = [
             ['username' => 'cabang tawaeli', 'nama_lengkap' => 'Staf Cabang Tawaeli', 'email' => 'cabang.palu@banksulteng.co.id', 'jabatan' => 'Staff Customer Service', 'bagian' => 'Kantor Cabang Palu', 'role_id' => 6, 'department_id' => null],
             ['username' => 'Reza', 'nama_lengkap' => 'Reza Gilang Kenanza', 'email' => 'ukksiber@banksulteng.co.id', 'jabatan' => 'Pemimpin Unit Kerja Analis Ketahanan & Keamanan Siber', 'bagian' => 'Divisi Unit Khusus Keamanan Siber Kantor Pusat', 'role_id' => 6, 'department_id' => null],
