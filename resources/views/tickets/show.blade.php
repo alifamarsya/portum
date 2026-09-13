@@ -24,15 +24,6 @@
                     </span>
                 </div>
             </div>
-
-            {{-- Process / Edit Button only for Operator and Internal Staff, NOT for User --}}
-            @if ((auth()->user()->isOperator() || !is_null(auth()->user()->department_id)) && !auth()->user()->isKepalaDivisi())
-                <a href="{{ route('tickets.edit', $ticket) }}"
-                   class="inline-flex items-center gap-1.5 bg-[#114E84] hover:bg-[#0E4272] text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow transition">
-                    @include('partials.icon', ['name' => 'pencil', 'class' => 'w-3.5 h-3.5'])
-                    Proses / Ubah Tiket
-                </a>
-            @endif
         </div>
     </div>
 
@@ -147,13 +138,45 @@
 
                 {{-- Lampiran --}}
                 @if ($ticket->attachment_path)
+                    @php
+                        $ext = strtolower(pathinfo($ticket->attachment_path, PATHINFO_EXTENSION));
+                        $isImg = in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif']);
+                        $fileName = basename($ticket->attachment_path);
+                    @endphp
                     <div>
-                        <span class="text-xs text-slate-400 block font-medium mb-1.5">Berkas / Dokumen Lampiran:</span>
-                        <a href="{{ asset('storage/' . $ticket->attachment_path) }}" target="_blank"
-                           class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#114E84] text-xs font-semibold transition border border-slate-200 shadow-2xs">
-                            @include('partials.icon', ['name' => 'link', 'class' => 'w-4 h-4'])
-                            Buka / Unduh Lampiran Tiket
-                        </a>
+                        <span class="text-xs text-slate-400 block font-medium mb-2">Berkas / Dokumen Lampiran:</span>
+                        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="w-10 h-10 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-[#114E84] flex-shrink-0">
+                                    @include('partials.icon', ['name' => 'file-text', 'class' => 'w-5 h-5'])
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-xs font-bold text-slate-800 truncate" title="{{ $fileName }}">
+                                        {{ $fileName }}
+                                    </p>
+                                    <p class="text-[11px] text-slate-400 uppercase font-mono">{{ $ext ?: 'File' }} &bull; Lampiran Tiket</p>
+                                </div>
+                            </div>
+
+                            @if ($isImg)
+                                <div class="mb-3 rounded-lg overflow-hidden border border-slate-200 bg-white max-h-60 flex items-center justify-center">
+                                    <img src="{{ route('tickets.attachment', $ticket) }}" alt="Pratinjau Lampiran" class="w-full h-auto object-contain max-h-60">
+                                </div>
+                            @endif
+
+                            <div class="flex flex-wrap gap-2.5">
+                                <a href="{{ route('tickets.attachment', $ticket) }}" target="_blank"
+                                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white hover:bg-blue-50 text-[#114E84] text-xs font-semibold transition border border-blue-200 shadow-2xs">
+                                    @include('partials.icon', ['name' => 'eye', 'class' => 'w-4 h-4'])
+                                    Buka Berkas
+                                </a>
+                                <a href="{{ route('tickets.attachment.download', $ticket) }}"
+                                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#114E84] hover:bg-[#0E4272] text-white text-xs font-semibold transition shadow-2xs">
+                                    @include('partials.icon', ['name' => 'download', 'class' => 'w-4 h-4 text-white'])
+                                    Unduh Berkas
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 @endif
             </div>
@@ -279,77 +302,6 @@
                     </div>
                 </div>
             @endif
-
-            {{-- Quick Process Panel (for Operator & Bagian Internal only, after disposed) --}}
-            @if ((auth()->user()->isOperator() || (!is_null(auth()->user()->effectiveDepartmentId()) && !auth()->user()->isKabag())) && !auth()->user()->isKepalaDivisi())
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-card p-6">
-                    <h2 class="text-base font-bold text-ink mb-3 pb-2 border-b border-slate-100 flex items-center gap-2">
-                        @include('partials.icon', ['name' => 'sliders', 'class' => 'w-4 h-4 text-brand'])
-                        Perbarui Status &amp; Delegasi Tiket
-                    </h2>
-
-                    @if ($ticket->isAwaitingKabagDisposition())
-                        <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 mb-3 flex items-center gap-2">
-                            <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                            <span>Tiket ini sedang menunggu verifikasi RBB &amp; disposisi dari Kepala Bagian sebelum dikerjakan oleh staf.</span>
-                        </div>
-                    @endif
-
-                    <form method="POST" action="{{ route('tickets.update', $ticket) }}" class="space-y-4">
-                        @csrf
-                        @method('PUT')
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label for="status" class="block text-xs font-bold text-slate-700 mb-1">Status Tiket</label>
-                                @php
-                                    $quickStatuses = ['Diverifikasi', 'Didistribusikan', 'Dalam Proses', 'Selesai', 'Ditolak'];
-                                    $currentQuickStatus = old('status', $ticket->status === 'Menunggu Verifikasi' ? 'Diverifikasi' : $ticket->status);
-                                @endphp
-                                <select name="status" id="status" required
-                                        class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-brand focus:border-brand">
-                                    @foreach ($quickStatuses as $st)
-                                        <option value="{{ $st }}" {{ $currentQuickStatus === $st ? 'selected' : '' }}>
-                                            {{ $st }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            @if (auth()->user()->isOperator())
-                                <div>
-                                    <label for="department_id" class="block text-xs font-bold text-slate-700 mb-1">Alokasikan ke Bagian (Kepala Bagian)</label>
-                                    <select name="department_id" id="department_id"
-                                            class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-brand focus:border-brand">
-                                        <option value="">-- Pilih Departemen --</option>
-                                        @foreach ($departments as $dept)
-                                            <option value="{{ $dept->id }}" {{ old('department_id', $ticket->department_id) == $dept->id ? 'selected' : '' }}>
-                                                {{ $dept->name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            @endif
-                        </div>
-
-                        <div>
-                            <label for="notes" class="block text-xs font-bold text-slate-700 mb-1">Catatan Tindak Lanjut / Keterangan</label>
-                            <textarea name="notes" id="notes" rows="2"
-                                      placeholder="Tambahkan catatan untuk pemohon atau catatan internal..."
-                                      class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-brand focus:border-brand"></textarea>
-                        </div>
-
-                        <div class="flex justify-end">
-                            <button type="submit"
-                                    class="bg-[#114E84] hover:bg-[#0E4272] text-white text-xs font-semibold px-5 py-2.5 rounded-xl shadow transition">
-                                Simpan Perubahan &amp; Catat Riwayat
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            @endif
-        </div>
-
         {{-- Right Column: Timeline / Riwayat Proses (Jejak Langkah Vertikal) --}}
         <div class="space-y-6">
             <div class="bg-white rounded-2xl border border-slate-200 shadow-card p-6">

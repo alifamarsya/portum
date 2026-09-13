@@ -10,6 +10,7 @@ use App\Models\UnitKerja;
 use App\Models\User;
 use App\Services\TicketService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class TicketController extends Controller
 {
@@ -34,7 +35,7 @@ class TicketController extends Controller
         $stats = [
             'total' => (clone $baseQuery)->count(),
             'menunggu' => (clone $baseQuery)->where('status', 'Menunggu Verifikasi')->count(),
-            'diverifikasi' => (clone $baseQuery)->where('status', 'Diverifikasi')->count(),
+            'diverifikasi' => (clone $baseQuery)->whereIn('status', ['Diverifikasi', 'Dialokasikan'])->count(),
             'dalam_proses' => (clone $baseQuery)->whereIn('status', ['Didistribusikan', 'Dalam Proses'])->count(),
             'selesai' => (clone $baseQuery)->whereIn('status', ['Selesai', 'Ditutup Pemohon'])->count(),
             'ditolak' => (clone $baseQuery)->where('status', 'Ditolak')->count(),
@@ -311,13 +312,14 @@ class TicketController extends Controller
         }
 
         $rules = [
-            'status' => 'required|string|in:Menunggu Verifikasi,Diverifikasi,Didistribusikan,Dalam Proses,Selesai,Ditolak,Ditutup Pemohon',
+            'status' => 'required|string|in:Menunggu Verifikasi,Diverifikasi,Didistribusikan,Dialokasikan,Dalam Proses,Selesai,Ditolak,Ditutup Pemohon',
             'notes' => 'nullable|string|max:1000',
         ];
 
-        // Operator verifies and directs to department (not assigning directly to staff)
+        // Operator verifies and allocates directly to department: status is automatically set to 'Dialokasikan'
         if ($isOperator) {
-            $rules['department_id']    = 'nullable|exists:internal_departments,id';
+            $request->merge(['status' => 'Dialokasikan']);
+            $rules['department_id']    = 'required|exists:internal_departments,id';
             $rules['unit_kerja_id']    = 'nullable|exists:unit_kerja,id';
             $rules['category_id']      = 'nullable|exists:ticket_categories,id';
             $rules['priority']         = 'nullable|in:Rendah,Normal,Sedang,Tinggi,Kritis,Darurat';
@@ -376,5 +378,57 @@ class TicketController extends Controller
 
         return redirect()->route('tickets.show', $ticket)
             ->with('status', 'Terima kasih! Tiket berhasil dikonfirmasi sebagai selesai dan telah ditutup.');
+    }
+
+    /**
+     * View ticket attachment in browser.
+     */
+    public function viewAttachment(Ticket $ticket)
+    {
+        $user = auth()->user();
+
+        // Check view authorization
+        $userDeptId = $user->effectiveDepartmentId();
+        if (!is_null($userDeptId) && !$user->isSuperAdmin() && !$user->isOperator() && !$user->isKepalaDivisi() && $ticket->department_id !== $userDeptId) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        if ($user->isUser() && $ticket->user_id !== $user->id) {
+            abort(403, 'Anda tidak berwenang mengakses lampiran tiket ini.');
+        }
+
+        if (!$ticket->attachment_path || !Storage::disk('public')->exists($ticket->attachment_path)) {
+            abort(404, 'Berkas lampiran tidak ditemukan pada server.');
+        }
+
+        $fullPath = Storage::disk('public')->path($ticket->attachment_path);
+        return response()->file($fullPath);
+    }
+
+    /**
+     * Download ticket attachment directly.
+     */
+    public function downloadAttachment(Ticket $ticket)
+    {
+        $user = auth()->user();
+
+        // Check view authorization
+        $userDeptId = $user->effectiveDepartmentId();
+        if (!is_null($userDeptId) && !$user->isSuperAdmin() && !$user->isOperator() && !$user->isKepalaDivisi() && $ticket->department_id !== $userDeptId) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        if ($user->isUser() && $ticket->user_id !== $user->id) {
+            abort(403, 'Anda tidak berwenang mengunduh lampiran tiket ini.');
+        }
+
+        if (!$ticket->attachment_path || !Storage::disk('public')->exists($ticket->attachment_path)) {
+            abort(404, 'Berkas lampiran tidak ditemukan pada server.');
+        }
+
+        $extension = pathinfo($ticket->attachment_path, PATHINFO_EXTENSION);
+        $cleanFileName = 'Lampiran-' . $ticket->ticket_number . ($extension ? '.' . $extension : '');
+
+        return Storage::disk('public')->download($ticket->attachment_path, $cleanFileName);
     }
 }
