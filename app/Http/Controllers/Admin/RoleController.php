@@ -34,9 +34,36 @@ class RoleController extends Controller
             'ticketing' => ['label' => 'Sistem Tiket', 'desc' => 'Akses modul tiket layanan (pemohon, operator, atau unit kerja)'],
         ],
         'Modul Operasional' => [
-            'umum_rt' => ['label' => 'Umum & Rumah Tangga', 'desc' => 'Pengelolaan kendaraan, biaya BBM/RT, dan permintaan ATK cabang'],
-            'aset_logistik' => ['label' => 'Aset & Logistik', 'desc' => 'Pengelolaan inventaris, invoice sewa, amortisasi, dan PKS'],
-            'pengadaan' => ['label' => 'Pengadaan & Pemeliharaan', 'desc' => 'Pengelolaan memo internal, penawaran vendor, SPK, dan reminder'],
+            'umum_rt' => [
+                'bagian' => 'Bagian Umum & Rumah Tangga',
+                'label' => 'UK Umum & Rumah Tangga',
+                'desc' => 'Pengelolaan kendaraan operasional, biaya BBM/RT, fasilitas kantor, pemeliharaan gedung, kebersihan, dan K3',
+                'submodules' => ['Kendaraan & Driver', 'Biaya BBM & Perawatan RT', 'Fasilitas Kantor', 'Pemeliharaan Gedung', 'Kebersihan & Keamanan', 'Catatan K3 & Lingkungan'],
+            ],
+            'dokumen_arsip' => [
+                'bagian' => 'Bagian Umum & Rumah Tangga',
+                'label' => 'UK Dokumen & Kearsipan',
+                'desc' => 'Pengelolaan surat masuk/keluar, memo internal/eksternal, master arsip dokumen fisik & digital, dan legalitas',
+                'submodules' => ['Surat Masuk', 'Surat Keluar', 'Memo Masuk', 'Memo Keluar', 'Master Arsip Dokumen', 'Dokumen Legalitas'],
+            ],
+            'administrasi_aset' => [
+                'bagian' => 'Bagian Aset/Inventaris & Logistik',
+                'label' => 'UK Administrasi Aset & Inventaris',
+                'desc' => 'Inventarisasi aset, amortisasi, riwayat pergerakan aset, mutasi aset, disposal, rekonsiliasi, dan temuan audit',
+                'submodules' => ['Inventarisasi Aset', 'Amortisasi Aset', 'Riwayat Pergerakan Aset', 'Mutasi Aset', 'Penghapusan Aset (Disposal)', 'Rekonsiliasi & Reklasifikasi', 'Tindak Lanjut Temuan'],
+            ],
+            'logistik_pelaporan' => [
+                'bagian' => 'Bagian Aset/Inventaris & Logistik',
+                'label' => 'UK Logistik & Pelaporan',
+                'desc' => 'Tagihan invoice sewa, PKS & reminder jatuh tempo, memo sewa cabang, penerimaan/distribusi barang, dan pembayaran tagihan',
+                'submodules' => ['Tagihan / Invoice Sewa', 'PKS & Jatuh Tempo', 'Memo Sewa Cabang', 'Penerimaan Barang / Jasa', 'Distribusi Barang / Jasa', 'Administrasi Pembayaran Tagihan'],
+            ],
+            'pengadaan' => [
+                'bagian' => 'Bagian Pengadaan & Pemeliharaan',
+                'label' => 'Pengadaan & Pemeliharaan',
+                'desc' => 'Memo internal pengadaan, penawaran vendor, negosiasi harga, draft dokumen SPK, penerbitan SPK, dan reminder pengerjaan',
+                'submodules' => ['Memo Internal', 'Penawaran Vendor', 'Negosiasi Harga', 'Draft Dokumen SPK', 'Surat Perintah Kerja (SPK)', 'Reminder & Monitoring'],
+            ],
         ],
         'Dokumentasi & Referensi' => [
             'risalah' => ['label' => 'Risalah Rapat', 'desc' => 'Notulensi agenda rapat, daftar hadir, dan tindak lanjut keputusan'],
@@ -172,10 +199,10 @@ class RoleController extends Controller
 
     public function destroy(Role $role)
     {
-        // Proteksi 1: Role sistem mutlak tidak boleh dihapus
-        if (in_array($role->nama, self::SYSTEM_ROLES)) {
+        // Proteksi 1: Role admin mutlak atau role yang sedang aktif digunakan oleh user login tidak boleh dihapus
+        if ($role->nama === 'admin' || (auth()->check() && auth()->user()->role_id === $role->id)) {
             return back()->withErrors([
-                'role' => "Role '{$role->label}' ({$role->nama}) merupakan peran bawaan sistem dan tidak dapat dihapus."
+                'role' => "Role '{$role->label}' tidak dapat dihapus karena merupakan peran administrator utama atau sedang digunakan oleh sesi login Anda saat ini."
             ]);
         }
 
@@ -183,7 +210,7 @@ class RoleController extends Controller
         $activeUsersCount = $role->users()->count();
         if ($activeUsersCount > 0) {
             return back()->withErrors([
-                'role' => "Role '{$role->label}' tidak dapat dihapus karena masih digunakan oleh {$activeUsersCount} pengguna aktif. Silakan alihkan peran pengguna tersebut terlebih dahulu."
+                'role' => "Role '{$role->label}' tidak dapat dihapus karena masih digunakan oleh {$activeUsersCount} pengguna aktif. Silakan alihkan atau ubah peran pengguna terkait terlebih dahulu."
             ]);
         }
 
@@ -200,7 +227,7 @@ class RoleController extends Controller
         // Otomatis sinkronkan ke RolePermissionSeeder.php
         SeederSyncService::syncRolePermissions();
 
-        return back()->with('status', "Role '{$roleLabel}' berhasil dihapus dari sistem.");
+        return back()->with('status', "Role '{$roleLabel}' ({$roleNama}) berhasil dihapus dari sistem.");
     }
 }
 

@@ -17,7 +17,7 @@
         .portum-submenu { animation: portumSubmenu .18s ease-out; }
         @keyframes portumSubmenu { from { opacity: .3; transform: translateY(-3px); } to { opacity: 1; transform: translateY(0); } }
     </style>
-</head>
+</head>06
 <body class="bg-canvas text-ink antialiased min-h-full flex flex-col selection:bg-brand selection:text-gold">
 @php
     $user = auth()->user();
@@ -29,50 +29,95 @@
 
     $operationalGroups = [
         [
-            'perm' => 'umum_rt',
-            'label' => 'Umum & Rumah Tangga',
-            'icon' => 'building',
-            'children' => [
-                ['key' => 'kendaraan', 'label' => 'Kendaraan & Driver'],
-                ['key' => 'biaya_harian', 'label' => 'Biaya BBM & Perawatan RT'],
-                ['key' => 'permintaan_cabang', 'label' => 'Permintaan Cabang (ATK/Inv)'],
+            'label'      => 'Umum & Rumah Tangga',
+            'icon'       => 'building',
+            'submodules' => [
+                [
+                    'unit'     => 'UK Umum & RT',
+                    'perm'     => 'umum_rt',
+                    'children' => [
+                        ['key' => 'kendaraan',            'label' => 'Kendaraan & Driver'],
+                        ['key' => 'biaya_harian',          'label' => 'Biaya BBM & Perawatan RT'],
+                        ['key' => 'fasilitas_kantor',      'label' => 'Fasilitas Kantor'],
+                        ['key' => 'pemeliharaan_gedung',   'label' => 'Pemeliharaan Gedung'],
+                        ['key' => 'checklist_kebersihan',  'label' => 'Kebersihan & Keamanan'],
+                        ['key' => 'k3_insiden',            'label' => 'Catatan K3 & Lingkungan'],
+                    ],
+                ],
+                [
+                    'unit'     => 'UK Dokumen & Kearsipan',
+                    'perm'     => 'dokumen_arsip',
+                    'children' => [
+                        ['key' => 'surat_masuk',       'label' => 'Surat Masuk'],
+                        ['key' => 'surat_keluar',      'label' => 'Surat Keluar'],
+                        ['key' => 'memo_masuk',        'label' => 'Memo Masuk'],
+                        ['key' => 'memo_keluar',       'label' => 'Memo Keluar'],
+                        ['key' => 'arsip_dokumen',     'label' => 'Master Arsip Dokumen'],
+                        ['key' => 'dokumen_legalitas', 'label' => 'Dokumen Legalitas'],
+                    ],
+                ],
             ],
         ],
         [
-            'perm' => 'aset_logistik',
-            'label' => 'Aset & Logistik',
-            'icon' => 'layers',
-            'children' => [
-                ['key' => 'invoice_sewa', 'label' => 'Invoice Sewa'],
-                ['key' => 'aset', 'label' => 'Data Aset & Inventaris'],
-                ['key' => 'amortisasi', 'label' => 'Amortisasi Aset'],
-                ['key' => 'pks', 'label' => 'PKS & Jatuh Tempo'],
-                ['key' => 'memo_sewa_cabang', 'label' => 'Memo Sewa Cabang'],
-                ['key' => 'temuan', 'label' => 'Temuan Aset'],
+            'label'      => 'Aset & Logistik',
+            'icon'       => 'layers',
+            'submodules' => [
+                [
+                    'unit'     => 'UK Administrasi Aset',
+                    'perm'     => 'administrasi_aset',
+                    'children' => [
+                        ['key' => 'aset',               'label' => 'Inventarisasi Aset'],
+                        ['key' => 'amortisasi',         'label' => 'Amortisasi Aset'],
+                        ['key' => 'aset_history',       'label' => 'Riwayat Pergerakan Aset'],
+                        ['key' => 'mutasi_aset',        'label' => 'Mutasi Aset'],
+                        ['key' => 'disposal_aset',      'label' => 'Penghapusan Aset (Disposal)'],
+                        ['key' => 'rekonsiliasi_aset',  'label' => 'Rekonsiliasi & Reklasifikasi'],
+                        ['key' => 'temuan',             'label' => 'Tindak Lanjut Temuan'],
+                    ],
+                ],
+                [
+                    'unit'     => 'UK Logistik & Pelaporan',
+                    'perm'     => 'logistik_pelaporan',
+                    'children' => [
+                        ['key' => 'invoice_sewa',       'label' => 'Tagihan / Invoice Sewa'],
+                        ['key' => 'pks',                'label' => 'PKS & Jatuh Tempo'],
+                        ['key' => 'memo_sewa_cabang',   'label' => 'Memo Sewa Cabang'],
+                        ['key' => 'penerimaan_barang',  'label' => 'Penerimaan Barang / Jasa'],
+                        ['key' => 'distribusi_barang',  'label' => 'Distribusi Barang / Jasa'],
+                        ['key' => 'pembayaran_tagihan', 'label' => 'Administrasi Pembayaran Tagihan'],
+                    ],
+                ],
             ],
         ],
         [
-            'perm' => 'pengadaan',
-            'label' => 'Pengadaan & Pemeliharaan',
-            'icon' => 'cart',
-            'children' => [
-                ['key' => 'memo_internal', 'label' => 'Memo Internal'],
-                ['key' => 'penawaran', 'label' => 'Penawaran Vendor'],
-                ['key' => 'negosiasi', 'label' => 'Negosiasi Harga'],
-                ['key' => 'draft_dokumen', 'label' => 'Draft Dokumen SPK'],
-                ['key' => 'spk', 'label' => 'Surat Perintah Kerja (SPK)'],
-                ['key' => 'reminder', 'label' => 'Reminder & Monitoring'],
-            ],
-        ],
-        [
-            'perm' => 'arsip_surat_memo',
-            'label' => 'Arsip Surat & Memo',
-            'icon' => 'archive',
-            'children' => [
-                ['key' => 'surat_masuk', 'label' => 'Surat Masuk'],
-                ['key' => 'surat_keluar', 'label' => 'Surat Keluar'],
-                ['key' => 'memo_masuk', 'label' => 'Memo Masuk'],
-                ['key' => 'memo_keluar', 'label' => 'Memo Keluar'],
+            'label'      => 'Pengadaan & Pemeliharaan',
+            'icon'       => 'cart',
+            'submodules' => [
+                [
+                    'title'    => 'UK Pengadaan',
+                    'unit'     => 'UK-PENGADAAN',
+                    'perm'     => 'pengadaan',
+                    'children' => [
+                        ['key' => 'memo_internal',       'label' => 'Memo Internal'],
+                        ['key' => 'penawaran',           'label' => 'Penawaran Vendor'],
+                        ['key' => 'negosiasi',           'label' => 'Negosiasi Harga'],
+                        ['key' => 'draft_dokumen',       'label' => 'Draft Dokumen SPK'],
+                        ['key' => 'spk',                 'label' => 'Surat Perintah Kerja (SPK)'],
+                        ['key' => 'reminder',            'label' => 'Reminder & Monitoring'],
+                        ['key' => 'perencanaan_kebutuhan', 'label' => 'Perencanaan Kebutuhan'],
+                    ],
+                ],
+                [
+                    'title'    => 'UK Pemeliharaan',
+                    'unit'     => 'UK-PEMELIHARAAN',
+                    'perm'     => 'pemeliharaan_pengawasan',
+                    'children' => [
+                        ['key' => 'jadwal_pemeliharaan',    'label' => 'Jadwal Pemeliharaan Rutin'],
+                        ['key' => 'monitoring_kondisi',     'label' => 'Monitoring Kondisi Aset'],
+                        ['key' => 'pengawasan_penggunaan',  'label' => 'Pengawasan Penggunaan Aset'],
+                        ['key' => 'tindak_lanjut_perbaikan','label' => 'Tindak Lanjut Perbaikan'],
+                    ],
+                ],
             ],
         ],
     ];
@@ -83,13 +128,38 @@
         ['perm' => 'ref_akun', 'label' => 'Referensi Akun (COA)', 'route' => 'modul.index', 'parameter' => 'ref_akun', 'active' => request()->route('key') === 'ref_akun', 'icon' => 'sliders'],
     ];
     $visibleReferences = collect($referenceItems)->filter(fn ($item) => $canAccess($item['perm']));
+
+    $userDashboardRoute = route('dashboard');
+    $userDashboardLabel = 'Dashboard';
+    if ($user?->isUser()) {
+        $userDashboardRoute = route('user.dashboard');
+        $userDashboardLabel = 'Dashboard Tiket';
+    } elseif ($user?->isOperator()) {
+        $userDashboardRoute = route('operator.dashboard');
+        $userDashboardLabel = 'Dashboard Operator';
+    } elseif ($user?->isSuperAdmin()) {
+        $userDashboardRoute = route('admin.dashboard');
+        $userDashboardLabel = 'Dashboard Admin';
+    } elseif ($user?->isKabag()) {
+        $userDashboardRoute = route('kabag.dashboard');
+        $userDashboardLabel = 'Dashboard Kabag';
+    } elseif ($user?->isUkUmumRt() || $user?->isUkDokumen() || $user?->hasRole('umum_rt')) {
+        $userDashboardRoute = route('staf-umum.dashboard');
+        $userDashboardLabel = 'Dashboard Staf Umum';
+    } elseif ($user?->isUkAdministrasiAset() || $user?->isUkLogistik() || $user?->hasRole('aset')) {
+        $userDashboardRoute = route('staf-aset.dashboard');
+        $userDashboardLabel = 'Dashboard Staf Aset';
+    } elseif ($user?->isUkPengadaan() || $user?->isUkPemeliharaan() || $user?->hasRole('pengadaan')) {
+        $userDashboardRoute = route('staf-pengadaan.dashboard');
+        $userDashboardLabel = 'Dashboard Staf Pengadaan';
+    }
 @endphp
 
 {{-- ================= DESKTOP SIDEBAR ================= --}}
 <aside class="portum-sidebar-rail hidden lg:flex flex-col bg-canvas select-none">
     {{-- 1. Top Logo Area (Seamless with Dashboard Background) --}}
     <div class="h-[72px] px-4 flex items-center justify-center bg-canvas flex-shrink-0">
-        <a href="{{ $user?->isUser() ? route('user.dashboard') : ($user?->isOperator() ? route('operator.dashboard') : ($user?->isSuperAdmin() ? route('admin.dashboard') : ($user?->isKabag() ? route('kabag.dashboard') : ($user?->hasRole('umum_rt') ? route('staf-umum.dashboard') : ($user?->hasRole('aset') ? route('staf-aset.dashboard') : route('dashboard')))))) }}" class="flex items-center" style="max-width:170px;">
+        <a href="{{ $userDashboardRoute }}" class="flex items-center" style="max-width:170px;">
             <img src="{{ asset('images/bank-sulteng.png') }}"
                  alt="Bank Sulteng"
                  style="max-height:44px; width:auto; max-width:155px; object-fit:contain; display:block;">
@@ -107,36 +177,15 @@
                     <div class="space-y-0.5 px-3">
                         @if ($canAccess('dashboard'))
                             @php
-                                $dashboardRoute = route('dashboard');
-                                $dashboardLabel = 'Dashboard';
-                                if ($user?->isUser()) {
-                                    $dashboardRoute = route('user.dashboard');
-                                    $dashboardLabel = 'Dashboard Tiket';
-                                } elseif ($user?->isOperator()) {
-                                    $dashboardRoute = route('operator.dashboard');
-                                    $dashboardLabel = 'Dashboard Operator';
-                                } elseif ($user?->isSuperAdmin()) {
-                                    $dashboardRoute = route('admin.dashboard');
-                                    $dashboardLabel = 'Dashboard Admin';
-                                } elseif ($user?->isKabag()) {
-                                    $dashboardRoute = route('kabag.dashboard');
-                                    $dashboardLabel = 'Dashboard Kabag';
-                                } elseif ($user?->hasRole('umum_rt')) {
-                                    $dashboardRoute = route('staf-umum.dashboard');
-                                    $dashboardLabel = 'Dashboard Staf Umum';
-                                } elseif ($user?->hasRole('aset')) {
-                                    $dashboardRoute = route('staf-aset.dashboard');
-                                    $dashboardLabel = 'Dashboard Staf Aset';
-                                }
-                                $isDashActive = request()->url() === $dashboardRoute;
+                                $isDashActive = request()->url() === $userDashboardRoute;
                             @endphp
-                            <a href="{{ $dashboardRoute }}"
+                            <a href="{{ $userDashboardRoute }}"
                                class="flex items-center justify-between gap-3 py-2 px-3 rounded-xl transition {{ $isDashActive ? 'bg-canvas text-[#114E84] font-bold shadow-2xs' : 'text-white/90 hover:bg-white/10 hover:text-white' }}">
                                 <div class="flex items-center gap-3">
                                     <div class="w-6 h-6 flex items-center justify-center {{ $isDashActive ? 'text-[#114E84]' : 'text-white/80' }}">
                                         @include('partials.icon', ['name' => 'home', 'class' => 'w-[18px] h-[18px]'])
                                     </div>
-                                    <span class="text-[12.5px]">{{ $dashboardLabel }}</span>
+                                    <span class="text-[12.5px]">{{ $userDashboardLabel }}</span>
                                 </div>
                                 <span class="{{ $isDashActive ? 'text-[#114E84]' : 'text-white/40' }} text-xs">▸</span>
                             </a>
@@ -200,7 +249,15 @@
 
             {{-- 4. MODUL OPERASIONAL --}}
             @php
-                $visibleOpGroups = collect($operationalGroups)->filter(fn ($g) => $canAccess($g['perm']));
+                $visibleOpGroups = collect($operationalGroups)->map(function ($group) use ($canAccess) {
+                    $allowedSubs = collect($group['submodules'])->filter(fn ($sub) => $canAccess($sub['perm']))->values()->all();
+                    if (empty($allowedSubs)) {
+                        return null;
+                    }
+                    $group['submodules'] = $allowedSubs;
+                    $group['all_children'] = collect($allowedSubs)->flatMap(fn ($sub) => $sub['children'])->all();
+                    return $group;
+                })->filter()->values();
             @endphp
             @if ($visibleOpGroups->isNotEmpty())
                 <div class="pt-1">
@@ -208,7 +265,7 @@
                     <div class="space-y-0.5 px-3">
                         @foreach ($visibleOpGroups as $group)
                             @php
-                                $groupActive = collect($group['children'])->contains(fn ($child) => request()->route('key') === $child['key']);
+                                $groupActive = collect($group['all_children'])->contains(fn ($child) => request()->route('key') === $child['key']);
                             @endphp
                             <details class="portum-nav-details group" {{ $groupActive ? 'open' : '' }}>
                                 <summary class="flex items-center justify-between gap-3 py-2 px-3 rounded-xl cursor-pointer select-none transition text-white/90 hover:bg-white/10 hover:text-white {{ $groupActive ? 'bg-white/15 font-semibold text-white' : '' }}">
@@ -222,14 +279,33 @@
                                         @include('partials.icon', ['name' => 'chevron-right', 'class' => 'w-3.5 h-3.5'])
                                     </span>
                                 </summary>
-                                <div class="portum-submenu mt-0.5 ml-5 pl-3 border-l border-white/20 space-y-0.5 py-1">
-                                    @foreach ($group['children'] as $child)
-                                        @php $active = request()->route('key') === $child['key']; @endphp
-                                        <a href="{{ route('modul.index', $child['key']) }}"
-                                           class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] transition {{ $active ? 'bg-canvas text-[#114E84] font-bold shadow-2xs' : 'text-white/75 hover:bg-white/10 hover:text-white' }}">
-                                            <span class="w-1.5 h-1.5 rounded-full {{ $active ? 'bg-[#114E84]' : 'bg-white/40' }} flex-shrink-0"></span>
-                                            <span class="truncate">{{ $child['label'] }}</span>
-                                        </a>
+                                <div class="portum-submenu mt-0.5 ml-5 pl-3 border-l border-white/20 space-y-1.5 py-1">
+                                    @foreach ($group['submodules'] as $subIdx => $sub)
+                                        <div class="{{ $subIdx > 0 ? 'pt-1.5 border-t border-white/10' : '' }}">
+                                            @if (!empty($sub['title']))
+                                                <div class="px-2 pt-1 pb-1 flex items-center justify-between gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-300/90">
+                                                    <span class="flex items-center gap-1.5 truncate">
+                                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0"></span>
+                                                        {{ $sub['title'] }}
+                                                    </span>
+                                                    @if (!empty($sub['unit']))
+                                                        <span class="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-white/10 text-white/70 flex-shrink-0">
+                                                            {{ $sub['unit'] }}
+                                                        </span>
+                                                    @endif
+                                                </div>
+                                            @endif
+                                            <div class="space-y-0.5">
+                                                @foreach ($sub['children'] as $child)
+                                                    @php $active = request()->route('key') === $child['key']; @endphp
+                                                    <a href="{{ route('modul.index', $child['key']) }}"
+                                                       class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] transition {{ $active ? 'bg-canvas text-[#114E84] font-bold shadow-2xs' : 'text-white/75 hover:bg-white/10 hover:text-white' }}">
+                                                        <span class="w-1.5 h-1.5 rounded-full {{ $active ? 'bg-[#114E84]' : 'bg-white/40' }} flex-shrink-0"></span>
+                                                        <span class="truncate">{{ $child['label'] }}</span>
+                                                    </a>
+                                                @endforeach
+                                            </div>
+                                        </div>
                                     @endforeach
                                 </div>
                             </details>
@@ -371,35 +447,11 @@
                     <p class="text-[10px] font-bold text-white/50 uppercase px-2 mb-1">Layanan &amp; Monitoring</p>
                     @if ($canAccess('dashboard'))
                         @php
-                            $mobileDashRoute = route('dashboard');
-                            $mobileDashLabel = 'Dashboard';
-                            if ($user?->isUser()) {
-                                $mobileDashRoute = route('user.dashboard');
-                                $mobileDashLabel = 'Dashboard Tiket';
-                            } elseif ($user?->isOperator()) {
-                                $mobileDashRoute = route('operator.dashboard');
-                                $mobileDashLabel = 'Dashboard Operator';
-                            } elseif ($user?->isSuperAdmin()) {
-                                $mobileDashRoute = route('admin.dashboard');
-                                $mobileDashLabel = 'Dashboard Admin';
-                            } elseif ($user?->hasRole('umum_rt')) {
-                                $mobileDashRoute = route('staf-umum.dashboard');
-                                $mobileDashLabel = 'Dashboard Staf Umum';
-                            } elseif ($user?->hasRole('aset')) {
-                                $mobileDashRoute = route('staf-aset.dashboard');
-                                $mobileDashLabel = 'Dashboard Staf Aset';
-                            } elseif ($user?->isKabag()) {
-                                $mobileDashRoute = route('kabag.dashboard');
-                                $mobileDashLabel = 'Dashboard Kabag';
-                            } elseif ($user?->hasRole('umum_rt')) {
-                                $mobileDashRoute = route('staf-umum.dashboard');
-                                $mobileDashLabel = 'Dashboard Staf Umum';
-                            }
-                            $isMobileDashActive = request()->url() === $mobileDashRoute;
+                            $isMobileDashActive = request()->url() === $userDashboardRoute;
                         @endphp
-                        <a href="{{ $mobileDashRoute }}" class="flex items-center gap-3 p-2 rounded-xl {{ $isMobileDashActive ? 'bg-white/20 text-white font-bold' : 'text-white/80 hover:bg-white/10' }}">
+                        <a href="{{ $userDashboardRoute }}" class="flex items-center gap-3 p-2 rounded-xl {{ $isMobileDashActive ? 'bg-white/20 text-white font-bold' : 'text-white/80 hover:bg-white/10' }}">
                             @include('partials.icon', ['name' => 'home', 'class' => 'w-4 h-4'])
-                            <span>{{ $mobileDashLabel }}</span>
+                            <span>{{ $userDashboardLabel }}</span>
                         </a>
                     @endif
 
@@ -432,11 +484,23 @@
                 @foreach ($visibleOpGroups as $group)
                     <div class="pt-1">
                         <p class="text-[10px] font-bold text-white/50 uppercase px-2 mb-1">{{ $group['label'] }}</p>
-                        <div class="space-y-0.5 pl-2">
-                            @foreach ($group['children'] as $child)
-                                <a href="{{ route('modul.index', $child['key']) }}" class="block px-2 py-1.5 rounded-lg text-white/80 hover:text-white {{ request()->route('key') === $child['key'] ? 'text-white font-bold bg-white/20' : '' }}">
-                                    • {{ $child['label'] }}
-                                </a>
+                        <div class="space-y-1 pl-2">
+                            @foreach ($group['submodules'] as $sub)
+                                @if (!empty($sub['title']))
+                                    <div class="px-2 pt-1 pb-0.5 flex items-center justify-between text-[9.5px] font-bold uppercase tracking-wider text-amber-300">
+                                        <span>{{ $sub['title'] }}</span>
+                                        @if (!empty($sub['unit']))
+                                            <span class="text-[8.5px] text-white/60">({{ $sub['unit'] }})</span>
+                                        @endif
+                                    </div>
+                                @endif
+                                <div class="space-y-0.5">
+                                    @foreach ($sub['children'] as $child)
+                                        <a href="{{ route('modul.index', $child['key']) }}" class="block px-2 py-1.5 rounded-lg text-white/80 hover:text-white {{ request()->route('key') === $child['key'] ? 'text-white font-bold bg-white/20' : '' }}">
+                                            • {{ $child['label'] }}
+                                        </a>
+                                    @endforeach
+                                </div>
                             @endforeach
                         </div>
                     </div>
@@ -504,8 +568,7 @@
         {{-- Breadcrumb / Current Route Context --}}
         <div class="flex items-center gap-2 min-w-0">
             <div class="flex items-center gap-1.5 text-xs text-slate-500 font-medium min-w-0">
-                <a href="{{ $user?->isUser() ? route('user.dashboard') : ($user?->isOperator() ? route('operator.dashboard') : ($user?->isSuperAdmin() ? route('admin.dashboard') : ($user?->isKabag() ? route('kabag.dashboard') : ($user?->hasRole('umum_rt') ? route('staf-umum.dashboard') : ($user?->hasRole('aset') ? route('staf-aset.dashboard') : route('dashboard')))))) }}" class="hover:text-brand transition-colors flex-shrink-0">Bank Sulteng</a>
-                <a href="{{ $user?->isUser() ? route('user.dashboard') : ($user?->isOperator() ? route('operator.dashboard') : ($user?->isSuperAdmin() ? route('admin.dashboard') : ($user?->isKabag() ? route('kabag.dashboard') : ($user?->hasRole('umum_rt') ? route('staf-umum.dashboard') : route('dashboard'))))) }}" class="hover:text-brand transition-colors flex-shrink-0">Bank Sulteng</a>
+                <a href="{{ $userDashboardRoute }}" class="hover:text-brand transition-colors flex-shrink-0">Bank Sulteng</a>
                 <span class="text-slate-300 flex-shrink-0">/</span>
                 <span class="text-ink font-semibold truncate">@yield('title', 'Dashboard')</span>
             </div>
