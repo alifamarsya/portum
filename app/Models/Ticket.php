@@ -28,18 +28,35 @@ class Ticket extends Model
         'disposition_notes',
         'disposed_at',
         'attachment_path',
+        'sla_response_start_at',
+        'sla_response_due_at',
+        'verified_at',
+        'verified_by',
+        'sla_response_time_minutes',
+        'sla_response_status',
     ];
 
     protected function casts(): array
     {
         return [
             'disposed_at' => 'datetime',
+            'sla_response_start_at' => 'datetime',
+            'sla_response_due_at' => 'datetime',
+            'verified_at' => 'datetime',
         ];
     }
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /**
+     * Get the Operator user who verified the ticket.
+     */
+    public function verifiedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'verified_by');
     }
 
     /**
@@ -56,6 +73,14 @@ class Ticket extends Model
     public function disposedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'disposed_by');
+    }
+
+    /**
+     * Dynamic SLA Response Time Information.
+     */
+    public function getSlaResponseAttribute(): array
+    {
+        return app(\App\Services\TicketSlaService::class)->getSlaResponseInfo($this);
     }
 
     /**
