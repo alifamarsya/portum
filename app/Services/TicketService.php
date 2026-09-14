@@ -48,17 +48,26 @@ class TicketService
                 $attachmentPath = $data['attachment_path'];
             }
 
+            $slaService = app(TicketSlaService::class);
+            $now = now();
+            $startAt = $slaService->calculateSlaStart($now);
+            $dueAt = $slaService->calculateResponseDueAt($now);
             $ticketNumber = $this->generateTicketNumber();
 
             $ticket = Ticket::create([
                 'ticket_number' => $ticketNumber,
                 'user_id' => $user->id,
-                'category_id' => $data['category_id'],
+                'category_id' => $data['category_id'] ?? null,
                 'department_id' => $data['department_id'] ?? null,
+                'unit_kerja_id' => $user->unit_kerja_id ?? null,
                 'priority' => $data['priority'] ?? 'Sedang',
+                'jenis_pengajuan' => $data['jenis_pengajuan'] ?? null,
                 'status' => 'Menunggu Verifikasi',
                 'description' => $data['description'],
                 'attachment_path' => $attachmentPath,
+                'sla_response_start_at' => $startAt,
+                'sla_response_due_at' => $dueAt,
+                'sla_response_status' => 'Menunggu',
             ]);
 
             // Insert initial history
@@ -123,6 +132,41 @@ class TicketService
                 $ticket->update($updateData);
             }
 
+            // Jika tiket diverifikasi (berpindah dari Menunggu Verifikasi), catat verifikasi SLA
+            if ($oldStatus === 'Menunggu Verifikasi' && $newStatus !== 'Menunggu Verifikasi' && is_null($ticket->verified_at)) {
+                app(TicketSlaService::class)->recordVerification($ticket, $user);
+            }
+
+            // Jika staf mengubah status menjadi 'Selesai'
+            if ($newStatus === 'Selesai' && $oldStatus !== 'Selesai') {
+                $completedTime = now();
+                $slaService = app(TicketSlaService::class);
+
+                // Catat SLA Resolusi jika belum tercatat
+                if (is_null($ticket->resolved_at)) {
+                    $slaService->recordResolution($ticket);
+                }
+
+                // Hitung batas waktu konfirmasi 2 x 24 jam kerja (48 jam kerja)
+                $deadline = $slaService->calculateConfirmationDeadline($completedTime);
+
+                $ticket->update([
+                    'completed_at'          => $completedTime,
+                    'confirmation_deadline' => $deadline,
+                ]);
+
+                // Kirim notifikasi konfirmasi ke pemohon
+                if ($ticket->user) {
+                    $formattedDeadline = $deadline->translatedFormat('l, d F Y H:i') . ' WITA';
+                    $ticket->user->notify(new \App\Notifications\TicketCompletedNotification($ticket, $formattedDeadline));
+                }
+            }
+
+            // Jika tiket ditutup (konfirmasi pemohon atau auto-close)
+            if (in_array($newStatus, ['Ditutup Pemohon', 'Ditutup Otomatis (Sistem)']) && is_null($ticket->closed_at)) {
+                $ticket->update(['closed_at' => now()]);
+            }
+
             // If status or department changed, insert record to ticket_histories
             if ($isStatusChanged || $isDepartmentChanged || !empty($data['force_history'])) {
                 $notes = $data['notes'] ?? null;
@@ -155,9 +199,9 @@ class TicketService
     /**
      * Dispose ticket by Kabag to a specific staff member with RBB/budget verification notes.
      */
-    public function disposeTicket(Ticket $ticket, User $staff, string $notes, User $kabag): Ticket
+    public function disposeTicket(Ticket $ticket, User $staff, string $notes, User $kabag, array $resolutionData = []): Ticket
     {
-        return DB::transaction(function () use ($ticket, $staff, $notes, $kabag) {
+        return DB::transaction(function () use ($ticket, $staff, $notes, $kabag, $resolutionData) {
             $oldStatus = $ticket->status;
             $newStatus = 'Didistribusikan';
 
@@ -168,6 +212,9 @@ class TicketService
                 'disposition_notes' => $notes,
                 'status' => $newStatus,
             ]);
+
+            // Mulai SLA Resolution Time timer secara otomatis
+            app(TicketSlaService::class)->startResolutionSla($ticket, $resolutionData, $kabag);
 
             TicketHistory::create([
                 'ticket_id' => $ticket->id,

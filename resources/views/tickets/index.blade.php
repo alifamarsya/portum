@@ -71,10 +71,11 @@
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Status</label>
                 <select name="status" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand focus:border-brand">
                     <option value="">-- Semua Status --</option>
-                    @foreach (['Diverifikasi', 'Didistribusikan', 'Dalam Proses', 'Selesai', 'Ditutup Pemohon', 'Ditolak'] as $st)
+                    @foreach (['Menunggu Verifikasi', 'Dialokasikan', 'Diverifikasi', 'Didistribusikan', 'Dalam Proses', 'Selesai', 'Ditutup Pemohon', 'Ditolak'] as $st)
                         <option value="{{ $st }}" {{ request('status') === $st ? 'selected' : '' }}>
                             {{ auth()->user()->isUser() ? match($st) {
                                 'Menunggu Verifikasi' => 'Diajukan',
+                                'Dialokasikan' => 'Dialokasikan',
                                 'Didistribusikan' => 'Sedang Ditangani',
                                 'Dalam Proses' => 'Sedang Dikerjakan',
                                 'Ditutup Pemohon' => 'Ditutup (Dikonfirmasi)',
@@ -85,14 +86,13 @@
                     @endforeach
                 </select>
             </div>
-
+            {{-- Filter Jenis Pengajuan (Fase 1) --}}
             <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1">Kategori</label>
-                <select name="category_id" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand focus:border-brand">
-                    <option value="">-- Semua Kategori --</option>
-                    @foreach ($categories as $cat)
-                        <option value="{{ $cat->id }}" {{ request('category_id') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
-                    @endforeach
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Pengajuan</label>
+                <select name="jenis_pengajuan" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand focus:border-brand">
+                    <option value="">-- Semua Jenis --</option>
+                    <option value="Permintaan" {{ request('jenis_pengajuan') === 'Permintaan' ? 'selected' : '' }}>Permintaan</option>
+                    <option value="Permasalahan" {{ request('jenis_pengajuan') === 'Permasalahan' ? 'selected' : '' }}>Permasalahan</option>
                 </select>
             </div>
 
@@ -100,7 +100,7 @@
                 <button type="submit" class="w-full bg-[#114E84] hover:bg-[#0E4272] text-white text-sm font-medium py-2 px-4 rounded-lg transition">
                     Terapkan Filter
                 </button>
-                @if (request()->hasAny(['search', 'status', 'category_id', 'department_id']))
+                @if (request()->hasAny(['search', 'status', 'category_id', 'department_id', 'jenis_pengajuan']))
                     <a href="{{ route('tickets.index') }}" class="px-3 py-2 text-xs font-medium text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-lg transition whitespace-nowrap">
                         Reset
                     </a>
@@ -117,11 +117,13 @@
                     <tr class="bg-slate-50 border-b border-slate-200 text-left text-[12px] uppercase tracking-wider text-slate-500">
                         <th class="px-4 py-3.5 font-semibold whitespace-nowrap">No. Tiket</th>
                         <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Pemohon</th>
-                        <th class="px-4 py-3.5 font-semibold">Kategori &amp; Uraian</th>
+                        <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Jenis Pengajuan</th>
+                        <th class="px-4 py-3.5 font-semibold">Uraian / Masalah</th>
                         <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Prioritas</th>
                         <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Tujuan Bagian</th>
                         <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Staf Pelaksana</th>
                         <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Status</th>
+                        <th class="px-4 py-3.5 font-semibold whitespace-nowrap">SLA Respon / Resolusi</th>
                         <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Tanggal</th>
                         <th class="px-4 py-3.5 font-semibold text-right whitespace-nowrap">Aksi</th>
                     </tr>
@@ -138,10 +140,17 @@
                                 <div class="font-medium text-ink">{{ $t->user?->nama_lengkap ?? '-' }}</div>
                                 <div class="text-[11px] text-slate-500">{{ $t->user?->bagian ?? '-' }}</div>
                             </td>
+                            {{-- Jenis Pengajuan badge --}}
+                            <td class="px-4 py-3.5 whitespace-nowrap">
+                                @if ($t->jenis_pengajuan)
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border {{ $t->jenis_badge }}">
+                                        {{ $t->jenis_pengajuan }}
+                                    </span>
+                                @else
+                                    <span class="text-slate-300 text-[11px]">—</span>
+                                @endif
+                            </td>
                             <td class="px-4 py-3.5 min-w-[200px]">
-                                <span class="inline-block text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded mb-1">
-                                    {{ $t->category?->name ?? 'Umum' }}
-                                </span>
                                 <p class="text-slate-700 text-xs line-clamp-2 leading-relaxed">{{ $t->description }}</p>
                             </td>
                             <td class="px-4 py-3.5 whitespace-nowrap">
@@ -184,6 +193,27 @@
                                     {{ auth()->user()->isUser() ? $t->pemohon_status_label : $t->status }}
                                 </span>
                             </td>
+                             <td class="px-4 py-3.5 whitespace-nowrap">
+                                @if ($t->status === 'Menunggu Verifikasi')
+                                    @php $sla = $t->sla_response; @endphp
+                                    <div class="mt-1">
+                                        <span class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded border {{ $sla['badge_class'] }}" title="Batas SLA: {{ $sla['due_at']->format('d M, H:i') }} WITA">
+                                            <span class="w-1 h-1 rounded-full {{ $sla['is_overdue'] ? 'bg-rose-500 animate-ping' : ($sla['is_warning'] ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500') }}"></span>
+                                            Respon: {{ $sla['remaining_formatted'] }}
+                                        </span>
+                                    </div>
+                                @elseif ($t->sla_resolution_start_at || in_array($t->status, ['Didistribusikan', 'Dalam Proses', 'Selesai']))
+                                    @php $slaRes = $t->sla_resolution; @endphp
+                                    <div class="mt-1">
+                                        <span class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded border {{ $slaRes['badge_class'] }}" title="{{ $slaRes['due_at'] ? 'Batas SLA: ' . $slaRes['due_at']->format('d M, H:i') . ' WITA' : 'Menunggu Kabag' }}">
+                                            <span class="w-1 h-1 rounded-full {{ $slaRes['is_overdue'] ? 'bg-rose-500 animate-ping' : ($slaRes['is_warning'] ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500') }}"></span>
+                                            Resolusi: {{ $slaRes['remaining_formatted'] }}
+                                        </span>
+                                    </div>
+                                @else
+                                    <span class="text-slate-300 text-xs">—</span>
+                                @endif
+                            </td>
                             <td class="px-4 py-3.5 whitespace-nowrap text-xs text-slate-500">
                                 {{ $t->created_at->format('d M Y H:i') }}
                             </td>
@@ -195,6 +225,12 @@
                                            class="inline-flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg shadow-xs transition">
                                             @include('partials.icon', ['name' => 'pencil', 'class' => 'w-3 h-3'])
                                             Disposisi
+                                        </a>
+                                    @elseif (auth()->user()->isUser() && $t->user_id === auth()->id() && $t->status === 'Selesai')
+                                        <a href="{{ route('tickets.show', $t) }}"
+                                           class="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg shadow-xs transition animate-pulse">
+                                            @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-3 h-3 text-white'])
+                                            Konfirmasi
                                         </a>
                                     @else
                                         <a href="{{ route('tickets.show', $t) }}"

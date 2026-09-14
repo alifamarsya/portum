@@ -113,16 +113,20 @@ class UserSeeder extends Seeder
         \$singleRoleUsers = [
 {$singleUsersCode}        ];
 
-        // Role Multi-User (Pemohon Layanan Cabang & Divisi)
+        // Role Multi-User (Pemohon Cabang & Divisi)
         \$multiRoleUsers = [
 {$multiUsersCode}        ];
 
         foreach (array_merge(\$singleRoleUsers, \$multiRoleUsers) as \$u) {
             \$plain = \$u['username'] . '2026';
-            User::updateOrCreate(
-                ['username' => \$u['username']],
-                [...\$u, 'password' => Hash::make(\$plain), 'must_change_pwd' => false, 'is_active' => true]
-            );
+            \$existing = User::where('username', \$u['username'])->first();
+            if (\$existing) {
+                // Hanya update data profil, JANGAN timpa password & must_change_pwd
+                \$existing->update([...\$u, 'is_active' => true]);
+            } else {
+                // User baru: set password default + wajib ganti
+                User::create([...\$u, 'password' => Hash::make(\$plain), 'must_change_pwd' => true, 'is_active' => true]);
+            }
         }
     }
 }

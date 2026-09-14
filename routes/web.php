@@ -27,6 +27,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/user/dashboard', [UserDashboardController::class, 'index'])->name('user.dashboard');
     Route::get('/operator/dashboard', [OperatorDashboardController::class, 'index'])->name('operator.dashboard');
     Route::get('/kabag/dashboard', [App\Http\Controllers\KabagDashboardController::class, 'index'])->name('kabag.dashboard');
+    Route::get('/staf-umum/dashboard', [App\Http\Controllers\StafUmumDashboardController::class, 'index'])->name('staf-umum.dashboard');
+    Route::get('/staf-aset/dashboard', [App\Http\Controllers\StafAsetDashboardController::class, 'index'])->name('staf-aset.dashboard');
+    Route::get('/staf-pengadaan/dashboard', [App\Http\Controllers\StafPengadaanDashboardController::class, 'index'])->name('staf-pengadaan.dashboard');
     Route::get('/analitik', [App\Http\Controllers\AnalyticsController::class, 'index'])->name('analitik');
     Route::get('/analitik/biaya/{kategori}', [App\Http\Controllers\AnalyticsController::class, 'detailKategori'])
     ->name('analitik.detail-kategori');
@@ -51,10 +54,14 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('risalah', RisalahRapatController::class)->except(['show']);
     Route::resource('tickets', TicketController::class);
+    Route::get('/tickets/{ticket}/attachment', [TicketController::class, 'viewAttachment'])->name('tickets.attachment');
+    Route::get('/tickets/{ticket}/attachment/download', [TicketController::class, 'downloadAttachment'])->name('tickets.attachment.download');
     Route::post('/tickets/{ticket}/dispose', [TicketController::class, 'dispose'])->name('tickets.dispose');
     Route::post('/tickets/{ticket}/reject', [TicketController::class, 'reject'])->name('tickets.reject');
     Route::post('/tickets/{ticket}/confirm-close', [TicketController::class, 'confirmClose'])
         ->name('tickets.confirm-close');
+    Route::post('/tickets/{ticket}/report-incomplete', [TicketController::class, 'reportIncomplete'])
+        ->name('tickets.report-incomplete');
 
     Route::prefix('admin')->name('admin.')->middleware('superadmin')->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
@@ -66,7 +73,9 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
         Route::post('/roles', [RoleController::class, 'store'])->name('roles.store');
+        Route::put('/roles/{role}', [RoleController::class, 'update'])->name('roles.update');
         Route::post('/roles/{role}/permissions', [RoleController::class, 'updatePermissions'])->name('roles.permissions');
+        Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->name('roles.destroy');
 
         Route::get('/audit-log', [AuditLogController::class, 'index'])->name('audit-log.index');
     });
