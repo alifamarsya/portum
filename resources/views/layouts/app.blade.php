@@ -94,7 +94,6 @@
             'icon'       => 'cart',
             'submodules' => [
                 [
-                    'title'    => 'UK Pengadaan',
                     'unit'     => 'UK-PENGADAAN',
                     'perm'     => 'pengadaan',
                     'children' => [
@@ -108,7 +107,6 @@
                     ],
                 ],
                 [
-                    'title'    => 'UK Pemeliharaan',
                     'unit'     => 'UK-PEMELIHARAAN',
                     'perm'     => 'pemeliharaan_pengawasan',
                     'children' => [
@@ -133,7 +131,7 @@
     $userDashboardLabel = 'Dashboard';
     if ($user?->isUser()) {
         $userDashboardRoute = route('user.dashboard');
-        $userDashboardLabel = 'Dashboard Tiket';
+        $userDashboardLabel = 'Dashboard';
     } elseif ($user?->isOperator()) {
         $userDashboardRoute = route('operator.dashboard');
         $userDashboardLabel = 'Dashboard Operator';
@@ -145,13 +143,13 @@
         $userDashboardLabel = 'Dashboard Kabag';
     } elseif ($user?->isUkUmumRt() || $user?->isUkDokumen() || $user?->hasRole('umum_rt')) {
         $userDashboardRoute = route('staf-umum.dashboard');
-        $userDashboardLabel = 'Dashboard Staf Umum';
+        $userDashboardLabel = 'Dashboard Staf';
     } elseif ($user?->isUkAdministrasiAset() || $user?->isUkLogistik() || $user?->hasRole('aset')) {
         $userDashboardRoute = route('staf-aset.dashboard');
-        $userDashboardLabel = 'Dashboard Staf Aset';
+        $userDashboardLabel = 'Dashboard Staf';
     } elseif ($user?->isUkPengadaan() || $user?->isUkPemeliharaan() || $user?->hasRole('pengadaan')) {
         $userDashboardRoute = route('staf-pengadaan.dashboard');
-        $userDashboardLabel = 'Dashboard Staf Pengadaan';
+        $userDashboardLabel = 'Dashboard Staf';
     }
 @endphp
 
@@ -198,7 +196,7 @@
                                     <div class="w-6 h-6 flex items-center justify-center {{ request()->routeIs('tickets.*') ? 'text-[#114E84]' : 'text-white/80' }} flex-shrink-0">
                                         @include('partials.icon', ['name' => 'inbox', 'class' => 'w-[17px] h-[17px]'])
                                     </div>
-                                    <span class="text-[12.5px] truncate">{{ $user?->isUser() ? 'Tiket Saya' : 'Sistem Tiket' }}</span>
+                                    <span class="text-[12.5px] truncate">{{ $user?->isUser() ? 'Sistem Tiket' : 'Sistem Tiket' }}</span>
                                 </div>
                                 @if ($user?->isKabag())
                                     @php
@@ -576,15 +574,6 @@
 
         {{-- Right Controls --}}
         <div class="flex items-center gap-2 flex-shrink-0">
-            <div class="relative hidden lg:flex items-center" style="width:220px;">
-                <span class="absolute left-2.5 text-slate-400 pointer-events-none">
-                    @include('partials.icon', ['name' => 'search', 'class' => 'w-3.5 h-3.5'])
-                </span>
-                <input type="text"
-                       placeholder="Cari aset, memo, PKS..."
-                       class="w-full bg-slate-100 text-xs rounded-lg pl-8 pr-3 py-1.5 border border-slate-200 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 text-slate-700 placeholder-slate-400 outline-none transition">
-            </div>
-
             <div class="hidden sm:flex items-center gap-1.5 text-xs text-slate-500 font-medium px-2 py-1.5 bg-white border border-slate-200 rounded-lg">
                 @include('partials.icon', ['name' => 'calendar', 'class' => 'w-3.5 h-3.5 text-slate-400'])
                 <span class="hidden md:inline">{{ now()->translatedFormat('d M Y') }}</span>

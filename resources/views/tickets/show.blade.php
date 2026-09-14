@@ -565,7 +565,7 @@
                         </div>
                         <div>
                             <h4 class="text-sm font-bold text-ink">
-                                {{ $ticket->status === 'Ditutup Pemohon' ? 'Tiket Telah Ditutup &amp; Dikonfirmasi Pemohon' : 'Tiket Ditutup Otomatis oleh Sistem' }}
+                                {{ $ticket->status === 'Ditutup Pemohon' ? 'Tiket Telah Ditutup & Dikonfirmasi Pemohon' : 'Tiket Ditutup Otomatis oleh Sistem' }}
                             </h4>
                             <p class="text-xs text-slate-500 mt-0.5">
                                 Ditutup pada {{ $ticket->closed_at ? $ticket->closed_at->format('d M Y, H:i') . ' WITA' : $ticket->updated_at->format('d M Y, H:i') . ' WITA' }}

@@ -71,7 +71,7 @@
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Status</label>
                 <select name="status" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand focus:border-brand">
                     <option value="">-- Semua Status --</option>
-                    @foreach (['Menunggu Verifikasi', 'Dialokasikan', 'Diverifikasi', 'Didistribusikan', 'Dalam Proses', 'Selesai', 'Ditutup Pemohon', 'Ditolak'] as $st)
+                    @foreach (['Menunggu Verifikasi', 'Dialokasikan', 'Didistribusikan', 'Dalam Proses', 'Selesai', 'Ditutup Pemohon', 'Ditolak'] as $st)
                         <option value="{{ $st }}" {{ request('status') === $st ? 'selected' : '' }}>
                             {{ auth()->user()->isUser() ? match($st) {
                                 'Menunggu Verifikasi' => 'Diajukan',
