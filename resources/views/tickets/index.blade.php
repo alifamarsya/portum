@@ -123,7 +123,7 @@
                         <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Tujuan Bagian</th>
                         <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Staf Pelaksana</th>
                         <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Status</th>
-                        <th class="px-4 py-3.5 font-semibold whitespace-nowrap">SLA Respon</th>
+                        <th class="px-4 py-3.5 font-semibold whitespace-nowrap">SLA Respon / Resolusi</th>
                         <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Tanggal</th>
                         <th class="px-4 py-3.5 font-semibold text-right whitespace-nowrap">Aksi</th>
                     </tr>
@@ -199,9 +199,19 @@
                                     <div class="mt-1">
                                         <span class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded border {{ $sla['badge_class'] }}" title="Batas SLA: {{ $sla['due_at']->format('d M, H:i') }} WITA">
                                             <span class="w-1 h-1 rounded-full {{ $sla['is_overdue'] ? 'bg-rose-500 animate-ping' : ($sla['is_warning'] ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500') }}"></span>
-                                            {{ $sla['remaining_formatted'] }}
+                                            Respon: {{ $sla['remaining_formatted'] }}
                                         </span>
                                     </div>
+                                @elseif ($t->sla_resolution_start_at || in_array($t->status, ['Didistribusikan', 'Dalam Proses', 'Selesai']))
+                                    @php $slaRes = $t->sla_resolution; @endphp
+                                    <div class="mt-1">
+                                        <span class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded border {{ $slaRes['badge_class'] }}" title="{{ $slaRes['due_at'] ? 'Batas SLA: ' . $slaRes['due_at']->format('d M, H:i') . ' WITA' : 'Menunggu Kabag' }}">
+                                            <span class="w-1 h-1 rounded-full {{ $slaRes['is_overdue'] ? 'bg-rose-500 animate-ping' : ($slaRes['is_warning'] ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500') }}"></span>
+                                            Resolusi: {{ $slaRes['remaining_formatted'] }}
+                                        </span>
+                                    </div>
+                                @else
+                                    <span class="text-slate-300 text-xs">—</span>
                                 @endif
                             </td>
                             <td class="px-4 py-3.5 whitespace-nowrap text-xs text-slate-500">

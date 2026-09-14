@@ -243,6 +243,278 @@ class TicketSlaService
         ]);
     }
 
+    public const RESOLUTION_HOURS_RENDAH = 72; // 72 jam kerja
+    public const RESOLUTION_HOURS_SEDANG = 48; // 48 jam kerja
+    public const RESOLUTION_HOURS_TINGGI = 12; // 12 jam kerja
+    public const RESOLUTION_HOURS_KRITIS = 4;  // 4 jam kerja
+
+    /**
+     * Dapatkan target durasi resolusi default (dalam jam) berdasarkan tingkat prioritas.
+     */
+    public function getDefaultResolutionHours(?string $priority): int
+    {
+        return match ($priority) {
+            'Kritis' => self::RESOLUTION_HOURS_KRITIS,
+            'Tinggi' => self::RESOLUTION_HOURS_TINGGI,
+            'Sedang' => self::RESOLUTION_HOURS_SEDANG,
+            'Rendah' => self::RESOLUTION_HOURS_RENDAH,
+            default  => self::RESOLUTION_HOURS_SEDANG,
+        };
+    }
+
+    /**
+     * Menambahkan sejumlah jam kerja (08:00 - 17:00, Senin - Jumat) ke waktu awal.
+     * Otomatis melompati jam non-kerja, malam hari, dan akhir pekan.
+     */
+    public function addWorkingHours(Carbon $start, float|int $hours): Carbon
+    {
+        $current = $this->calculateSlaStart($start);
+        $minutesToAdd = (int) round($hours * 60);
+
+        while ($minutesToAdd > 0) {
+            $dayWorkEnd = $current->copy()->setTime(self::WORK_END_HOUR, self::WORK_END_MINUTE, 0);
+            $availableToday = $current->diffInMinutes($dayWorkEnd, false);
+
+            if ($availableToday <= 0) {
+                $current = $this->getNextWorkDayStart($current);
+                continue;
+            }
+
+            if ($minutesToAdd <= $availableToday) {
+                $current->addMinutes($minutesToAdd);
+                $minutesToAdd = 0;
+            } else {
+                $minutesToAdd -= $availableToday;
+                $current = $this->getNextWorkDayStart($current);
+            }
+        }
+
+        return $current;
+    }
+
+    /**
+     * Hitung batas akhir (due date) SLA Resolusi dari waktu disetujui Kabag.
+     */
+    public function calculateResolutionDueAt(Carbon $startAt, int $resolutionHours): Carbon
+    {
+        return $this->addWorkingHours($startAt, $resolutionHours);
+    }
+
+    /**
+     * Hitung rekomendasi jam resolusi berdasarkan kategori pekerjaan, skala/eselonisasi, dan estimasi biaya.
+     */
+    public function calculateAdjustedResolutionHours(
+        string $priority,
+        ?string $kategoriPekerjaan = null,
+        ?string $skalaEselonisasi = null,
+        ?float $estimasiBiaya = null
+    ): int {
+        $baseHours = $this->getDefaultResolutionHours($priority);
+
+        // Penyesuaian Kategori Pekerjaan
+        $kategoriAdjust = match ($kategoriPekerjaan) {
+            'Perbaikan Berat / Bongkar Pasang' => 24,
+            'Penggantian Komponen / Suku Cadang' => 24,
+            'Instalasi Baru / Pengadaan Khusus' => 48,
+            default => 0,
+        };
+
+        // Penyesuaian Estimasi Biaya (proses pengadaan / administrasi anggaran)
+        $biayaAdjust = 0;
+        if ($estimasiBiaya !== null) {
+            if ($estimasiBiaya > 25000000) {
+                $biayaAdjust = 24; // > 25 Juta butuh verifikasi komite pengadaan
+            } elseif ($estimasiBiaya >= 5000000) {
+                $biayaAdjust = 12; // 5 - 25 Juta butuh SPB / nota dinas
+            }
+        }
+
+        // Tiket Kritis tetap diprioritaskan cepat jika tidak ada kendala berat
+        if ($priority === 'Kritis' && $kategoriAdjust > 0) {
+            $kategoriAdjust = (int) round($kategoriAdjust / 2);
+        }
+
+        return $baseHours + $kategoriAdjust + $biayaAdjust;
+    }
+
+    /**
+     * Mulai timer SLA Resolusi secara otomatis saat tiket disetujui & didisposisikan oleh Kabag.
+     */
+    public function startResolutionSla(Ticket $ticket, array $dispositionData, User $kabag): void
+    {
+        $now = now();
+        $startAt = $this->calculateSlaStart($now);
+
+        $priority = $ticket->priority ?? 'Sedang';
+        $targetHours = isset($dispositionData['sla_resolution_hours']) && (int) $dispositionData['sla_resolution_hours'] > 0
+            ? (int) $dispositionData['sla_resolution_hours']
+            : $this->calculateAdjustedResolutionHours(
+                $priority,
+                $dispositionData['kategori_pekerjaan'] ?? null,
+                $dispositionData['skala_eselonisasi'] ?? null,
+                isset($dispositionData['estimasi_biaya']) ? (float) $dispositionData['estimasi_biaya'] : null
+            );
+
+        $dueAt = $this->calculateResolutionDueAt($startAt, $targetHours);
+
+        $ticket->update([
+            'kategori_pekerjaan'         => $dispositionData['kategori_pekerjaan'] ?? null,
+            'skala_eselonisasi'          => $dispositionData['skala_eselonisasi'] ?? null,
+            'estimasi_biaya'             => isset($dispositionData['estimasi_biaya']) ? (float) $dispositionData['estimasi_biaya'] : null,
+            'sla_resolution_hours'       => $targetHours,
+            'sla_resolution_start_at'    => $startAt,
+            'sla_resolution_due_at'      => $dueAt,
+            'sla_resolution_status'      => 'Berjalan',
+        ]);
+    }
+
+    /**
+     * Catat penyelesaian tiket saat status diubah menjadi 'Selesai'.
+     */
+    public function recordResolution(Ticket $ticket): void
+    {
+        if (is_null($ticket->sla_resolution_start_at) && $ticket->disposed_at) {
+            $ticket->sla_resolution_start_at = $this->calculateSlaStart(Carbon::parse($ticket->disposed_at));
+        }
+
+        $now = now();
+        $startAt = $ticket->sla_resolution_start_at ? Carbon::parse($ticket->sla_resolution_start_at) : $now;
+        $targetHours = $ticket->sla_resolution_hours ?? $this->getDefaultResolutionHours($ticket->priority);
+        $dueAt = $ticket->sla_resolution_due_at 
+            ? Carbon::parse($ticket->sla_resolution_due_at) 
+            : $this->calculateResolutionDueAt($startAt, $targetHours);
+
+        $elapsedMinutes = $this->calculateWorkingMinutesBetween($startAt, $now);
+        $maxAllowedMinutes = $targetHours * 60;
+        $status = ($elapsedMinutes <= $maxAllowedMinutes && $now->lte($dueAt)) ? 'Tepat Waktu' : 'Terlambat';
+
+        $ticket->update([
+            'resolved_at'                 => $now,
+            'sla_resolution_time_minutes' => $elapsedMinutes,
+            'sla_resolution_status'       => $status,
+        ]);
+    }
+
+    /**
+     * Dapatkan detail informasi SLA Resolution Time untuk sebuah tiket.
+     */
+    public function getSlaResolutionInfo(Ticket $ticket): array
+    {
+        $priority = $ticket->priority ?? 'Sedang';
+        $targetHours = $ticket->sla_resolution_hours ?? $this->getDefaultResolutionHours($priority);
+        $maxMinutes = $targetHours * 60;
+
+        // Jika belum disetujui / didisposisikan oleh Kabag
+        if (is_null($ticket->sla_resolution_start_at) && is_null($ticket->disposed_at)) {
+            return [
+                'is_started'          => false,
+                'is_resolved'         => false,
+                'is_overdue'          => false,
+                'is_warning'          => false,
+                'status'              => 'Menunggu Persetujuan Kabag',
+                'target_hours'        => $targetHours,
+                'start_at'            => null,
+                'due_at'              => null,
+                'resolved_at'         => null,
+                'elapsed_minutes'     => 0,
+                'elapsed_formatted'   => '0 mnt',
+                'remaining_minutes'   => $maxMinutes,
+                'remaining_formatted' => "Standar {$targetHours} Jam Kerja",
+                'percentage_used'     => 0,
+                'badge_class'         => 'bg-slate-100 text-slate-600 border-slate-200',
+            ];
+        }
+
+        $startAt = $ticket->sla_resolution_start_at 
+            ? Carbon::parse($ticket->sla_resolution_start_at) 
+            : $this->calculateSlaStart(Carbon::parse($ticket->disposed_at));
+
+        $dueAt = $ticket->sla_resolution_due_at 
+            ? Carbon::parse($ticket->sla_resolution_due_at) 
+            : $this->calculateResolutionDueAt($startAt, $targetHours);
+
+        $isResolved = in_array($ticket->status, ['Selesai', 'Ditutup Pemohon']) || !is_null($ticket->resolved_at);
+        $resolvedAt = $ticket->resolved_at ? Carbon::parse($ticket->resolved_at) : ($isResolved ? Carbon::parse($ticket->updated_at ?? now()) : null);
+
+        // Jika tiket sudah selesai
+        if ($isResolved && $resolvedAt) {
+            $elapsedMinutes = $ticket->sla_resolution_time_minutes 
+                ?? $this->calculateWorkingMinutesBetween($startAt, $resolvedAt);
+            $isOverdue = $elapsedMinutes > $maxMinutes || $resolvedAt->gt($dueAt);
+
+            return [
+                'is_started'          => true,
+                'is_resolved'         => true,
+                'is_overdue'          => $isOverdue,
+                'is_warning'          => false,
+                'status'              => $isOverdue ? 'Selesai Terlambat' : 'Selesai Tepat Waktu',
+                'target_hours'        => $targetHours,
+                'start_at'            => $startAt,
+                'due_at'              => $dueAt,
+                'resolved_at'         => $resolvedAt,
+                'elapsed_minutes'     => $elapsedMinutes,
+                'elapsed_formatted'   => $this->formatMinutes($elapsedMinutes),
+                'remaining_minutes'   => max(0, $maxMinutes - $elapsedMinutes),
+                'remaining_formatted' => $isOverdue 
+                    ? 'Terlambat ' . $this->formatMinutes($elapsedMinutes - $maxMinutes)
+                    : 'Selesai dalam ' . $this->formatMinutes($elapsedMinutes),
+                'percentage_used'     => min(100, (int) round(($elapsedMinutes / $maxMinutes) * 100)),
+                'badge_class'         => $isOverdue 
+                    ? 'bg-rose-100 text-rose-800 border-rose-200' 
+                    : 'bg-emerald-100 text-emerald-800 border-emerald-200',
+            ];
+        }
+
+        // Tiket sedang berjalan (disetujui Kabag & dalam penanganan staf)
+        $now = now();
+        $isWaitingStart = $now->lt($startAt);
+        $elapsedMinutes = $isWaitingStart ? 0 : $this->calculateWorkingMinutesBetween($startAt, $now);
+        $isOverdue = $now->gt($dueAt) || $elapsedMinutes > $maxMinutes;
+        $remainingMinutes = max(0, $maxMinutes - $elapsedMinutes);
+        $percentageUsed = min(100, (int) round(($elapsedMinutes / $maxMinutes) * 100));
+        $isWarning = !$isOverdue && !$isWaitingStart && ($remainingMinutes <= 240 || $percentageUsed >= 80);
+
+        if ($isWaitingStart) {
+            $status = 'Menunggu Jam Kerja';
+            $remainingFormatted = 'Mulai ' . $startAt->translatedFormat('D, H:i');
+            $badgeClass = 'bg-slate-100 text-slate-700 border-slate-200';
+        } elseif ($isOverdue) {
+            $overdueMinutes = $elapsedMinutes > $maxMinutes 
+                ? ($elapsedMinutes - $maxMinutes) 
+                : $dueAt->diffInMinutes($now);
+            $status = 'Terlambat (Melewati SLA)';
+            $remainingFormatted = 'Lewat ' . $this->formatMinutes($overdueMinutes);
+            $badgeClass = 'bg-rose-100 text-rose-800 border-rose-300 font-bold animate-pulse';
+        } elseif ($isWarning) {
+            $status = 'Kritis (< 4 Jam)';
+            $remainingFormatted = 'Sisa ' . $this->formatMinutes($remainingMinutes);
+            $badgeClass = 'bg-amber-100 text-amber-900 border-amber-300 font-semibold';
+        } else {
+            $status = 'Sedang Dikerjakan (Dalam SLA)';
+            $remainingFormatted = 'Sisa ' . $this->formatMinutes($remainingMinutes);
+            $badgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
+        }
+
+        return [
+            'is_started'          => true,
+            'is_resolved'         => false,
+            'is_waiting_start'    => $isWaitingStart,
+            'is_overdue'          => $isOverdue,
+            'is_warning'          => $isWarning,
+            'status'              => $status,
+            'target_hours'        => $targetHours,
+            'start_at'            => $startAt,
+            'due_at'              => $dueAt,
+            'resolved_at'         => null,
+            'elapsed_minutes'     => $elapsedMinutes,
+            'elapsed_formatted'   => $this->formatMinutes($elapsedMinutes),
+            'remaining_minutes'   => $remainingMinutes,
+            'remaining_formatted' => $remainingFormatted,
+            'percentage_used'     => $percentageUsed,
+            'badge_class'         => $badgeClass,
+        ];
+    }
+
     /**
      * Format menit ke format manusiawi yang rapi (contoh: "1 jam 25 mnt", "45 mnt").
      */

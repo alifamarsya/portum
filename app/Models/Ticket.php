@@ -34,6 +34,15 @@ class Ticket extends Model
         'verified_by',
         'sla_response_time_minutes',
         'sla_response_status',
+        'kategori_pekerjaan',
+        'skala_eselonisasi',
+        'estimasi_biaya',
+        'sla_resolution_hours',
+        'sla_resolution_start_at',
+        'sla_resolution_due_at',
+        'resolved_at',
+        'sla_resolution_time_minutes',
+        'sla_resolution_status',
     ];
 
     protected function casts(): array
@@ -43,6 +52,10 @@ class Ticket extends Model
             'sla_response_start_at' => 'datetime',
             'sla_response_due_at' => 'datetime',
             'verified_at' => 'datetime',
+            'sla_resolution_start_at' => 'datetime',
+            'sla_resolution_due_at' => 'datetime',
+            'resolved_at' => 'datetime',
+            'estimasi_biaya' => 'decimal:2',
         ];
     }
 
@@ -81,6 +94,14 @@ class Ticket extends Model
     public function getSlaResponseAttribute(): array
     {
         return app(\App\Services\TicketSlaService::class)->getSlaResponseInfo($this);
+    }
+
+    /**
+     * Dynamic SLA Resolution Time Information.
+     */
+    public function getSlaResolutionAttribute(): array
+    {
+        return app(\App\Services\TicketSlaService::class)->getSlaResolutionInfo($this);
     }
 
     /**
