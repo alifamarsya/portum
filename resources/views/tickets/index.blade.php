@@ -76,8 +76,8 @@
                             {{ auth()->user()->isUser() ? match($st) {
                                 'Menunggu Verifikasi' => 'Diajukan',
                                 'Dialokasikan' => 'Dialokasikan',
-                                'Didistribusikan' => 'Sedang Ditangani',
-                                'Dalam Proses' => 'Sedang Dikerjakan',
+                                'Didistribusikan' => 'Didistribusikan',
+                                'Dalam Proses' => 'Sedang Diproses',
                                 'Ditutup Pemohon' => 'Ditutup (Dikonfirmasi)',
                                 'Ditolak' => 'Tidak Dapat Diproses',
                                 default => $st
