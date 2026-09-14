@@ -137,6 +137,12 @@ class TicketService
                 app(TicketSlaService::class)->recordVerification($ticket, $user);
             }
 
+            // Notifikasi pemohon saat tiket diterima / dialokasikan
+            if ($oldStatus === 'Menunggu Verifikasi' && in_array($newStatus, ['Dialokasikan', 'Diverifikasi']) && $ticket->user) {
+                $deptName = $ticket->fresh()->department?->name ?? 'Unit Terkait';
+                $ticket->user->notify(new \App\Notifications\TicketAllocatedNotification($ticket, $deptName));
+            }
+
             // Jika staf mengubah status menjadi 'Selesai'
             if ($newStatus === 'Selesai' && $oldStatus !== 'Selesai') {
                 $completedTime = now();
@@ -162,9 +168,23 @@ class TicketService
                 }
             }
 
+            // Jika tiket ditolak
+            if ($newStatus === 'Ditolak' && $oldStatus !== 'Ditolak' && $ticket->user) {
+                $reason = $data['reject_reason'] ?? ($data['notes'] ?? 'Permohonan ditolak oleh petugas.');
+                if (preg_match('/Alasan:\s*(.+)$/i', $reason, $m)) {
+                    $reason = trim($m[1]);
+                }
+                $ticket->user->notify(new \App\Notifications\TicketRejectedNotification($ticket, $reason));
+            }
+
             // Jika tiket ditutup (konfirmasi pemohon atau auto-close)
             if (in_array($newStatus, ['Ditutup Pemohon', 'Ditutup Otomatis (Sistem)']) && is_null($ticket->closed_at)) {
                 $ticket->update(['closed_at' => now()]);
+            }
+
+            // Notifikasi jika ditutup otomatis oleh sistem
+            if ($newStatus === 'Ditutup Otomatis (Sistem)' && $oldStatus !== 'Ditutup Otomatis (Sistem)' && $ticket->user) {
+                $ticket->user->notify(new \App\Notifications\TicketAutoClosedNotification($ticket));
             }
 
             // If status or department changed, insert record to ticket_histories
@@ -226,5 +246,31 @@ class TicketService
 
             return $ticket;
         });
+    }
+
+    /**
+     * Otomatis menutup tiket berstatus 'Selesai' yang telah melewati confirmation_deadline (2 hari kerja).
+     */
+    public function autoCloseExpiredTickets(): int
+    {
+        $expiredTickets = Ticket::where('status', 'Selesai')
+            ->whereNotNull('confirmation_deadline')
+            ->where('confirmation_deadline', '<=', now())
+            ->whereNull('closed_at')
+            ->with(['user'])
+            ->get();
+
+        $count = 0;
+        foreach ($expiredTickets as $ticket) {
+            $user = $ticket->user ?? User::where('username', 'system')->first() ?? User::first();
+            $this->updateTicket($ticket, [
+                'status' => 'Ditutup Otomatis (Sistem)',
+                'notes'  => 'Tiket ditutup secara otomatis oleh sistem karena telah melewati batas waktu konfirmasi 2 hari kerja.',
+                'closed_at' => now(),
+            ], $user);
+            $count++;
+        }
+
+        return $count;
     }
 }
