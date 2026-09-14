@@ -57,7 +57,7 @@ class DashboardController extends Controller
         // 4. Statistik Sistem Tiket
         $totalTickets = Ticket::count();
         $pendingTickets = Ticket::where('status', 'Menunggu Verifikasi')->count();
-        $processTickets = Ticket::whereIn('status', ['Diverifikasi', 'Didistribusikan', 'Dalam Proses'])->count();
+        $processTickets = Ticket::whereIn('status', ['Dialokasikan', 'Diverifikasi', 'Didistribusikan', 'Dalam Proses'])->count();
         $completedTickets = Ticket::whereIn('status', ['Selesai', 'Ditutup Pemohon'])->count();
         $rejectedTickets = Ticket::where('status', 'Ditolak')->count();
 

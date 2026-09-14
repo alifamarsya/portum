@@ -52,7 +52,7 @@ class LoginController extends Controller
 
     public function forceChangeForm()
     {
-        return view('auth.force-change');
+        return view('auth.login', ['showForceChangeModal' => true]);
     }
 
     public function forceChange(Request $request)

@@ -25,20 +25,95 @@
                 </div>
             </div>
 
-            {{-- Process / Edit Button only for Operator and Internal Staff, NOT for User --}}
-            @if ((auth()->user()->isOperator() || !is_null(auth()->user()->department_id)) && !auth()->user()->isKepalaDivisi())
-                <a href="{{ route('tickets.edit', $ticket) }}"
-                   class="inline-flex items-center gap-1.5 bg-[#114E84] hover:bg-[#0E4272] text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow transition">
-                    @include('partials.icon', ['name' => 'pencil', 'class' => 'w-3.5 h-3.5'])
-                    Proses / Ubah Tiket
-                </a>
+            @if (auth()->user()->isOperator() && $ticket->status === 'Menunggu Verifikasi')
+                <div class="flex items-center gap-2">
+                    <a href="{{ route('tickets.edit', $ticket) }}"
+                       class="inline-flex items-center gap-2 bg-[#114E84] hover:bg-[#0E4272] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-md transition">
+                        @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-4 h-4 text-white'])
+                        Verifikasi &amp; Alokasikan Tiket &rarr;
+                    </a>
+                </div>
             @endif
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 gap-6">
         {{-- Left Column: Informasi Utama Permintaan --}}
         <div class="lg:col-span-2 space-y-6">
+            {{-- WIDGET SLA RESPONSE TIME (Maksimal 2 Jam Kerja Operator) --}}
+            @php $sla = $ticket->sla_response; @endphp
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-card p-6 overflow-hidden relative">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 mb-4 border-b border-slate-100">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl {{ $sla['is_overdue'] ? 'bg-rose-100 text-rose-700' : ($sla['is_warning'] ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-[#114E84]') }} flex items-center justify-center flex-shrink-0">
+                            @include('partials.icon', ['name' => 'clock', 'class' => 'w-5 h-5'])
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-sm font-bold text-ink">SLA Response Time (Verifikasi Operator)</h3>
+                                <span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold border {{ $sla['badge_class'] }}">
+                                    {{ $sla['status'] }}
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-0.5">
+                                Target respon verifikasi: <strong>maksimal 2 jam kerja</strong> (08:00 - 17:00 WITA, Senin - Jumat)
+                            </p>
+                        </div>
+                    </div>
+
+                    @if (auth()->user()->isOperator() && $ticket->status === 'Menunggu Verifikasi')
+                        <a href="{{ route('tickets.edit', $ticket) }}"
+                           class="inline-flex items-center gap-1.5 bg-[#114E84] hover:bg-[#0E4272] text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-xs transition flex-shrink-0">
+                            @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-3.5 h-3.5 text-white'])
+                            Verifikasi Sekarang &rarr;
+                        </a>
+                    @endif
+                </div>
+
+                {{-- Progress Bar --}}
+                <div class="mb-4">
+                    <div class="flex items-center justify-between text-xs mb-1.5">
+                        <span class="text-slate-500 font-medium">Penggunaan Kuota Waktu SLA</span>
+                        <span class="font-bold {{ $sla['is_overdue'] ? 'text-rose-600' : ($sla['is_warning'] ? 'text-amber-600' : 'text-slate-700') }}">
+                            {{ $sla['elapsed_formatted'] }} / 2 jam ({{ $sla['percentage_used'] }}%)
+                        </span>
+                    </div>
+                    <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div class="h-full rounded-full transition-all duration-500 {{ $sla['is_overdue'] ? 'bg-rose-500' : ($sla['is_warning'] ? 'bg-amber-500' : 'bg-[#114E84]') }}"
+                             style="width: {{ $sla['percentage_used'] }}%"></div>
+                    </div>
+                </div>
+
+                {{-- Key SLA Metrics Grid --}}
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-slate-50/70 p-3.5 rounded-xl border border-slate-100">
+                    <div>
+                        <span class="text-slate-400 block">SLA Mulai Dihitung</span>
+                        <span class="font-semibold text-slate-700 font-mono">{{ $sla['start_at']->format('d M, H:i') }} WITA</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 block">Batas Waktu (Due)</span>
+                        <span class="font-semibold {{ $sla['is_overdue'] ? 'text-rose-700' : 'text-slate-700' }} font-mono">{{ $sla['due_at']->format('d M, H:i') }} WITA</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 block">Waktu Terpakai</span>
+                        <span class="font-bold text-slate-800">{{ $sla['elapsed_formatted'] }}</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 block">{{ $sla['is_verified'] ? 'Hasil Evaluasi' : 'Sisa Waktu' }}</span>
+                        <span class="font-bold {{ $sla['is_overdue'] ? 'text-rose-600' : ($sla['is_warning'] ? 'text-amber-600' : 'text-emerald-700') }}">
+                            {{ $sla['remaining_formatted'] }}
+                        </span>
+                    </div>
+                </div>
+
+                @if ($sla['is_verified'] && $ticket->verified_at)
+                    <div class="mt-3 text-[11px] text-slate-500 flex items-center gap-1.5">
+                        @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-3.5 h-3.5 text-emerald-600'])
+                        <span>Diverifikasi oleh <strong>{{ $ticket->verifiedBy?->nama_lengkap ?? 'Operator Helpdesk' }}</strong> pada {{ $ticket->verified_at->format('d M Y, H:i') }} WITA.</span>
+                    </div>
+                @endif
+            </div>
+
             <div class="bg-white rounded-2xl border border-slate-200 shadow-card p-6">
                 <h2 class="text-base font-bold text-ink mb-4 pb-2.5 border-b border-slate-100 flex items-center gap-2">
                     @include('partials.icon', ['name' => 'file-text', 'class' => 'w-4 h-4 text-brand'])
@@ -53,7 +128,7 @@
 
                     <div>
                         <span class="text-xs text-slate-400 block font-medium">Tanggal Pengajuan</span>
-                        <span class="font-semibold text-slate-700">{{ $ticket->created_at->format('d F Y, H:i') }} WIB</span>
+                        <span class="font-semibold text-slate-700">{{ $ticket->created_at->format('d F Y, H:i') }} WITA</span>
                         <span class="text-[11px] text-slate-400 block">({{ $ticket->created_at->diffForHumans() }})</span>
                     </div>
 
@@ -64,9 +139,10 @@
                     </div>
 
                     <div>
-                        <span class="text-xs text-slate-400 block font-medium">Kategori Layanan</span>
-                        <span class="font-semibold text-slate-800">{{ $ticket->category?->name ?? '-' }}</span>
-                        <span class="text-xs text-slate-500 block">Target SLA: {{ $ticket->category?->default_sla_hours ?? 24 }} Jam Kerja</span>
+                        <span class="text-xs text-slate-400 block font-medium">Jenis Pengajuan</span>
+                        <span class="inline-flex items-center gap-1.5 font-bold text-xs px-2.5 py-1 rounded-full border {{ $ticket->jenis_badge }}">
+                            {{ $ticket->jenis_pengajuan ?? 'Permintaan' }}
+                        </span>
                     </div>
 
                     <div class="sm:col-span-2">
@@ -97,6 +173,16 @@
                             </span>
                         @endif
                     </div>
+
+                    {{-- Unit Kerja Tujuan (jika ada) --}}
+                    @if ($ticket->unitKerja)
+                        <div class="sm:col-span-2 flex flex-wrap gap-2 items-center">
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-violet-50 text-violet-700 border border-violet-200">
+                                @include('partials.icon', ['name' => 'briefcase', 'class' => 'w-3 h-3'])
+                                Unit Kerja: {{ $ticket->unitKerja->nama }}
+                            </span>
+                        </div>
+                    @endif
 
                     {{-- Informasi Disposisi Kabag jika sudah didisposisi --}}
                     @if ($ticket->disposed_at)
@@ -130,13 +216,45 @@
 
                 {{-- Lampiran --}}
                 @if ($ticket->attachment_path)
+                    @php
+                        $ext = strtolower(pathinfo($ticket->attachment_path, PATHINFO_EXTENSION));
+                        $isImg = in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif']);
+                        $fileName = basename($ticket->attachment_path);
+                    @endphp
                     <div>
-                        <span class="text-xs text-slate-400 block font-medium mb-1.5">Berkas / Dokumen Lampiran:</span>
-                        <a href="{{ asset('storage/' . $ticket->attachment_path) }}" target="_blank"
-                           class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#114E84] text-xs font-semibold transition border border-slate-200 shadow-2xs">
-                            @include('partials.icon', ['name' => 'link', 'class' => 'w-4 h-4'])
-                            Buka / Unduh Lampiran Tiket
-                        </a>
+                        <span class="text-xs text-slate-400 block font-medium mb-2">Berkas / Dokumen Lampiran:</span>
+                        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="w-10 h-10 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-[#114E84] flex-shrink-0">
+                                    @include('partials.icon', ['name' => 'file-text', 'class' => 'w-5 h-5'])
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-xs font-bold text-slate-800 truncate" title="{{ $fileName }}">
+                                        {{ $fileName }}
+                                    </p>
+                                    <p class="text-[11px] text-slate-400 uppercase font-mono">{{ $ext ?: 'File' }} &bull; Lampiran Tiket</p>
+                                </div>
+                            </div>
+
+                            @if ($isImg)
+                                <div class="mb-3 rounded-lg overflow-hidden border border-slate-200 bg-white max-h-60 flex items-center justify-center">
+                                    <img src="{{ route('tickets.attachment', $ticket) }}" alt="Pratinjau Lampiran" class="w-full h-auto object-contain max-h-60">
+                                </div>
+                            @endif
+
+                            <div class="flex flex-wrap gap-2.5">
+                                <a href="{{ route('tickets.attachment', $ticket) }}" target="_blank"
+                                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white hover:bg-blue-50 text-[#114E84] text-xs font-semibold transition border border-blue-200 shadow-2xs">
+                                    @include('partials.icon', ['name' => 'eye', 'class' => 'w-4 h-4'])
+                                    Buka Berkas
+                                </a>
+                                <a href="{{ route('tickets.attachment.download', $ticket) }}"
+                                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#114E84] hover:bg-[#0E4272] text-white text-xs font-semibold transition shadow-2xs">
+                                    @include('partials.icon', ['name' => 'download', 'class' => 'w-4 h-4 text-white'])
+                                    Unduh Berkas
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 @endif
             </div>
@@ -262,77 +380,6 @@
                     </div>
                 </div>
             @endif
-
-            {{-- Quick Process Panel (for Operator & Bagian Internal only, after disposed) --}}
-            @if ((auth()->user()->isOperator() || (!is_null(auth()->user()->effectiveDepartmentId()) && !auth()->user()->isKabag())) && !auth()->user()->isKepalaDivisi())
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-card p-6">
-                    <h2 class="text-base font-bold text-ink mb-3 pb-2 border-b border-slate-100 flex items-center gap-2">
-                        @include('partials.icon', ['name' => 'sliders', 'class' => 'w-4 h-4 text-brand'])
-                        Perbarui Status &amp; Delegasi Tiket
-                    </h2>
-
-                    @if ($ticket->isAwaitingKabagDisposition())
-                        <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 mb-3 flex items-center gap-2">
-                            <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                            <span>Tiket ini sedang menunggu verifikasi RBB &amp; disposisi dari Kepala Bagian sebelum dikerjakan oleh staf.</span>
-                        </div>
-                    @endif
-
-                    <form method="POST" action="{{ route('tickets.update', $ticket) }}" class="space-y-4">
-                        @csrf
-                        @method('PUT')
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label for="status" class="block text-xs font-bold text-slate-700 mb-1">Status Tiket</label>
-                                @php
-                                    $quickStatuses = ['Diverifikasi', 'Didistribusikan', 'Dalam Proses', 'Selesai', 'Ditolak'];
-                                    $currentQuickStatus = old('status', $ticket->status === 'Menunggu Verifikasi' ? 'Diverifikasi' : $ticket->status);
-                                @endphp
-                                <select name="status" id="status" required
-                                        class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-brand focus:border-brand">
-                                    @foreach ($quickStatuses as $st)
-                                        <option value="{{ $st }}" {{ $currentQuickStatus === $st ? 'selected' : '' }}>
-                                            {{ $st }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            @if (auth()->user()->isOperator())
-                                <div>
-                                    <label for="department_id" class="block text-xs font-bold text-slate-700 mb-1">Alokasikan ke Bagian (Kepala Bagian)</label>
-                                    <select name="department_id" id="department_id"
-                                            class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-brand focus:border-brand">
-                                        <option value="">-- Pilih Departemen --</option>
-                                        @foreach ($departments as $dept)
-                                            <option value="{{ $dept->id }}" {{ old('department_id', $ticket->department_id) == $dept->id ? 'selected' : '' }}>
-                                                {{ $dept->name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            @endif
-                        </div>
-
-                        <div>
-                            <label for="notes" class="block text-xs font-bold text-slate-700 mb-1">Catatan Tindak Lanjut / Keterangan</label>
-                            <textarea name="notes" id="notes" rows="2"
-                                      placeholder="Tambahkan catatan untuk pemohon atau catatan internal..."
-                                      class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-brand focus:border-brand"></textarea>
-                        </div>
-
-                        <div class="flex justify-end">
-                            <button type="submit"
-                                    class="bg-[#114E84] hover:bg-[#0E4272] text-white text-xs font-semibold px-5 py-2.5 rounded-xl shadow transition">
-                                Simpan Perubahan &amp; Catat Riwayat
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            @endif
-        </div>
-
         {{-- Right Column: Timeline / Riwayat Proses (Jejak Langkah Vertikal) --}}
         <div class="space-y-6">
             <div class="bg-white rounded-2xl border border-slate-200 shadow-card p-6">

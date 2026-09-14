@@ -15,7 +15,7 @@ class UserDashboardController extends Controller
         $stats = [
             'total'   => Ticket::where('user_id', $user->id)->count(),
             'menunggu' => Ticket::where('user_id', $user->id)->where('status', 'Menunggu Verifikasi')->count(),
-            'diproses' => Ticket::where('user_id', $user->id)->whereIn('status', ['Diverifikasi', 'Didistribusikan', 'Dalam Proses'])->count(),
+            'diproses' => Ticket::where('user_id', $user->id)->whereIn('status', ['Dialokasikan', 'Diverifikasi', 'Didistribusikan', 'Dalam Proses'])->count(),
             'selesai'  => Ticket::where('user_id', $user->id)->whereIn('status', ['Selesai', 'Ditutup Pemohon'])->count(),
             'ditolak'  => Ticket::where('user_id', $user->id)->where('status', 'Ditolak')->count(),
         ];

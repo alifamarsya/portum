@@ -6,8 +6,11 @@ use App\Concerns\LogsAudit;
 use App\Models\InternalDepartment;
 use App\Models\Ticket;
 use App\Models\TicketCategory;
+use App\Models\UnitKerja;
+use App\Models\User;
 use App\Services\TicketService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class TicketController extends Controller
 {
@@ -32,7 +35,7 @@ class TicketController extends Controller
         $stats = [
             'total' => (clone $baseQuery)->count(),
             'menunggu' => (clone $baseQuery)->where('status', 'Menunggu Verifikasi')->count(),
-            'diverifikasi' => (clone $baseQuery)->where('status', 'Diverifikasi')->count(),
+            'diverifikasi' => (clone $baseQuery)->whereIn('status', ['Diverifikasi', 'Dialokasikan'])->count(),
             'dalam_proses' => (clone $baseQuery)->whereIn('status', ['Didistribusikan', 'Dalam Proses'])->count(),
             'selesai' => (clone $baseQuery)->whereIn('status', ['Selesai', 'Ditutup Pemohon'])->count(),
             'ditolak' => (clone $baseQuery)->where('status', 'Ditolak')->count(),
@@ -65,6 +68,11 @@ class TicketController extends Controller
             });
         }
 
+        // Filter by jenis_pengajuan if provided
+        if ($request->filled('jenis_pengajuan')) {
+            $query->where('jenis_pengajuan', $request->jenis_pengajuan);
+        }
+
         $tickets = $query->paginate(15)->withQueryString();
         $categories = TicketCategory::all();
         $departments = InternalDepartment::all();
@@ -81,8 +89,7 @@ class TicketController extends Controller
             abort(403, 'Hanya role User (Pemohon Layanan) yang berwenang membuat tiket baru. Role lainnya hanya dapat memantau dan memproses tiket.');
         }
 
-        $categories = TicketCategory::all();
-        return view('tickets.create', compact('categories'));
+        return view('tickets.create');
     }
 
     /**
@@ -95,8 +102,8 @@ class TicketController extends Controller
         }
 
         $validated = $request->validate([
-            'category_id' => 'required|exists:ticket_categories,id',
-            'priority' => 'required|in:Rendah,Normal,Sedang,Tinggi,Darurat',
+            'jenis_pengajuan' => 'required|in:Permintaan,Permasalahan',
+            'priority' => 'required|in:Rendah,Normal,Sedang,Tinggi,Darurat,Kritis',
             'description' => 'required|string|min:10',
             'attachment' => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx,zip|max:10240',
         ]);
@@ -152,14 +159,15 @@ class TicketController extends Controller
         // Daftar staf aktif di bagian ini untuk dipilih oleh Kabag saat mendisposisikan tiket
         $departmentStaff = collect();
         if ($ticket->department_id) {
-            $departmentStaff = \App\Models\User::where(function ($q) use ($ticket) {
+            $departmentStaff = User::where(function ($q) use ($ticket) {
                     $q->where('department_id', $ticket->department_id);
                     if ($ticket->department_id == 1) {
-                        $q->orWhereHas('role', fn($r) => $r->where('nama', 'umum_rt'));
+                        // Sertakan role lama (umum_rt) dan role baru (uk_umum_rt, uk_dokumen)
+                        $q->orWhereHas('role', fn($r) => $r->whereIn('nama', ['umum_rt', 'uk_umum_rt', 'uk_dokumen']));
                     } elseif ($ticket->department_id == 2) {
-                        $q->orWhereHas('role', fn($r) => $r->where('nama', 'aset'));
+                        $q->orWhereHas('role', fn($r) => $r->whereIn('nama', ['aset', 'uk_administrasi_aset', 'uk_logistik']));
                     } elseif ($ticket->department_id == 3) {
-                        $q->orWhereHas('role', fn($r) => $r->where('nama', 'pengadaan'));
+                        $q->orWhereHas('role', fn($r) => $r->whereIn('nama', ['pengadaan', 'uk_pengadaan', 'uk_pemeliharaan']));
                     }
                 })
                 ->where('is_active', true)
@@ -179,7 +187,9 @@ class TicketController extends Controller
             );
         }
 
-        return view('tickets.show', compact('ticket', 'departments', 'departmentStaff'));
+        $unitKerjaList = UnitKerja::where('is_active', true)->get();
+
+        return view('tickets.show', compact('ticket', 'departments', 'departmentStaff', 'unitKerjaList'));
     }
 
     /**
@@ -201,7 +211,7 @@ class TicketController extends Controller
         ]);
 
         $staff = \App\Models\User::findOrFail($validated['assigned_to']);
-        if ($staff->department_id != $ticket->department_id) {
+        if ($staff->effectiveDepartmentId() != $ticket->department_id) {
             return back()->withErrors(['assigned_to' => 'Staf yang dipilih bukan anggota bagian ini.'])->withInput();
         }
 
@@ -301,15 +311,18 @@ class TicketController extends Controller
         }
 
         $rules = [
-            'status' => 'required|string|in:Menunggu Verifikasi,Diverifikasi,Didistribusikan,Dalam Proses,Selesai,Ditolak,Ditutup Pemohon',
+            'status' => 'required|string|in:Menunggu Verifikasi,Diverifikasi,Didistribusikan,Dialokasikan,Dalam Proses,Selesai,Ditolak,Ditutup Pemohon',
             'notes' => 'nullable|string|max:1000',
         ];
 
-        // Operator verifies and directs to department (not assigning directly to staff)
+        // Operator verifies and allocates directly to department: status is automatically set to 'Dialokasikan'
         if ($isOperator) {
-            $rules['department_id'] = 'nullable|exists:internal_departments,id';
-            $rules['category_id']   = 'nullable|exists:ticket_categories,id';
-            $rules['priority']      = 'nullable|in:Rendah,Normal,Sedang,Tinggi,Kritis,Darurat';
+            $request->merge(['status' => 'Dialokasikan']);
+            $rules['department_id']    = 'required|exists:internal_departments,id';
+            $rules['unit_kerja_id']    = 'nullable|exists:unit_kerja,id';
+            $rules['category_id']      = 'nullable|exists:ticket_categories,id';
+            $rules['priority']         = 'nullable|in:Rendah,Normal,Sedang,Tinggi,Kritis,Darurat';
+            $rules['jenis_pengajuan']  = 'nullable|in:Permintaan,Permasalahan';
         }
 
         $validated = $request->validate($rules);
@@ -364,5 +377,57 @@ class TicketController extends Controller
 
         return redirect()->route('tickets.show', $ticket)
             ->with('status', 'Terima kasih! Tiket berhasil dikonfirmasi sebagai selesai dan telah ditutup.');
+    }
+
+    /**
+     * View ticket attachment in browser.
+     */
+    public function viewAttachment(Ticket $ticket)
+    {
+        $user = auth()->user();
+
+        // Check view authorization
+        $userDeptId = $user->effectiveDepartmentId();
+        if (!is_null($userDeptId) && !$user->isSuperAdmin() && !$user->isOperator() && !$user->isKepalaDivisi() && $ticket->department_id !== $userDeptId) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        if ($user->isUser() && $ticket->user_id !== $user->id) {
+            abort(403, 'Anda tidak berwenang mengakses lampiran tiket ini.');
+        }
+
+        if (!$ticket->attachment_path || !Storage::disk('public')->exists($ticket->attachment_path)) {
+            abort(404, 'Berkas lampiran tidak ditemukan pada server.');
+        }
+
+        $fullPath = Storage::disk('public')->path($ticket->attachment_path);
+        return response()->file($fullPath);
+    }
+
+    /**
+     * Download ticket attachment directly.
+     */
+    public function downloadAttachment(Ticket $ticket)
+    {
+        $user = auth()->user();
+
+        // Check view authorization
+        $userDeptId = $user->effectiveDepartmentId();
+        if (!is_null($userDeptId) && !$user->isSuperAdmin() && !$user->isOperator() && !$user->isKepalaDivisi() && $ticket->department_id !== $userDeptId) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        if ($user->isUser() && $ticket->user_id !== $user->id) {
+            abort(403, 'Anda tidak berwenang mengunduh lampiran tiket ini.');
+        }
+
+        if (!$ticket->attachment_path || !Storage::disk('public')->exists($ticket->attachment_path)) {
+            abort(404, 'Berkas lampiran tidak ditemukan pada server.');
+        }
+
+        $extension = pathinfo($ticket->attachment_path, PATHINFO_EXTENSION);
+        $cleanFileName = 'Lampiran-' . $ticket->ticket_number . ($extension ? '.' . $extension : '');
+
+        return Storage::disk('public')->download($ticket->attachment_path, $cleanFileName);
     }
 }

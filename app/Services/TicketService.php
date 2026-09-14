@@ -48,17 +48,26 @@ class TicketService
                 $attachmentPath = $data['attachment_path'];
             }
 
+            $slaService = app(TicketSlaService::class);
+            $now = now();
+            $startAt = $slaService->calculateSlaStart($now);
+            $dueAt = $slaService->calculateResponseDueAt($now);
             $ticketNumber = $this->generateTicketNumber();
 
             $ticket = Ticket::create([
                 'ticket_number' => $ticketNumber,
                 'user_id' => $user->id,
-                'category_id' => $data['category_id'],
+                'category_id' => $data['category_id'] ?? null,
                 'department_id' => $data['department_id'] ?? null,
+                'unit_kerja_id' => $user->unit_kerja_id ?? null,
                 'priority' => $data['priority'] ?? 'Sedang',
+                'jenis_pengajuan' => $data['jenis_pengajuan'] ?? null,
                 'status' => 'Menunggu Verifikasi',
                 'description' => $data['description'],
                 'attachment_path' => $attachmentPath,
+                'sla_response_start_at' => $startAt,
+                'sla_response_due_at' => $dueAt,
+                'sla_response_status' => 'Menunggu',
             ]);
 
             // Insert initial history
@@ -121,6 +130,11 @@ class TicketService
 
             if (!empty($updateData)) {
                 $ticket->update($updateData);
+            }
+
+            // Jika tiket diverifikasi (berpindah dari Menunggu Verifikasi), catat verifikasi SLA
+            if ($oldStatus === 'Menunggu Verifikasi' && $newStatus !== 'Menunggu Verifikasi' && is_null($ticket->verified_at)) {
+                app(TicketSlaService::class)->recordVerification($ticket, $user);
             }
 
             // If status or department changed, insert record to ticket_histories

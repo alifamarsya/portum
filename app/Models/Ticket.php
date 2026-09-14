@@ -18,26 +18,45 @@ class Ticket extends Model
         'user_id',
         'category_id',
         'department_id',
+        'unit_kerja_id',
         'assigned_to',
         'disposed_by',
         'priority',
+        'jenis_pengajuan',
         'status',
         'description',
         'disposition_notes',
         'disposed_at',
         'attachment_path',
+        'sla_response_start_at',
+        'sla_response_due_at',
+        'verified_at',
+        'verified_by',
+        'sla_response_time_minutes',
+        'sla_response_status',
     ];
 
     protected function casts(): array
     {
         return [
             'disposed_at' => 'datetime',
+            'sla_response_start_at' => 'datetime',
+            'sla_response_due_at' => 'datetime',
+            'verified_at' => 'datetime',
         ];
     }
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /**
+     * Get the Operator user who verified the ticket.
+     */
+    public function verifiedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'verified_by');
     }
 
     /**
@@ -57,6 +76,14 @@ class Ticket extends Model
     }
 
     /**
+     * Dynamic SLA Response Time Information.
+     */
+    public function getSlaResponseAttribute(): array
+    {
+        return app(\App\Services\TicketSlaService::class)->getSlaResponseInfo($this);
+    }
+
+    /**
      * Get the category of the ticket.
      */
     public function category(): BelongsTo
@@ -70,6 +97,14 @@ class Ticket extends Model
     public function department(): BelongsTo
     {
         return $this->belongsTo(InternalDepartment::class, 'department_id');
+    }
+
+    /**
+     * Get the unit kerja assigned to the ticket.
+     */
+    public function unitKerja(): BelongsTo
+    {
+        return $this->belongsTo(UnitKerja::class, 'unit_kerja_id');
     }
 
     /**
@@ -96,19 +131,36 @@ class Ticket extends Model
             return $query;
         }
 
-        // 2. Kepala Bagian (kabag_umum, kabag_aset, kabag_pengadaan): melihat tiket di bagiannya
+        // 2. Kepala Bagian (kabag_umum, kabag_aset, kabag_pengadaan): melihat semua tiket di bagiannya
         if ($user->isKabag()) {
             return $query->where('department_id', $user->effectiveDepartmentId());
         }
 
-        // 3. Staf Bagian Internal (umum_rt, aset, pengadaan):
+        // 3. Staf Unit Kerja Baru (uk_umum_rt, uk_dokumen):
+        // Hanya melihat tiket yang di-assign ke unit kerjanya (dan sudah diverifikasi/didisposisikan)
+        if ($user->isUnitKerjaStaf()) {
+            $q = $query->where('department_id', $user->effectiveDepartmentId())
+                       ->where('status', '!=', 'Menunggu Verifikasi');
+
+            // Jika punya unit_kerja_id, filter lebih spesifik ke unit kerja tersebut
+            if ($user->effectiveUnitKerjaId()) {
+                $q->where(function ($inner) use ($user) {
+                    $inner->where('unit_kerja_id', $user->effectiveUnitKerjaId())
+                          ->orWhereNull('unit_kerja_id'); // tiket yg belum di-assign ke UK spesifik
+                });
+            }
+
+            return $q;
+        }
+
+        // 4. Staf Bagian Internal Legacy (umum_rt, aset, pengadaan):
         // Tiket yang dialokasikan ke bagiannya dan sudah diverifikasi/didisposisikan
         if ($user->isInternalStaff()) {
             return $query->where('department_id', $user->effectiveDepartmentId())
                          ->where('status', '!=', 'Menunggu Verifikasi');
         }
 
-        // 4. User Pemohon: hanya tiket miliknya sendiri
+        // 5. User Pemohon: hanya tiket miliknya sendiri
         if ($user->isUser()) {
             return $query->where('user_id', $user->id);
         }
@@ -118,7 +170,7 @@ class Ticket extends Model
 
     public function isAwaitingKabagDisposition(): bool
     {
-        return $this->status === 'Diverifikasi' && is_null($this->assigned_to);
+        return in_array($this->status, ['Dialokasikan', 'Diverifikasi', 'Didistribusikan']) && is_null($this->assigned_to);
     }
 
     /**
@@ -128,6 +180,7 @@ class Ticket extends Model
     {
         return match ($this->status) {
             'Menunggu Verifikasi' => 'bg-amber-50 text-amber-700 border-amber-200',
+            'Dialokasikan'        => 'bg-blue-50 text-blue-700 border-blue-200',
             'Diverifikasi'        => 'bg-blue-50 text-blue-700 border-blue-200',
             'Didistribusikan'     => 'bg-indigo-50 text-indigo-700 border-indigo-200',
             'Dalam Proses'        => 'bg-violet-50 text-violet-700 border-violet-200',
@@ -146,6 +199,7 @@ class Ticket extends Model
     {
         return match ($this->status) {
             'Menunggu Verifikasi' => 'Diajukan',
+            'Dialokasikan'        => 'Dialokasikan',
             'Diverifikasi'        => 'Diverifikasi',
             'Didistribusikan'     => 'Sedang Ditangani',
             'Dalam Proses'        => 'Sedang Dikerjakan',
@@ -169,6 +223,18 @@ class Ticket extends Model
             'Sedang'  => 'bg-amber-100 text-amber-800',
             'Rendah'  => 'bg-emerald-100 text-emerald-800',
             default   => 'bg-slate-100 text-slate-800',
+        };
+    }
+
+    /**
+     * Get CSS badge classes for jenis_pengajuan.
+     */
+    public function getJenisBadgeAttribute(): string
+    {
+        return match ($this->jenis_pengajuan) {
+            'Permintaan'   => 'bg-sky-50 text-sky-700 border-sky-200',
+            'Permasalahan' => 'bg-orange-50 text-orange-700 border-orange-200',
+            default        => 'bg-slate-50 text-slate-500 border-slate-200',
         };
     }
 }
