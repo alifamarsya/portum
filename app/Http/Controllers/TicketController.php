@@ -208,6 +208,10 @@ class TicketController extends Controller
         $validated = $request->validate([
             'assigned_to' => 'required|exists:users,id',
             'disposition_notes' => 'required|string|min:5|max:1000',
+            'kategori_pekerjaan' => 'nullable|string|max:100',
+            'skala_eselonisasi' => 'nullable|string|max:100',
+            'estimasi_biaya' => 'nullable|numeric|min:0',
+            'sla_resolution_hours' => 'nullable|integer|min:1|max:500',
         ]);
 
         $staff = \App\Models\User::findOrFail($validated['assigned_to']);
@@ -215,7 +219,18 @@ class TicketController extends Controller
             return back()->withErrors(['assigned_to' => 'Staf yang dipilih bukan anggota bagian ini.'])->withInput();
         }
 
-        $this->ticketService->disposeTicket($ticket, $staff, $validated['disposition_notes'], $user);
+        $this->ticketService->disposeTicket(
+            $ticket,
+            $staff,
+            $validated['disposition_notes'],
+            $user,
+            [
+                'kategori_pekerjaan'   => $validated['kategori_pekerjaan'] ?? null,
+                'skala_eselonisasi'    => $validated['skala_eselonisasi'] ?? null,
+                'estimasi_biaya'       => $validated['estimasi_biaya'] ?? null,
+                'sla_resolution_hours' => $validated['sla_resolution_hours'] ?? null,
+            ]
+        );
 
         $this->audit(
             'DISPOSE',

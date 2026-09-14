@@ -137,6 +137,11 @@ class TicketService
                 app(TicketSlaService::class)->recordVerification($ticket, $user);
             }
 
+            // Jika tiket diselesaikan, catat pencapaian Resolution SLA
+            if (in_array($newStatus, ['Selesai', 'Ditutup Pemohon']) && is_null($ticket->resolved_at)) {
+                app(TicketSlaService::class)->recordResolution($ticket);
+            }
+
             // If status or department changed, insert record to ticket_histories
             if ($isStatusChanged || $isDepartmentChanged || !empty($data['force_history'])) {
                 $notes = $data['notes'] ?? null;
@@ -169,9 +174,9 @@ class TicketService
     /**
      * Dispose ticket by Kabag to a specific staff member with RBB/budget verification notes.
      */
-    public function disposeTicket(Ticket $ticket, User $staff, string $notes, User $kabag): Ticket
+    public function disposeTicket(Ticket $ticket, User $staff, string $notes, User $kabag, array $resolutionData = []): Ticket
     {
-        return DB::transaction(function () use ($ticket, $staff, $notes, $kabag) {
+        return DB::transaction(function () use ($ticket, $staff, $notes, $kabag, $resolutionData) {
             $oldStatus = $ticket->status;
             $newStatus = 'Didistribusikan';
 
@@ -182,6 +187,9 @@ class TicketService
                 'disposition_notes' => $notes,
                 'status' => $newStatus,
             ]);
+
+            // Mulai SLA Resolution Time timer secara otomatis
+            app(TicketSlaService::class)->startResolutionSla($ticket, $resolutionData, $kabag);
 
             TicketHistory::create([
                 'ticket_id' => $ticket->id,
