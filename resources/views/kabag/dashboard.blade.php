@@ -210,9 +210,6 @@
                         <h2 class="font-bold text-ink text-sm sm:text-base">Tim Staf Pelaksana</h2>
                         <p class="text-xs text-slate-500">Akun staf terdaftar di {{ $department->name ?? 'bagian' }}</p>
                     </div>
-                    <span class="text-xs font-bold text-[#114E84] bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-200">
-                        {{ $staffMembers->count() }} Anggota
-                    </span>
                 </div>
 
                 @if ($staffMembers->isEmpty())
