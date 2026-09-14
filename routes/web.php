@@ -1,11 +1,13 @@
 <?php
 
 use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\CustomFieldController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\ModuleController;
+use App\Http\Controllers\MutasiAsetController;
 use App\Http\Controllers\OperatorDashboardController;
 use App\Http\Controllers\PanduanController;
 use App\Http\Controllers\RisalahRapatController;
@@ -62,6 +64,30 @@ Route::middleware('auth')->group(function () {
         ->name('tickets.confirm-close');
     Route::post('/tickets/{ticket}/report-incomplete', [TicketController::class, 'reportIncomplete'])
         ->name('tickets.report-incomplete');
+
+    // Modul Mutasi Aset (Pengajuan & Monitoring)
+    Route::prefix('mutasi-aset')->name('mutasi-aset.')->group(function () {
+        Route::get('/', [MutasiAsetController::class, 'index'])->name('index');
+        Route::get('/create', [MutasiAsetController::class, 'create'])->name('create');
+        Route::post('/', [MutasiAsetController::class, 'store'])->name('store');
+        Route::get('/{mutasi}', [MutasiAsetController::class, 'show'])->name('show');
+        Route::get('/{mutasi}/dokumen', [MutasiAsetController::class, 'viewDokumen'])->name('dokumen');
+        Route::get('/{mutasi}/dokumen/download', [MutasiAsetController::class, 'downloadDokumen'])->name('dokumen.download');
+        Route::post('/{mutasi}/check-operator', [MutasiAsetController::class, 'checkOperator'])->name('check-operator');
+        Route::post('/{mutasi}/verify-staf', [MutasiAsetController::class, 'verifyStaf'])->name('verify-staf');
+        Route::post('/{mutasi}/approve-kabag', [MutasiAsetController::class, 'approveKabag'])->name('approve-kabag');
+        Route::post('/{mutasi}/konfirmasi-pengaju', [MutasiAsetController::class, 'konfirmasiPengaju'])->name('konfirmasi-pengaju');
+    });
+
+    // Manajemen Dynamic Custom Fields (Inventarisasi Aset & Riwayat Pergerakan)
+    // Dapat diakses oleh Staf Aset (uk_administrasi_aset) dan Administrator
+    Route::prefix('admin/custom-fields')->name('admin.custom-fields.')->group(function () {
+        Route::get('/', [CustomFieldController::class, 'index'])->name('index');
+        Route::post('/', [CustomFieldController::class, 'store'])->name('store');
+        Route::put('/{customField}', [CustomFieldController::class, 'update'])->name('update');
+        Route::patch('/{customField}/toggle', [CustomFieldController::class, 'toggle'])->name('toggle');
+        Route::delete('/{customField}', [CustomFieldController::class, 'destroy'])->name('destroy');
+    });
 
     Route::prefix('admin')->name('admin.')->middleware('superadmin')->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');

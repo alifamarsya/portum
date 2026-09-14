@@ -6,11 +6,20 @@
             <p class="text-[12px] font-semibold uppercase tracking-wide text-gold mb-0.5">{{ $cfg['modul'] }}</p>
             <h1 class="text-xl font-bold text-ink">{{ $cfg['judul'] }}</h1>
         </div>
-        <a href="{{ route('modul.create', $key) }}"
-           class="inline-flex items-center gap-1.5 bg-brand text-white text-sm font-medium px-4 py-2.5 rounded-lg hover:bg-brand-light transition shadow-card">
-            @include('partials.icon', ['name' => 'plus', 'class' => 'w-4 h-4'])
-            Tambah Data
-        </a>
+        <div class="flex items-center gap-2">
+            @if (in_array($key, ['aset', 'aset_history']))
+                <a href="{{ route('admin.custom-fields.index', ['module' => $key]) }}"
+                   class="inline-flex items-center gap-1.5 bg-white border border-slate-300 text-slate-700 text-sm font-medium px-3.5 py-2.5 rounded-lg hover:bg-slate-50 transition shadow-2xs">
+                    @include('partials.icon', ['name' => 'sliders', 'class' => 'w-4 h-4 text-[#114E84]'])
+                    Kelola Dynamic Fields
+                </a>
+            @endif
+            <a href="{{ route('modul.create', $key) }}"
+               class="inline-flex items-center gap-1.5 bg-brand text-white text-sm font-medium px-4 py-2.5 rounded-lg hover:bg-brand-light transition shadow-card">
+                @include('partials.icon', ['name' => 'plus', 'class' => 'w-4 h-4'])
+                Tambah Data
+            </a>
+        </div>
     </div>
 
     <form method="GET" class="mb-4">
@@ -23,7 +32,11 @@
         </div>
     </form>
 
-    @php $listFields = collect($cfg['fields'])->filter(fn ($f) => $f['list'] ?? false); @endphp
+    @php
+        $listFields = collect($cfg['fields'])->filter(fn ($f) => $f['list'] ?? false);
+        // Custom fields yang show_in_list (hanya untuk modul yang mendukung)
+        $listCustomFields = !empty($customFields) ? collect($customFields)->filter(fn ($cf) => $cf->show_in_list && $cf->is_active) : collect();
+    @endphp
 
     <div class="bg-white rounded-xl border border-slate-200 shadow-card overflow-hidden">
         <div class="overflow-x-auto">
@@ -32,6 +45,13 @@
                     <tr class="bg-slate-50 border-b border-slate-200 text-left text-[12px] uppercase tracking-wide text-slate-500">
                         @foreach ($listFields as $field => $meta)
                             <th class="px-4 py-3 font-semibold whitespace-nowrap">{{ $meta['label'] }}</th>
+                        @endforeach
+                        {{-- Custom Field Columns --}}
+                        @foreach ($listCustomFields as $cf)
+                            <th class="px-4 py-3 font-semibold whitespace-nowrap text-indigo-600">
+                                {{ $cf->label }}
+                                <span class="text-[9px] text-indigo-400 font-normal block">custom</span>
+                            </th>
                         @endforeach
                         @if ($cfg['maker_checker'])
                             <th class="px-4 py-3 font-semibold whitespace-nowrap">Approval</th>
@@ -60,6 +80,29 @@
                                     @endif
                                 </td>
                             @endforeach
+
+                            {{-- Custom Field Values --}}
+                            @foreach ($listCustomFields as $cf)
+                                <td class="px-4 py-3 text-slate-600 text-[12px]">
+                                    @php
+                                        $cfVal = is_array($item->custom_fields) ? ($item->custom_fields[$cf->field_name] ?? null) : null;
+                                    @endphp
+                                    @if ($cfVal === null || $cfVal === '')
+                                        <span class="text-slate-300">—</span>
+                                    @elseif ($cf->field_type === 'money')
+                                        <span class="font-mono">Rp {{ number_format((float) $cfVal, 0, ',', '.') }}</span>
+                                    @elseif ($cf->field_type === 'checkbox')
+                                        <span class="px-2 py-0.5 rounded-full text-xs {{ $cfVal ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500' }}">
+                                            {{ $cfVal ? 'Ya' : 'Tidak' }}
+                                        </span>
+                                    @elseif ($cf->field_type === 'date')
+                                        {{ $cfVal ? \Illuminate\Support\Carbon::parse($cfVal)->format('d M Y') : '—' }}
+                                    @else
+                                        {{ \Illuminate\Support\Str::limit((string) $cfVal, 35) }}
+                                    @endif
+                                </td>
+                            @endforeach
+
                             @if ($cfg['maker_checker'])
                                 <td class="px-4 py-3">
                                     <span @class([
@@ -107,4 +150,17 @@
         </div>
     </div>
     <div class="mt-4">{{ $items->links() }}</div>
+
+    {{-- Info tentang custom fields untuk Staf Aset dan Admin --}}
+    @if (in_array($key, ['aset', 'aset_history']))
+        <div class="mt-4 text-xs text-slate-500 flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+            <div class="flex items-center gap-2">
+                @include('partials.icon', ['name' => 'sliders', 'class' => 'w-4 h-4 text-[#114E84]'])
+                <span>Modul <strong>{{ $cfg['judul'] }}</strong> mendukung Dynamic Fields fleksibel. Terdapat <strong>{{ !empty($customFields) ? count($customFields) : 0 }}</strong> custom field terdaftar.</span>
+            </div>
+            <a href="{{ route('admin.custom-fields.index', ['module' => $key]) }}" class="text-[#114E84] hover:underline font-bold whitespace-nowrap">
+                + Tambah / Kelola Fields &rarr;
+            </a>
+        </div>
+    @endif
 @endsection

@@ -19,14 +19,28 @@ class AsAsetHistory extends Model
         'old_value',
         'new_value',
         'keterangan',
+        'custom_fields',
         'changed_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'changed_at' => 'datetime',
+            'changed_at'    => 'datetime',
+            'custom_fields' => 'array',
         ];
+    }
+
+    public function __get($key)
+    {
+        $val = parent::__get($key);
+        if ($val === null && isset($this->attributes['custom_fields'])) {
+            $cf = is_array($this->custom_fields) ? $this->custom_fields : json_decode($this->attributes['custom_fields'] ?? '{}', true);
+            if (is_array($cf) && array_key_exists($key, $cf)) {
+                return $cf[$key];
+            }
+        }
+        return $val;
     }
 
     public function aset(): BelongsTo

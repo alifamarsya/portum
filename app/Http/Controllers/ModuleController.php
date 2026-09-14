@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Concerns\LogsAudit;
+use App\Models\AsCustomField;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use App\Services\AmortisasiCalculator;
@@ -44,6 +45,12 @@ class ModuleController extends Controller
         $cfg = $this->authorizeModule($key, 'read');
         $model = $cfg['model'];
 
+        // Muat custom fields untuk modul yang mendukung (aset, aset_history)
+        $customFields = [];
+        if (in_array($key, ['aset', 'aset_history'])) {
+            $customFields = AsCustomField::forModule($key)->get();
+        }
+
         $items = $model::query()
             ->when($request->q, function ($q) use ($cfg, $request) {
                 $q->where(function ($qq) use ($cfg, $request) {
@@ -56,13 +63,19 @@ class ModuleController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('modules.index', compact('cfg', 'items', 'key'));
+        return view('modules.index', compact('cfg', 'items', 'key', 'customFields'));
     }
 
     public function create(string $key)
     {
         $cfg = $this->authorizeModule($key, 'write');
-        return view('modules.form', ['cfg' => $cfg, 'key' => $key, 'item' => null]);
+
+        $customFields = [];
+        if (in_array($key, ['aset', 'aset_history'])) {
+            $customFields = AsCustomField::forModule($key)->get();
+        }
+
+        return view('modules.form', ['cfg' => $cfg, 'key' => $key, 'item' => null, 'customFields' => $customFields]);
     }
 
     public function store(Request $request, string $key)
@@ -70,6 +83,11 @@ class ModuleController extends Controller
         $cfg = $this->authorizeModule($key, 'write');
         $data = $this->validated($request, $cfg);
         $data = $this->hitungAmortisasiJikaPerlu($key, $data);
+
+        // Proses custom fields untuk modul yang mendukung
+        if (in_array($key, ['aset', 'aset_history'])) {
+            $data = $this->mergeCustomFields($request, $key, $data);
+        }
 
         if ($cfg['maker_checker']) {
             $data['maker_id'] = auth()->id();
@@ -89,7 +107,13 @@ class ModuleController extends Controller
     {
         $cfg = $this->authorizeModule($key, 'write');
         $item = $cfg['model']::findOrFail($id);
-        return view('modules.form', ['cfg' => $cfg, 'key' => $key, 'item' => $item]);
+
+        $customFields = [];
+        if (in_array($key, ['aset', 'aset_history'])) {
+            $customFields = AsCustomField::forModule($key)->get();
+        }
+
+        return view('modules.form', ['cfg' => $cfg, 'key' => $key, 'item' => $item, 'customFields' => $customFields]);
     }
 
     public function update(Request $request, string $key, int $id)
@@ -98,6 +122,11 @@ class ModuleController extends Controller
         $item = $cfg['model']::findOrFail($id);
         $data = $this->validated($request, $cfg);
         $data = $this->hitungAmortisasiJikaPerlu($key, $data);
+
+        // Proses custom fields untuk modul yang mendukung
+        if (in_array($key, ['aset', 'aset_history'])) {
+            $data = $this->mergeCustomFields($request, $key, $data);
+        }
 
         $item->update($data);
         $this->audit('UPDATE', $cfg['modul'], $cfg['judul'], $item->id, 'Mengubah data');
@@ -174,24 +203,57 @@ class ModuleController extends Controller
     }
 
     private function hitungAmortisasiJikaPerlu(string $key, array $data): array
-{
-    if ($key !== 'amortisasi') {
+    {
+        if ($key !== 'amortisasi') {
+            return $data;
+        }
+
+        if (empty($data['nilai_per_bulan']) && !empty($data['nilai_perolehan']) && !empty($data['umur_bulan'])) {
+            $data['nilai_per_bulan'] = $this->amortisasiCalculator->hitungNilaiPerBulan(
+                (float) $data['nilai_perolehan'],
+                (int) $data['umur_bulan']
+            );
+        }
+
+        if (!empty($data['tanggal_mulai']) && !empty($data['nilai_per_bulan'])) {
+            $bulanBerjalan = $this->amortisasiCalculator->hitungBulanBerjalan(new \DateTime($data['tanggal_mulai']));
+            $data['akumulasi'] = $this->amortisasiCalculator->hitungAkumulasi((float) $data['nilai_per_bulan'], $bulanBerjalan);
+            $data['nilai_buku'] = $this->amortisasiCalculator->hitungNilaiBuku((float) $data['nilai_perolehan'], $data['akumulasi']);
+        }
+
         return $data;
     }
 
-    if (empty($data['nilai_per_bulan']) && !empty($data['nilai_perolehan']) && !empty($data['umur_bulan'])) {
-        $data['nilai_per_bulan'] = $this->amortisasiCalculator->hitungNilaiPerBulan(
-            (float) $data['nilai_perolehan'],
-            (int) $data['umur_bulan']
-        );
-    }
+    /**
+     * Gabungkan custom fields dari request ke dalam data yang akan disimpan.
+     * Custom fields disimpan dalam kolom JSON 'custom_fields'.
+     */
+    private function mergeCustomFields(Request $request, string $key, array $data): array
+    {
+        $activeFields = AsCustomField::forModule($key)->get();
 
-    if (!empty($data['tanggal_mulai']) && !empty($data['nilai_per_bulan'])) {
-        $bulanBerjalan = $this->amortisasiCalculator->hitungBulanBerjalan(new \DateTime($data['tanggal_mulai']));
-        $data['akumulasi'] = $this->amortisasiCalculator->hitungAkumulasi((float) $data['nilai_per_bulan'], $bulanBerjalan);
-        $data['nilai_buku'] = $this->amortisasiCalculator->hitungNilaiBuku((float) $data['nilai_perolehan'], $data['akumulasi']);
-    }
+        if ($activeFields->isEmpty()) {
+            return $data;
+        }
 
-    return $data;
-}
+        $customData = [];
+        foreach ($activeFields as $field) {
+            $fieldName = $field->field_name;
+            $value = $request->input("cf_{$fieldName}");
+
+            if ($field->field_type === 'checkbox') {
+                $customData[$fieldName] = (bool) $value;
+            } elseif ($field->field_type === 'money' && $value !== null) {
+                // Bersihkan format rupiah jika ada
+                $customData[$fieldName] = (float) preg_replace('/[^0-9.]/', '', $value);
+            } elseif ($field->field_type === 'number' && $value !== null) {
+                $customData[$fieldName] = (float) $value;
+            } else {
+                $customData[$fieldName] = $value;
+            }
+        }
+
+        $data['custom_fields'] = $customData;
+        return $data;
+    }
 }

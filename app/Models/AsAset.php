@@ -18,15 +18,32 @@ class AsAset extends Model
         'umur_ekonomis',
         'kondisi',
         'penanggung_jawab',
-        'keterangan'
+        'keterangan',
+        'custom_fields',
     ];
 
     protected function casts(): array
     {
         return [
             'tanggal_perolehan' => 'date',
-            'nilai_perolehan' => 'decimal:2',
+            'nilai_perolehan'   => 'decimal:2',
+            'custom_fields'     => 'array',
         ];
+    }
+
+    /**
+     * Akses nilai custom dynamic field secara langsung
+     */
+    public function __get($key)
+    {
+        $val = parent::__get($key);
+        if ($val === null && isset($this->attributes['custom_fields'])) {
+            $cf = is_array($this->custom_fields) ? $this->custom_fields : json_decode($this->attributes['custom_fields'] ?? '{}', true);
+            if (is_array($cf) && array_key_exists($key, $cf)) {
+                return $cf[$key];
+            }
+        }
+        return $val;
     }
 
     protected static function booted(): void
