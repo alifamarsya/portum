@@ -34,14 +34,18 @@
 
             {{-- Jenis Pengajuan --}}
             <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-1.5">
+                <label for="jenis_pengajuan" class="block text-sm font-semibold text-slate-700 mb-1.5">
                     Jenis Pengajuan <span class="text-rose-500">*</span>
                 </label>
-                <select name="jenis_pengajuan" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand focus:border-brand">
-                    <option value="">-- Semua Jenis --</option>
-                    <option value="Permintaan" {{ request('jenis_pengajuan') === 'Permintaan' ? 'selected' : '' }}>Permintaan</option>
-                    <option value="Permasalahan" {{ request('jenis_pengajuan') === 'Permasalahan' ? 'selected' : '' }}>Permasalahan</option>
+                <select name="jenis_pengajuan" id="jenis_pengajuan" required
+                        class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm focus:border-brand focus:ring-1 focus:ring-brand transition @error('jenis_pengajuan') border-rose-400 @enderror">
+                    <option value="">-- Pilih Jenis Pengajuan --</option>
+                    <option value="Permintaan" {{ old('jenis_pengajuan', request('jenis_pengajuan')) === 'Permintaan' ? 'selected' : '' }}>Permintaan</option>
+                    <option value="Permasalahan" {{ old('jenis_pengajuan', request('jenis_pengajuan')) === 'Permasalahan' ? 'selected' : '' }}>Permasalahan</option>
                 </select>
+                @error('jenis_pengajuan')
+                    <p class="text-rose-500 text-xs mt-1">{{ $message }}</p>
+                @enderror
             </div>
 
             {{-- Tingkat Prioritas --}}
@@ -52,7 +56,7 @@
                 <select name="priority" id="priority" required
                         class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm focus:border-brand focus:ring-1 focus:ring-brand transition @error('priority') border-rose-400 @enderror">
                     <option value="Rendah" {{ old('priority') === 'Rendah' ? 'selected' : '' }}>Rendah (SLA 72 Jam)</option>
-                    <option value="Sedang" {{ old('priority', 'Sedang') === 'Normal' ? 'selected' : '' }}>Sedang (SLA 48 Jam)</option>
+                    <option value="Sedang" {{ old('priority', 'Sedang') === 'Sedang' ? 'selected' : '' }}>Sedang (SLA 48 Jam)</option>
                     <option value="Tinggi" {{ old('priority') === 'Tinggi' ? 'selected' : '' }}>Tinggi (SLA 12 Jam)</option>
                     <option value="Kritis" {{ old('priority') === 'Kritis' ? 'selected' : '' }}>Kritis (SLA 4 Jam)</option>
                 </select>

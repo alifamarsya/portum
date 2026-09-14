@@ -89,8 +89,7 @@ class TicketController extends Controller
             abort(403, 'Hanya role User (Pemohon Layanan) yang berwenang membuat tiket baru. Role lainnya hanya dapat memantau dan memproses tiket.');
         }
 
-        $categories = TicketCategory::all();
-        return view('tickets.create', compact('categories'));
+        return view('tickets.create');
     }
 
     /**
@@ -103,8 +102,8 @@ class TicketController extends Controller
         }
 
         $validated = $request->validate([
-            'category_id' => 'required|exists:ticket_categories,id',
-            'priority' => 'required|in:Rendah,Normal,Sedang,Tinggi,Darurat',
+            'jenis_pengajuan' => 'required|in:Permintaan,Permasalahan',
+            'priority' => 'required|in:Rendah,Normal,Sedang,Tinggi,Darurat,Kritis',
             'description' => 'required|string|min:10',
             'attachment' => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx,zip|max:10240',
         ]);
