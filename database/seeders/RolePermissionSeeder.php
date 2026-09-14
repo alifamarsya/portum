@@ -33,6 +33,7 @@ class RolePermissionSeeder extends Seeder
         }
 
         $perms = [
+            [1, 'aset_logistik', 1],
             [1, 'audit_log', 1],
             [1, 'dashboard', 1],
             [1, 'panduan', 0],
