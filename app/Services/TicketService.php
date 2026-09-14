@@ -53,9 +53,11 @@ class TicketService
             $ticket = Ticket::create([
                 'ticket_number' => $ticketNumber,
                 'user_id' => $user->id,
-                'category_id' => $data['category_id'],
+                'category_id' => $data['category_id'] ?? null,
                 'department_id' => $data['department_id'] ?? null,
+                'unit_kerja_id' => $user->unit_kerja_id ?? null,
                 'priority' => $data['priority'] ?? 'Sedang',
+                'jenis_pengajuan' => $data['jenis_pengajuan'] ?? null,
                 'status' => 'Menunggu Verifikasi',
                 'description' => $data['description'],
                 'attachment_path' => $attachmentPath,
