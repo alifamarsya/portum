@@ -22,6 +22,39 @@ class ModuleController extends Controller
     {
         $cfg = config("modules.$key");
         abort_if(!$cfg, 404, "Modul '$key' tidak ditemukan.");
+
+        // Jika modul mendukung dynamic fields (aset, aset_history), muat konfigurasi field langsung dari DB
+        if (in_array($key, ['aset', 'aset_history'])) {
+            $dbFields = AsCustomField::where('module_key', $key)
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get();
+
+            if ($dbFields->isNotEmpty()) {
+                $fields = [];
+                foreach ($dbFields as $df) {
+                    $fieldConf = [
+                        'label' => $df->label,
+                        'type'  => $df->field_type,
+                        'list'  => (bool) $df->show_in_list,
+                        'req'   => (bool) $df->is_required,
+                        'opts'  => $df->options ?? [],
+                        'help'  => $df->help_text,
+                    ];
+                    if ($df->field_type === 'money') {
+                        $fieldConf['fmt'] = 'money';
+                    } elseif ($df->field_type === 'date') {
+                        $fieldConf['fmt'] = 'date';
+                    } elseif ($df->field_type === 'select') {
+                        $fieldConf['fmt'] = 'badge';
+                    }
+                    $fields[$df->field_name] = $fieldConf;
+                }
+                $cfg['fields'] = $fields;
+            }
+        }
+
         return $cfg;
     }
 
@@ -45,17 +78,18 @@ class ModuleController extends Controller
         $cfg = $this->authorizeModule($key, 'read');
         $model = $cfg['model'];
 
-        // Muat custom fields untuk modul yang mendukung (aset, aset_history)
-        $customFields = [];
-        if (in_array($key, ['aset', 'aset_history'])) {
-            $customFields = AsCustomField::forModule($key)->get();
-        }
+        $modelInstance = new $model;
+        $tableColumns = \Illuminate\Support\Facades\Schema::getColumnListing($modelInstance->getTable());
 
         $items = $model::query()
-            ->when($request->q, function ($q) use ($cfg, $request) {
-                $q->where(function ($qq) use ($cfg, $request) {
+            ->when($request->q, function ($q) use ($cfg, $request, $tableColumns) {
+                $q->where(function ($qq) use ($cfg, $request, $tableColumns) {
                     foreach (array_keys($cfg['fields']) as $field) {
-                        $qq->orWhere($field, 'like', '%' . $request->q . '%');
+                        if (in_array($field, $tableColumns)) {
+                            $qq->orWhere($field, 'like', '%' . $request->q . '%');
+                        } else {
+                            $qq->orWhere("custom_fields->{$field}", 'like', '%' . $request->q . '%');
+                        }
                     }
                 });
             })
@@ -63,19 +97,13 @@ class ModuleController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('modules.index', compact('cfg', 'items', 'key', 'customFields'));
+        return view('modules.index', compact('cfg', 'items', 'key'));
     }
 
     public function create(string $key)
     {
         $cfg = $this->authorizeModule($key, 'write');
-
-        $customFields = [];
-        if (in_array($key, ['aset', 'aset_history'])) {
-            $customFields = AsCustomField::forModule($key)->get();
-        }
-
-        return view('modules.form', ['cfg' => $cfg, 'key' => $key, 'item' => null, 'customFields' => $customFields]);
+        return view('modules.form', ['cfg' => $cfg, 'key' => $key, 'item' => null]);
     }
 
     public function store(Request $request, string $key)
@@ -84,9 +112,9 @@ class ModuleController extends Controller
         $data = $this->validated($request, $cfg);
         $data = $this->hitungAmortisasiJikaPerlu($key, $data);
 
-        // Proses custom fields untuk modul yang mendukung
+        // Pisahkan kolom SQL asli dan custom JSON fields untuk modul aset
         if (in_array($key, ['aset', 'aset_history'])) {
-            $data = $this->mergeCustomFields($request, $key, $data);
+            $data = $this->splitModelAndCustomFields($cfg['model'], $data);
         }
 
         if ($cfg['maker_checker']) {
@@ -108,12 +136,7 @@ class ModuleController extends Controller
         $cfg = $this->authorizeModule($key, 'write');
         $item = $cfg['model']::findOrFail($id);
 
-        $customFields = [];
-        if (in_array($key, ['aset', 'aset_history'])) {
-            $customFields = AsCustomField::forModule($key)->get();
-        }
-
-        return view('modules.form', ['cfg' => $cfg, 'key' => $key, 'item' => $item, 'customFields' => $customFields]);
+        return view('modules.form', ['cfg' => $cfg, 'key' => $key, 'item' => $item]);
     }
 
     public function update(Request $request, string $key, int $id)
@@ -123,9 +146,9 @@ class ModuleController extends Controller
         $data = $this->validated($request, $cfg);
         $data = $this->hitungAmortisasiJikaPerlu($key, $data);
 
-        // Proses custom fields untuk modul yang mendukung
+        // Pisahkan kolom SQL asli dan custom JSON fields untuk modul aset
         if (in_array($key, ['aset', 'aset_history'])) {
-            $data = $this->mergeCustomFields($request, $key, $data);
+            $data = $this->splitModelAndCustomFields($cfg['model'], $data, $item);
         }
 
         $item->update($data);
@@ -225,35 +248,25 @@ class ModuleController extends Controller
     }
 
     /**
-     * Gabungkan custom fields dari request ke dalam data yang akan disimpan.
-     * Custom fields disimpan dalam kolom JSON 'custom_fields'.
+     * Pisahkan data request antara kolom fisik tabel dan kolom JSON 'custom_fields'.
      */
-    private function mergeCustomFields(Request $request, string $key, array $data): array
+    private function splitModelAndCustomFields(string $modelClass, array $data, $existingItem = null): array
     {
-        $activeFields = AsCustomField::forModule($key)->get();
+        $modelInstance = new $modelClass;
+        $tableColumns = \Illuminate\Support\Facades\Schema::getColumnListing($modelInstance->getTable());
 
-        if ($activeFields->isEmpty()) {
-            return $data;
-        }
+        $directData = [];
+        $customData = ($existingItem && is_array($existingItem->custom_fields)) ? $existingItem->custom_fields : [];
 
-        $customData = [];
-        foreach ($activeFields as $field) {
-            $fieldName = $field->field_name;
-            $value = $request->input("cf_{$fieldName}");
-
-            if ($field->field_type === 'checkbox') {
-                $customData[$fieldName] = (bool) $value;
-            } elseif ($field->field_type === 'money' && $value !== null) {
-                // Bersihkan format rupiah jika ada
-                $customData[$fieldName] = (float) preg_replace('/[^0-9.]/', '', $value);
-            } elseif ($field->field_type === 'number' && $value !== null) {
-                $customData[$fieldName] = (float) $value;
+        foreach ($data as $fieldName => $value) {
+            if (in_array($fieldName, $tableColumns)) {
+                $directData[$fieldName] = $value;
             } else {
                 $customData[$fieldName] = $value;
             }
         }
 
-        $data['custom_fields'] = $customData;
-        return $data;
+        $directData['custom_fields'] = $customData;
+        return $directData;
     }
 }

@@ -21,6 +21,7 @@ class AsCustomField extends Model
         'show_in_list',
         'sort_order',
         'help_text',
+        'is_system',
         'is_active',
     ];
 
@@ -28,6 +29,7 @@ class AsCustomField extends Model
     {
         return [
             'options'      => 'array',
+            'is_system'    => 'boolean',
             'is_required'  => 'boolean',
             'show_in_list' => 'boolean',
             'is_active'    => 'boolean',

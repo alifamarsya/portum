@@ -34,8 +34,6 @@
 
     @php
         $listFields = collect($cfg['fields'])->filter(fn ($f) => $f['list'] ?? false);
-        // Custom fields yang show_in_list (hanya untuk modul yang mendukung)
-        $listCustomFields = !empty($customFields) ? collect($customFields)->filter(fn ($cf) => $cf->show_in_list && $cf->is_active) : collect();
     @endphp
 
     <div class="bg-white rounded-xl border border-slate-200 shadow-card overflow-hidden">
@@ -45,13 +43,6 @@
                     <tr class="bg-slate-50 border-b border-slate-200 text-left text-[12px] uppercase tracking-wide text-slate-500">
                         @foreach ($listFields as $field => $meta)
                             <th class="px-4 py-3 font-semibold whitespace-nowrap">{{ $meta['label'] }}</th>
-                        @endforeach
-                        {{-- Custom Field Columns --}}
-                        @foreach ($listCustomFields as $cf)
-                            <th class="px-4 py-3 font-semibold whitespace-nowrap text-indigo-600">
-                                {{ $cf->label }}
-                                <span class="text-[9px] text-indigo-400 font-normal block">custom</span>
-                            </th>
                         @endforeach
                         @if ($cfg['maker_checker'])
                             <th class="px-4 py-3 font-semibold whitespace-nowrap">Approval</th>
@@ -77,28 +68,6 @@
                                         <span class="px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-600">{{ $item->$field }}</span>
                                     @else
                                         {{ \Illuminate\Support\Str::limit((string) $item->$field, 40) }}
-                                    @endif
-                                </td>
-                            @endforeach
-
-                            {{-- Custom Field Values --}}
-                            @foreach ($listCustomFields as $cf)
-                                <td class="px-4 py-3 text-slate-600 text-[12px]">
-                                    @php
-                                        $cfVal = is_array($item->custom_fields) ? ($item->custom_fields[$cf->field_name] ?? null) : null;
-                                    @endphp
-                                    @if ($cfVal === null || $cfVal === '')
-                                        <span class="text-slate-300">—</span>
-                                    @elseif ($cf->field_type === 'money')
-                                        <span class="font-mono">Rp {{ number_format((float) $cfVal, 0, ',', '.') }}</span>
-                                    @elseif ($cf->field_type === 'checkbox')
-                                        <span class="px-2 py-0.5 rounded-full text-xs {{ $cfVal ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500' }}">
-                                            {{ $cfVal ? 'Ya' : 'Tidak' }}
-                                        </span>
-                                    @elseif ($cf->field_type === 'date')
-                                        {{ $cfVal ? \Illuminate\Support\Carbon::parse($cfVal)->format('d M Y') : '—' }}
-                                    @else
-                                        {{ \Illuminate\Support\Str::limit((string) $cfVal, 35) }}
                                     @endif
                                 </td>
                             @endforeach

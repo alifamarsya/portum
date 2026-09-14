@@ -35,10 +35,18 @@
                             <span class="text-sm text-slate-500">Ya</span>
                         </label>
                     @elseif (($meta['type'] ?? '') === 'date')
-                        <input type="date" name="{{ $field }}" value="{{ old($field, optional($item?->$field)->format('Y-m-d') ?? $item?->$field) }}"
+                        @php
+                            $dateVal = old($field, $item?->$field);
+                            if ($dateVal instanceof \Illuminate\Support\Carbon) {
+                                $dateVal = $dateVal->format('Y-m-d');
+                            } elseif (is_string($dateVal)) {
+                                $dateVal = substr($dateVal, 0, 10);
+                            }
+                        @endphp
+                        <input type="date" name="{{ $field }}" value="{{ $dateVal }}"
                                class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm focus:border-brand focus:ring-1 focus:ring-brand transition">
                     @elseif (in_array($meta['type'] ?? '', ['number', 'money']))
-                        <input type="number" step="0.01" name="{{ $field }}" value="{{ old($field, $item?->$field) }}"
+                        <input type="number" step="{{ ($meta['type'] ?? '') === 'money' ? '1' : '0.01' }}" name="{{ $field }}" value="{{ old($field, $item?->$field) }}"
                                class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm font-mono focus:border-brand focus:ring-1 focus:ring-brand transition">
                     @elseif (($meta['type'] ?? '') === 'file')
                         <input type="text" name="{{ $field }}" value="{{ old($field, $item?->$field) }}"
@@ -56,70 +64,8 @@
             @endforeach
         </div>
 
-        {{-- ===== CUSTOM DYNAMIC FIELDS (aset & aset_history) ===== --}}
-        @if (!empty($customFields) && count($customFields) > 0)
-            <div class="mt-6 pt-5 border-t border-slate-200">
-                <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4 flex items-center gap-2">
-                    @include('partials.icon', ['name' => 'sliders', 'class' => 'w-4 h-4 text-[#114E84]'])
-                    Informasi Tambahan (Custom Fields)
-                </p>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                    @foreach ($customFields as $cf)
-                        @php
-                            $cfName = "cf_{$cf->field_name}";
-                            $cfVal  = old($cfName, $item?->custom_fields[$cf->field_name] ?? null);
-                            $isWide = in_array($cf->field_type, ['textarea']);
-                        @endphp
-                        <div class="{{ $isWide ? 'md:col-span-2' : '' }}">
-                            <label class="block text-[13px] font-medium mb-1.5 text-slate-700">
-                                {{ $cf->label }}
-                                @if ($cf->is_required)<span class="text-red-500">*</span>@endif
-                            </label>
-
-                            @if ($cf->field_type === 'textarea')
-                                <textarea name="{{ $cfName }}" rows="3" {{ $cf->is_required ? 'required' : '' }}
-                                    class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm focus:border-brand focus:ring-1 focus:ring-brand transition">{{ $cfVal }}</textarea>
-                            @elseif ($cf->field_type === 'select' && !empty($cf->options))
-                                <select name="{{ $cfName }}" {{ $cf->is_required ? 'required' : '' }}
-                                        class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm bg-white focus:border-brand focus:ring-1 focus:ring-brand transition">
-                                    <option value="">— pilih —</option>
-                                    @foreach ($cf->options as $opt)
-                                        <option value="{{ $opt }}" @selected($cfVal === $opt)>{{ $opt }}</option>
-                                    @endforeach
-                                </select>
-                            @elseif ($cf->field_type === 'checkbox')
-                                <label class="inline-flex items-center gap-2 mt-1">
-                                    <input type="checkbox" name="{{ $cfName }}" value="1"
-                                           @checked($cfVal) class="rounded border-slate-300">
-                                    <span class="text-sm text-slate-500">Ya</span>
-                                </label>
-                            @elseif ($cf->field_type === 'date')
-                                <input type="date" name="{{ $cfName }}" value="{{ $cfVal }}"
-                                       {{ $cf->is_required ? 'required' : '' }}
-                                       class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm focus:border-brand focus:ring-1 focus:ring-brand transition">
-                            @elseif (in_array($cf->field_type, ['number', 'money']))
-                                <input type="number" step="{{ $cf->field_type === 'money' ? '1' : '0.01' }}"
-                                       name="{{ $cfName }}" value="{{ $cfVal }}"
-                                       {{ $cf->is_required ? 'required' : '' }}
-                                       class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm font-mono focus:border-brand focus:ring-1 focus:ring-brand transition">
-                            @else
-                                <input type="text" name="{{ $cfName }}" value="{{ $cfVal }}"
-                                       {{ $cf->is_required ? 'required' : '' }}
-                                       class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm focus:border-brand focus:ring-1 focus:ring-brand transition">
-                            @endif
-
-                            @if ($cf->help_text)
-                                <p class="text-[12px] text-slate-400 mt-1">{{ $cf->help_text }}</p>
-                            @endif
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-        @endif
-        {{-- ===== END CUSTOM DYNAMIC FIELDS ===== --}}
-
-        <div class="pt-6 mt-2 border-t border-slate-100 flex gap-3">
-            <button class="bg-brand text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-brand-light transition">Simpan</button>
+        <div class="pt-6 mt-6 border-t border-slate-100 flex gap-3">
+            <button type="submit" class="bg-brand text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-brand-light transition">Simpan</button>
             <a href="{{ route('modul.index', $key) }}" class="text-sm text-slate-500 px-5 py-2.5 hover:text-ink transition">Batal</a>
         </div>
     </form>

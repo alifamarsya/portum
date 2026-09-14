@@ -6,12 +6,12 @@
     {{-- Header --}}
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <p class="text-[12px] font-semibold uppercase tracking-wider text-gold mb-1">Administrasi Sistem</p>
+            <p class="text-[12px] font-semibold uppercase tracking-wider text-gold mb-1">Modul Operasional</p>
             <h1 class="text-2xl font-bold text-ink flex items-center gap-2.5">
                 @include('partials.icon', ['name' => 'sliders', 'class' => 'w-6 h-6 text-[#114E84]'])
                 Dynamic Fields — {{ $modules[$moduleKey] ?? $moduleKey }}
             </h1>
-            <p class="text-xs text-slate-500 mt-1">Kelola field tambahan (custom) yang muncul di form dan tabel modul Inventarisasi & Riwayat Pergerakan Aset.</p>
+            <p class="text-xs text-slate-500 mt-1">Kelola seluruh field (bawaan &amp; kustom) yang muncul di form dan tabel modul Inventarisasi &amp; Riwayat Pergerakan Aset.</p>
         </div>
     </div>
 
@@ -66,7 +66,14 @@
                                 @foreach ($fields as $field)
                                     <tr class="hover:bg-slate-50/60 transition {{ !$field->is_active ? 'opacity-50' : '' }}">
                                         <td class="py-3 px-4">
-                                            <p class="font-bold text-ink">{{ $field->label }}</p>
+                                            <div class="flex items-center gap-2">
+                                                <p class="font-bold text-ink">{{ $field->label }}</p>
+                                                @if ($field->is_system)
+                                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">Bawaan</span>
+                                                @else
+                                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">Kustom</span>
+                                                @endif
+                                            </div>
                                             <p class="text-[10.5px] font-mono text-slate-400">{{ $field->field_name }}</p>
                                             @if ($field->help_text)
                                                 <p class="text-[10.5px] text-slate-400 italic mt-0.5">{{ $field->help_text }}</p>
@@ -126,7 +133,7 @@
                                                     Edit
                                                 </button>
                                                 <form method="POST" action="{{ route('admin.custom-fields.destroy', $field) }}"
-                                                      onsubmit="return confirm('Yakin hapus field \'{{ $field->label }}\'? Data custom field di semua record aset yang menggunakan field ini tidak akan otomatis terhapus.')"
+                                                      onsubmit="return confirm('Yakin hapus field \'{{ $field->label }}\'? Field ini tidak akan ditampilkan lagi pada form dan tabel modul.')"
                                                       class="inline">
                                                     @csrf
                                                     @method('DELETE')
@@ -165,7 +172,7 @@
             <div class="bg-white rounded-2xl border border-slate-200 shadow-card p-5">
                 <h2 class="font-bold text-sm text-ink flex items-center gap-2 mb-4">
                     @include('partials.icon', ['name' => 'plus', 'class' => 'w-4 h-4 text-[#114E84]'])
-                    Tambah Custom Field Baru
+                    Tambah Field Baru
                 </h2>
 
                 <form method="POST" action="{{ route('admin.custom-fields.store') }}" class="space-y-3 text-xs">
