@@ -58,8 +58,10 @@
                     </div>
 
                     <div>
-                        <span class="text-xs text-slate-400 block font-medium">Kategori Awal</span>
-                        <span class="font-semibold text-slate-700">{{ $ticket->category?->name ?? '-' }}</span>
+                        <span class="text-xs text-slate-400 block font-medium">Jenis Pengajuan</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border {{ $ticket->jenis_badge }}">
+                            {{ $ticket->jenis_pengajuan ?? 'Permintaan' }}
+                        </span>
                     </div>
 
                     <div>
@@ -161,6 +163,32 @@
                     @method('PUT')
 
                     @if (auth()->user()->isOperator())
+                        {{-- SLA Response Time Banner --}}
+                        @php $sla = $ticket->sla_response; @endphp
+                        <div class="p-4 rounded-xl border {{ $sla['is_overdue'] ? 'bg-rose-50 border-rose-300' : ($sla['is_warning'] ? 'bg-amber-50 border-amber-300' : 'bg-slate-50 border-slate-200') }} flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-lg {{ $sla['is_overdue'] ? 'bg-rose-100 text-rose-700' : ($sla['is_warning'] ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-[#114E84]') }} flex items-center justify-center flex-shrink-0">
+                                    @include('partials.icon', ['name' => 'clock', 'class' => 'w-5 h-5'])
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <p class="text-xs font-bold text-ink">Target SLA Response Time (Maks. 2 Jam Kerja)</p>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border {{ $sla['badge_class'] }}">
+                                            {{ $sla['status'] }}
+                                        </span>
+                                    </div>
+                                    <p class="text-[11px] text-slate-500 mt-0.5">
+                                        Mulai: <strong>{{ $sla['start_at']->format('d M Y, H:i') }} WITA</strong> &bull; Batas: <strong>{{ $sla['due_at']->format('d M Y, H:i') }} WITA</strong>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="text-right sm:flex-shrink-0">
+                                <span class="text-xs font-bold {{ $sla['is_overdue'] ? 'text-rose-700' : ($sla['is_warning'] ? 'text-amber-700' : 'text-emerald-700') }}">
+                                    {{ $sla['remaining_formatted'] }}
+                                </span>
+                            </div>
+                        </div>
+
                         {{-- Status Otomatis Dialokasikan (Tanpa Dropdown) --}}
                         <input type="hidden" name="status" value="Dialokasikan">
                         <div class="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200 flex items-center justify-between gap-3">

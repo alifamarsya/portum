@@ -23,21 +23,21 @@ class OperatorDashboardController extends Controller
         $stats = [
             'baru_masuk'  => Ticket::where('status', 'Menunggu Verifikasi')->count(),
             'diproses'    => Ticket::whereIn('status', ['Dialokasikan', 'Didistribusikan', 'Diverifikasi', 'Dalam Proses'])->count(),
-            'terlambat'   => Ticket::whereNotIn('status', ['Selesai', 'Ditolak'])
-                                ->whereHas('category', function ($q) use ($now) {
-                                    $q->whereRaw('tickets.created_at < NOW() - INTERVAL ticket_categories.default_sla_hours HOUR');
-                                })->count(),
+            'terlambat'   => Ticket::where('status', 'Menunggu Verifikasi')
+                                ->where('sla_response_due_at', '<', $now)
+                                ->count(),
             'selesai_bulan_ini' => Ticket::where('status', 'Selesai')
                                 ->whereYear('updated_at', $now->year)
                                 ->whereMonth('updated_at', $now->month)
                                 ->count(),
         ];
 
-        // 2. Antrian tiket belum diverifikasi (terbaru dulu)
+        // 2. Antrian tiket belum diverifikasi (diurutkan berdasarkan batas waktu SLA terdekat)
         $antrian = Ticket::where('status', 'Menunggu Verifikasi')
-            ->with(['user', 'category'])
-            ->oldest()
-            ->take(10)
+            ->with(['user'])
+            ->orderBy('sla_response_due_at')
+            ->orderBy('created_at')
+            ->take(15)
             ->get();
 
         // 3. Ringkasan distribusi per departemen

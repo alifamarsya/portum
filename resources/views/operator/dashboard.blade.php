@@ -51,14 +51,14 @@
             </div>
         </div>
 
-        {{-- Melewati SLA / Terlambat --}}
-        <div class="bg-gradient-to-br from-amber-500/10 to-amber-500/5 p-5 rounded-2xl border border-amber-200 shadow-card flex items-center justify-between">
+        {{-- Melewati SLA Response Time --}}
+        <div class="bg-gradient-to-br from-rose-500/10 to-rose-500/5 p-5 rounded-2xl border border-rose-200 shadow-card flex items-center justify-between">
             <div>
-                <p class="text-xs font-semibold uppercase tracking-wider text-amber-700 mb-1">Melebihi SLA</p>
-                <p class="text-3xl font-extrabold text-amber-800">{{ $stats['terlambat'] }}</p>
-                <p class="text-[11px] text-amber-600 mt-1">Perlu perhatian segera</p>
+                <p class="text-xs font-semibold uppercase tracking-wider text-rose-700 mb-1">Melebihi SLA Respon</p>
+                <p class="text-3xl font-extrabold text-rose-800">{{ $stats['terlambat'] }}</p>
+                <p class="text-[11px] text-rose-600 mt-1">&gt; 2 jam kerja belum diverifikasi</p>
             </div>
-            <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+            <div class="w-12 h-12 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center">
                 @include('partials.icon', ['name' => 'clock', 'class' => 'w-6 h-6'])
             </div>
         </div>
@@ -103,41 +103,59 @@
                             <th class="px-5 py-3.5 font-semibold">No. Tiket</th>
                             <th class="px-5 py-3.5 font-semibold">Waktu Masuk</th>
                             <th class="px-5 py-3.5 font-semibold">Pengaju</th>
-                            <th class="px-5 py-3.5 font-semibold">Kategori</th>
+                            <th class="px-5 py-3.5 font-semibold">Jenis Pengajuan</th>
+                            <th class="px-5 py-3.5 font-semibold">SLA Response Time (Maks. 2 Jam)</th>
                             <th class="px-5 py-3.5 font-semibold text-right">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @forelse ($antrian as $t)
-                            <tr class="hover:bg-rose-50/40 transition">
+                            @php $sla = $t->sla_response; @endphp
+                            <tr class="hover:bg-slate-50/80 transition {{ $sla['is_overdue'] ? 'bg-rose-50/30' : ($sla['is_warning'] ? 'bg-amber-50/20' : '') }}">
                                 <td class="px-5 py-3.5">
                                     <a href="{{ route('tickets.show', $t) }}" class="font-mono font-bold text-[#114E84] hover:underline text-xs">
                                         {{ $t->ticket_number }}
                                     </a>
                                 </td>
                                 <td class="px-5 py-3.5 text-xs text-slate-500 whitespace-nowrap">
-                                    <span class="block">{{ $t->created_at->format('d M Y, H:i') }}</span>
-                                    <span class="text-rose-500 font-medium">{{ $t->created_at->diffForHumans() }}</span>
+                                    <span class="block font-medium text-slate-700">{{ $t->created_at->format('d M Y, H:i') }}</span>
+                                    <span class="text-slate-400 text-[11px]">({{ $t->created_at->diffForHumans() }})</span>
                                 </td>
                                 <td class="px-5 py-3.5">
                                     <div class="text-xs font-semibold text-ink">{{ $t->user?->nama_lengkap ?? '-' }}</div>
                                     <div class="text-[11px] text-slate-400">{{ $t->user?->bagian ?? '-' }}</div>
                                 </td>
-                                <td class="px-5 py-3.5">
-                                    <span class="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
-                                        {{ $t->category?->name ?? 'Umum' }}
-                                    </span>
+                                <td class="px-5 py-3.5 whitespace-nowrap">
+                                    @if ($t->jenis_pengajuan)
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border {{ $t->jenis_badge }}">
+                                            {{ $t->jenis_pengajuan }}
+                                        </span>
+                                    @else
+                                        <span class="text-xs text-slate-400 italic">Belum ditentukan</span>
+                                    @endif
                                 </td>
-                                <td class="px-5 py-3.5 text-right">
-                                    <a href="{{ route('tickets.show', $t) }}"
-                                       class="inline-flex items-center gap-1 bg-[#114E84] hover:bg-[#0E4272] text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition">
+                                <td class="px-5 py-3.5 whitespace-nowrap">
+                                    <div>
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border {{ $sla['badge_class'] }}">
+                                            <span class="w-1.5 h-1.5 rounded-full {{ $sla['is_overdue'] ? 'bg-rose-500 animate-ping' : ($sla['is_warning'] ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500') }}"></span>
+                                            {{ $sla['remaining_formatted'] }}
+                                        </span>
+                                        <span class="block text-[11px] text-slate-400 mt-1 font-mono">
+                                            Batas: {{ $sla['due_at']->format('d M, H:i') }} WITA
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="px-5 py-3.5 text-right whitespace-nowrap">
+                                    <a href="{{ route('tickets.edit', $t) }}"
+                                       class="inline-flex items-center gap-1.5 bg-[#114E84] hover:bg-[#0E4272] text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition shadow-2xs">
+                                        @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-3.5 h-3.5 text-white'])
                                         Verifikasi &rarr;
                                     </a>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-5 py-10 text-center">
+                                <td colspan="6" class="px-5 py-10 text-center">
                                     <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center mx-auto mb-2">
                                         @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-5 h-5'])
                                     </div>

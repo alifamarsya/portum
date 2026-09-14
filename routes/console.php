@@ -29,3 +29,11 @@ Schedule::command('audit:verify-chain')
     ->dailyAt('23:30')
     ->name('verifikasi-rantai-audit')
     ->emailOutputOnFailure(config('mail.admin_address', 'admin@banksulteng.co.id'));
+
+// Monitoring SLA Response Time tiket (maksimal 2 jam kerja untuk verifikasi Operator).
+// Berjalan setiap 5 menit untuk memantau tiket yang mendekati batas atau melewati SLA 2 jam.
+Schedule::command('tickets:check-sla')
+    ->everyFiveMinutes()
+    ->name('check-ticket-response-sla')
+    ->withoutOverlapping();
+
