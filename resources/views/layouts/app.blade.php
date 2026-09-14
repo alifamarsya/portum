@@ -421,6 +421,21 @@
         </div>
     </div>
     <div class="flex items-center gap-2">
+        {{-- Mobile Notification Link --}}
+        @php
+            $mobileUnreadCount = auth()->check() ? auth()->user()->unreadNotifications()->count() : 0;
+        @endphp
+        <a href="{{ route('notifications.index') }}"
+           class="relative w-8 h-8 rounded-lg bg-white/20 border border-white/30 text-white flex items-center justify-center hover:bg-white/30 transition"
+           title="Notifikasi">
+            @include('partials.icon', ['name' => 'bell', 'class' => 'w-4 h-4 text-white'])
+            @if($mobileUnreadCount > 0)
+                <span class="absolute -top-1 -right-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white shadow-sm ring-1 ring-white">
+                    {{ $mobileUnreadCount > 99 ? '99+' : $mobileUnreadCount }}
+                </span>
+            @endif
+        </a>
+
         {{-- Mobile Profile Button → opens profile action sheet --}}
         <button
             id="mobileProfileBtn"
@@ -644,6 +659,9 @@
                 <span class="hidden md:inline">{{ now()->translatedFormat('d M Y') }}</span>
                 <span class="md:hidden">{{ now()->format('d/m') }}</span>
             </div>
+
+            {{-- Notification Dropdown --}}
+            @include('partials.notification-dropdown')
 
             {{-- Divider --}}
             <div class="hidden sm:block w-px h-5 bg-slate-200"></div>

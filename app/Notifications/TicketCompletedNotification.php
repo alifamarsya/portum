@@ -6,9 +6,8 @@ use App\Models\Ticket;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Contracts\Queue\ShouldQueue;
 
-class TicketCompletedNotification extends Notification implements ShouldQueue
+class TicketCompletedNotification extends Notification
 {
     use Queueable;
 
@@ -25,12 +24,15 @@ class TicketCompletedNotification extends Notification implements ShouldQueue
     public function toDatabase($notifiable): array
     {
         return [
-            'ticket_id'           => $this->ticket->id,
-            'ticket_number'       => $this->ticket->ticket_number,
-            'judul'               => "Pekerjaan Tiket {$this->ticket->ticket_number} Telah Selesai",
-            'pesan'               => "Staf pelaksana telah menandai tiket {$this->ticket->ticket_number} sebagai Selesai. Silakan lakukan konfirmasi dalam 2x24 jam kerja (sebelum {$this->deadlineFormatted}). Jika tidak ada respon, tiket akan ditutup otomatis oleh sistem.",
+            'type'                  => 'ticket_completed',
+            'ticket_id'             => $this->ticket->id,
+            'ticket_number'         => $this->ticket->ticket_number,
+            'title'                 => "Pekerjaan Tiket {$this->ticket->ticket_number} Telah Selesai",
+            'judul'                 => "Pekerjaan Tiket {$this->ticket->ticket_number} Telah Selesai",
+            'message'               => "Staf pelaksana telah menandai tiket {$this->ticket->ticket_number} sebagai Selesai. Silakan lakukan konfirmasi sebelum {$this->deadlineFormatted}.",
+            'pesan'                 => "Staf pelaksana telah menandai tiket {$this->ticket->ticket_number} sebagai Selesai. Silakan lakukan konfirmasi dalam 2x24 jam kerja (sebelum {$this->deadlineFormatted}). Jika tidak ada respon, tiket akan ditutup otomatis oleh sistem.",
             'confirmation_deadline' => $this->ticket->confirmation_deadline?->toIso8601String(),
-            'action_url'          => route('tickets.show', $this->ticket),
+            'action_url'            => route('tickets.show', $this->ticket),
         ];
     }
 
