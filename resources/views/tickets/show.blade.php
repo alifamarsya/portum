@@ -196,7 +196,7 @@
                             <span>Timer SLA Resolution belum dimulai</span>
                         </div>
                         <p class="text-amber-700">
-                            Timer akan mulai berjalan otomatis secara resmi saat Kepala Bagian <strong>{{ $ticket->department?->name ?? 'Terkait' }}</strong> melakukan verifikasi RBB, penyesuaian parameter durasi, dan persetujuan disposisi kepada staf pelaksana.
+                            Timer akan mulai berjalan otomatis secara resmi saat Kepala Bagian <strong>{{ $ticket->department?->name ?? 'Terkait' }}</strong> menyetujui dan mendisposisikan tiket kepada staf pelaksana sesuai tingkat prioritas <strong>{{ $ticket->priority ?? 'Sedang' }}</strong> ({{ $slaRes['target_hours'] }} Jam Kerja).
                         </p>
                     </div>
                 @endif
@@ -409,76 +409,6 @@
                             <p class="text-[11px] text-slate-400 mt-1">Staf di atas terdaftar resmi di sistem Manajemen Pengguna untuk bagian Anda.</p>
                         </div>
 
-                        {{-- Panel Penyesuaian SLA Resolution Time --}}
-                        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/90 space-y-3">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-2">
-                                    @include('partials.icon', ['name' => 'clock', 'class' => 'w-4 h-4 text-[#114E84]'])
-                                    <span class="text-xs font-bold text-ink">Penyesuaian Durasi SLA Resolusi</span>
-                                </div>
-                                @php
-                                    $defaultHours = match($ticket->priority) {
-                                        'Kritis' => 4,
-                                        'Tinggi' => 12,
-                                        'Sedang' => 48,
-                                        'Rendah' => 72,
-                                        default  => 48,
-                                    };
-                                @endphp
-                                <span class="text-[11px] px-2.5 py-0.5 rounded-full font-bold bg-blue-100 text-[#114E84] border border-blue-200" id="default-sla-badge">
-                                    Standar Prioritas {{ $ticket->priority ?? 'Sedang' }}: {{ $defaultHours }} Jam
-                                </span>
-                            </div>
-                            <p class="text-[11px] text-slate-500 leading-relaxed">
-                                Durasi SLA Resolusi otomatis dihitung sejak tombol disposisi ditekan. Anda dapat menyesuaikan durasi berdasarkan kompleksitas pekerjaan, skala/eselonisasi pemohon, dan estimasi biaya RBB.
-                            </p>
-
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-700 mb-1">Kategori Pekerjaan</label>
-                                    <select name="kategori_pekerjaan" id="kategori_pekerjaan"
-                                            class="w-full border border-slate-300 rounded-lg px-2.5 py-2 text-xs text-ink bg-white focus:border-[#114E84] focus:ring-1 focus:ring-[#114E84]">
-                                        <option value="Rutin / Standar" {{ old('kategori_pekerjaan') === 'Rutin / Standar' ? 'selected' : '' }}>Rutin / Standar (+0j)</option>
-                                        <option value="Perbaikan Ringan" {{ old('kategori_pekerjaan') === 'Perbaikan Ringan' ? 'selected' : '' }}>Perbaikan Ringan (+0j)</option>
-                                        <option value="Perbaikan Berat / Bongkar Pasang" {{ old('kategori_pekerjaan') === 'Perbaikan Berat / Bongkar Pasang' ? 'selected' : '' }}>Perbaikan Berat / Bongkar Pasang (+24j)</option>
-                                        <option value="Penggantian Komponen / Suku Cadang" {{ old('kategori_pekerjaan') === 'Penggantian Komponen / Suku Cadang' ? 'selected' : '' }}>Penggantian Suku Cadang (+24j)</option>
-                                        <option value="Instalasi Baru / Pengadaan Khusus" {{ old('kategori_pekerjaan') === 'Instalasi Baru / Pengadaan Khusus' ? 'selected' : '' }}>Instalasi Baru / Pengadaan (+48j)</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-700 mb-1">Skala / Eselonisasi</label>
-                                    <select name="skala_eselonisasi" id="skala_eselonisasi"
-                                            class="w-full border border-slate-300 rounded-lg px-2.5 py-2 text-xs text-ink bg-white focus:border-[#114E84] focus:ring-1 focus:ring-[#114E84]">
-                                        <option value="Unit Kerja / Capem / Kas" {{ old('skala_eselonisasi') === 'Unit Kerja / Capem / Kas' ? 'selected' : '' }}>Unit Kerja / Capem / Kas</option>
-                                        <option value="Kantor Cabang / Divisi" {{ old('skala_eselonisasi') === 'Kantor Cabang / Divisi' ? 'selected' : '' }}>Kantor Cabang / Divisi</option>
-                                        <option value="Kantor Pusat / Direksi" {{ old('skala_eselonisasi') === 'Kantor Pusat / Direksi' ? 'selected' : '' }}>Kantor Pusat / Direksi</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-700 mb-1">Estimasi Biaya (Rp)</label>
-                                    <input type="number" name="estimasi_biaya" id="estimasi_biaya" min="0" step="10000"
-                                           value="{{ old('estimasi_biaya') }}"
-                                           placeholder="Contoh: 5000000"
-                                           class="w-full border border-slate-300 rounded-lg px-2.5 py-2 text-xs text-ink bg-white focus:border-[#114E84] focus:ring-1 focus:ring-[#114E84]">
-                                    <p class="text-[10px] text-slate-400 mt-0.5">&gt; 5 Juta: +12j | &gt; 25 Juta: +24j</p>
-                                </div>
-                            </div>
-
-                            <div class="flex items-center justify-between pt-2 border-t border-slate-200">
-                                <div class="text-xs text-slate-600">
-                                    Target SLA Resolusi Akhir:
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <input type="number" name="sla_resolution_hours" id="sla_resolution_hours" min="1" max="500"
-                                           value="{{ old('sla_resolution_hours', $defaultHours) }}"
-                                           class="w-20 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-ink font-bold text-center bg-white focus:border-[#114E84] focus:ring-1 focus:ring-[#114E84]">
-                                    <span class="text-xs font-bold text-slate-700">Jam Kerja</span>
-                                </div>
-                            </div>
-                        </div>
-
                         <div>
                             <label class="block text-xs font-bold text-slate-700 mb-1">
                                 Catatan Pengecekan RBB &amp; Ketersediaan Pagu Anggaran <span class="text-rose-500">*</span>
@@ -496,46 +426,6 @@
                             </button>
                         </div>
                     </form>
-
-                    <script>
-                        (function() {
-                            const baseHours = {{ $defaultHours }};
-                            const isKritis = "{{ $ticket->priority }}" === 'Kritis';
-                            const katEl = document.getElementById('kategori_pekerjaan');
-                            const biayaEl = document.getElementById('estimasi_biaya');
-                            const hoursEl = document.getElementById('sla_resolution_hours');
-
-                            function recalculateHours() {
-                                if (!katEl || !hoursEl) return;
-                                let kat = katEl.value;
-                                let katAdd = 0;
-                                if (kat === 'Perbaikan Berat / Bongkar Pasang' || kat === 'Penggantian Komponen / Suku Cadang') {
-                                    katAdd = 24;
-                                } else if (kat === 'Instalasi Baru / Pengadaan Khusus') {
-                                    katAdd = 48;
-                                }
-
-                                if (isKritis && katAdd > 0) {
-                                    katAdd = Math.round(katAdd / 2);
-                                }
-
-                                let biaya = parseFloat(biayaEl ? biayaEl.value : 0) || 0;
-                                let biayaAdd = 0;
-                                if (biaya > 25000000) {
-                                    biayaAdd = 24;
-                                } else if (biaya >= 5000000) {
-                                    biayaAdd = 12;
-                                }
-
-                                hoursEl.value = baseHours + katAdd + biayaAdd;
-                            }
-
-                            if (katEl && biayaEl && hoursEl) {
-                                katEl.addEventListener('change', recalculateHours);
-                                biayaEl.addEventListener('input', recalculateHours);
-                            }
-                        })();
-                    </script>
 
                     {{-- Form Penolakan oleh Kabag jika Tidak Sesuai RBB --}}
                     <div class="mt-4 pt-4 border-t border-amber-200/80">
