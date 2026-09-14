@@ -41,6 +41,9 @@
         'sparkles'     => '<path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>',
         'eye'          => '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
         'download'     => '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
+        'user-circle'  => '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="9.5" r="2.8"/><path d="M5.8 19.8a6.6 6.6 0 0 1 12.4 0"/>',
+        'password'     => '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><circle cx="12" cy="16" r="1.2" fill="currentColor"/>',
+        'user-edit'    => '<path d="M12 20H4a2 2 0 0 1-2-2v-1a6 6 0 0 1 6-6h4"/><circle cx="12" cy="8" r="4"/><path d="m18.5 13.5 2 2L15 21h-2v-2l5.5-5.5Z"/>',
     ];
     $svg = $icons[$name] ?? $icons['file-text'];
 @endphp

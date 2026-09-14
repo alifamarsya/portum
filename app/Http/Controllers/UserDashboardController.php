@@ -27,6 +27,18 @@ class UserDashboardController extends Controller
             ->take(5)
             ->get();
 
-        return view('user.dashboard', compact('stats', 'recentTickets'));
+        // 3. Otomatis cek dan tutup tiket yang melewati batas waktu konfirmasi 2 hari kerja
+        app(\App\Services\TicketService::class)->autoCloseExpiredTickets();
+
+        // 4. Notifikasi penting belum dibaca untuk modal popup ringkasan
+        $importantNotifications = $user->unreadNotifications()
+            ->get()
+            ->filter(function ($n) {
+                $type = $n->data['type'] ?? '';
+                return in_array($type, ['ticket_rejected', 'ticket_completed', 'ticket_auto_closed']);
+            })
+            ->values();
+
+        return view('user.dashboard', compact('stats', 'recentTickets', 'importantNotifications'));
     }
 }

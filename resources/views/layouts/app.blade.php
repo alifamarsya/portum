@@ -93,7 +93,6 @@
             'icon'       => 'cart',
             'submodules' => [
                 [
-                    'title'    => 'UK Pengadaan',
                     'unit'     => 'UK-PENGADAAN',
                     'perm'     => 'pengadaan',
                     'children' => [
@@ -107,7 +106,6 @@
                     ],
                 ],
                 [
-                    'title'    => 'UK Pemeliharaan',
                     'unit'     => 'UK-PEMELIHARAAN',
                     'perm'     => 'pemeliharaan_pengawasan',
                     'children' => [
@@ -132,7 +130,7 @@
     $userDashboardLabel = 'Dashboard';
     if ($user?->isUser()) {
         $userDashboardRoute = route('user.dashboard');
-        $userDashboardLabel = 'Dashboard Tiket';
+        $userDashboardLabel = 'Dashboard';
     } elseif ($user?->isOperator()) {
         $userDashboardRoute = route('operator.dashboard');
         $userDashboardLabel = 'Dashboard Operator';
@@ -144,13 +142,13 @@
         $userDashboardLabel = 'Dashboard Kabag';
     } elseif ($user?->isUkUmumRt() || $user?->isUkDokumen() || $user?->hasRole('umum_rt')) {
         $userDashboardRoute = route('staf-umum.dashboard');
-        $userDashboardLabel = 'Dashboard Staf Umum';
+        $userDashboardLabel = 'Dashboard Staf';
     } elseif ($user?->isUkAdministrasiAset() || $user?->isUkLogistik() || $user?->hasRole('aset')) {
         $userDashboardRoute = route('staf-aset.dashboard');
-        $userDashboardLabel = 'Dashboard Staf Aset';
+        $userDashboardLabel = 'Dashboard Staf';
     } elseif ($user?->isUkPengadaan() || $user?->isUkPemeliharaan() || $user?->hasRole('pengadaan')) {
         $userDashboardRoute = route('staf-pengadaan.dashboard');
-        $userDashboardLabel = 'Dashboard Staf Pengadaan';
+        $userDashboardLabel = 'Dashboard Staf';
     }
 @endphp
 
@@ -197,7 +195,7 @@
                                     <div class="w-6 h-6 flex items-center justify-center {{ request()->routeIs('tickets.*') ? 'text-[#114E84]' : 'text-white/80' }} flex-shrink-0">
                                         @include('partials.icon', ['name' => 'inbox', 'class' => 'w-[17px] h-[17px]'])
                                     </div>
-                                    <span class="text-[12.5px] truncate">{{ $user?->isUser() ? 'Tiket Saya' : 'Sistem Tiket' }}</span>
+                                    <span class="text-[12.5px] truncate">{{ $user?->isUser() ? 'Sistem Tiket' : 'Sistem Tiket' }}</span>
                                 </div>
                                 @if ($user?->isKabag())
                                     @php
@@ -468,9 +466,88 @@
         </div>
     </div>
     <div class="flex items-center gap-2">
-        <div class="w-8 h-8 rounded-lg bg-white/20 text-white font-bold flex items-center justify-center text-xs">
+        {{-- Mobile Notification Link --}}
+        @php
+            $mobileUnreadCount = auth()->check() ? auth()->user()->unreadNotifications()->count() : 0;
+        @endphp
+        <a href="{{ route('notifications.index') }}"
+           class="relative w-8 h-8 rounded-lg bg-white/20 border border-white/30 text-white flex items-center justify-center hover:bg-white/30 transition"
+           title="Notifikasi">
+            @include('partials.icon', ['name' => 'bell', 'class' => 'w-4 h-4 text-white'])
+            @if($mobileUnreadCount > 0)
+                <span class="absolute -top-1 -right-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white shadow-sm ring-1 ring-white">
+                    {{ $mobileUnreadCount > 99 ? '99+' : $mobileUnreadCount }}
+                </span>
+            @endif
+        </a>
+
+        {{-- Mobile Profile Button → opens profile action sheet --}}
+        <button
+            id="mobileProfileBtn"
+            type="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+            class="w-8 h-8 rounded-lg bg-white/25 border border-white/30 text-white font-extrabold flex items-center justify-center text-xs hover:bg-white/30 transition"
+        >
             {{ strtoupper(substr($user->nama_lengkap, 0, 1)) }}
+        </button>
+    </div>
+</div>
+
+{{-- Mobile Profile Action Sheet --}}
+<div id="mobileProfileSheet" class="lg:hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs hidden" aria-modal="true" role="dialog">
+    <div id="mobileProfileSheetPanel" class="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl overflow-hidden transition-transform duration-300 translate-y-full">
+        {{-- Handle --}}
+        <div class="flex justify-center pt-3 pb-1">
+            <div class="w-10 h-1 rounded-full bg-slate-200"></div>
         </div>
+
+        {{-- User Info --}}
+        <div class="bg-gradient-to-br from-[#114E84] to-[#0A335A] mx-4 mt-2 mb-3 rounded-2xl px-4 py-4 relative overflow-hidden">
+            <div class="absolute -right-3 -top-3 w-16 h-16 rounded-full bg-white/5"></div>
+            <div class="flex items-center gap-3 relative z-10">
+                <div class="w-12 h-12 rounded-xl bg-white/20 border-2 border-white/30 text-white font-extrabold flex items-center justify-center text-base">
+                    {{ strtoupper(substr($user->nama_lengkap, 0, 2)) }}
+                </div>
+                <div class="min-w-0">
+                    <p class="text-sm font-bold text-white truncate">{{ $user->nama_lengkap }}</p>
+                    <p class="text-[11px] text-white/70">@{{ $user->username }}</p>
+                    <span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-white/15 border border-white/20 text-[10px] font-semibold text-white/90">
+                        {{ $user->role?->label ?? '-' }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        {{-- Menu Items --}}
+        <div class="px-4 pb-2 space-y-1">
+            <a href="{{ route('profile.show') }}" id="mobileProfileSheetClose"
+               class="flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
+                <div class="w-8 h-8 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center flex-shrink-0">
+                    @include('partials.icon', ['name' => 'user-circle', 'class' => 'w-4 h-4'])
+                </div>
+                <span>Data Pribadi</span>
+            </a>
+            <a href="{{ route('profile.change-password') }}"
+               class="flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
+                <div class="w-8 h-8 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center flex-shrink-0">
+                    @include('partials.icon', ['name' => 'password', 'class' => 'w-4 h-4'])
+                </div>
+                <span>Ubah Password</span>
+            </a>
+            <div class="border-t border-slate-100 my-1"></div>
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button type="submit" class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium text-rose-600 hover:bg-rose-50 transition">
+                    <div class="w-8 h-8 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center flex-shrink-0">
+                        @include('partials.icon', ['name' => 'logout', 'class' => 'w-4 h-4'])
+                    </div>
+                    <span>Keluar</span>
+                </button>
+            </form>
+        </div>
+        {{-- Safe area spacer --}}
+        <div class="pb-safe pb-6"></div>
     </div>
 </div>
 
@@ -639,20 +716,21 @@
 
         {{-- Right Controls --}}
         <div class="flex items-center gap-2 flex-shrink-0">
-            <div class="relative hidden lg:flex items-center" style="width:220px;">
-                <span class="absolute left-2.5 text-slate-400 pointer-events-none">
-                    @include('partials.icon', ['name' => 'search', 'class' => 'w-3.5 h-3.5'])
-                </span>
-                <input type="text"
-                       placeholder="Cari aset, memo, PKS..."
-                       class="w-full bg-slate-100 text-xs rounded-lg pl-8 pr-3 py-1.5 border border-slate-200 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 text-slate-700 placeholder-slate-400 outline-none transition">
-            </div>
-
+            {{-- Date widget --}}
             <div class="hidden sm:flex items-center gap-1.5 text-xs text-slate-500 font-medium px-2 py-1.5 bg-white border border-slate-200 rounded-lg">
                 @include('partials.icon', ['name' => 'calendar', 'class' => 'w-3.5 h-3.5 text-slate-400'])
                 <span class="hidden md:inline">{{ now()->translatedFormat('d M Y') }}</span>
                 <span class="md:hidden">{{ now()->format('d/m') }}</span>
             </div>
+
+            {{-- Notification Dropdown --}}
+            @include('partials.notification-dropdown')
+
+            {{-- Divider --}}
+            <div class="hidden sm:block w-px h-5 bg-slate-200"></div>
+
+            {{-- Profile Dropdown --}}
+            @include('partials.profile-dropdown')
         </div>
     </header>
 
@@ -694,6 +772,40 @@
             if (e.target === mobileDrawer) mobileDrawer.classList.add('hidden');
         });
     }
+
+    // Mobile Profile Action Sheet
+    (function () {
+        const profileBtn   = document.getElementById('mobileProfileBtn');
+        const profileSheet = document.getElementById('mobileProfileSheet');
+        const sheetPanel   = document.getElementById('mobileProfileSheetPanel');
+
+        if (!profileBtn || !profileSheet || !sheetPanel) return;
+
+        function openSheet() {
+            profileSheet.classList.remove('hidden');
+            // Allow the DOM to paint 'hidden' removal before animating
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    sheetPanel.classList.remove('translate-y-full');
+                });
+            });
+            profileBtn.setAttribute('aria-expanded', 'true');
+        }
+
+        function closeSheet() {
+            sheetPanel.classList.add('translate-y-full');
+            setTimeout(() => profileSheet.classList.add('hidden'), 300);
+            profileBtn.setAttribute('aria-expanded', 'false');
+        }
+
+        profileBtn.addEventListener('click', openSheet);
+        profileSheet.addEventListener('click', function (e) {
+            if (e.target === profileSheet) closeSheet();
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && !profileSheet.classList.contains('hidden')) closeSheet();
+        });
+    })();
 </script>
 </body>
 </html>

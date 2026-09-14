@@ -37,3 +37,10 @@ Schedule::command('tickets:check-sla')
     ->name('check-ticket-response-sla')
     ->withoutOverlapping();
 
+// Penutupan otomatis tiket yang telah melewati konfirmasi deadline 2 hari kerja
+Schedule::command('tickets:auto-close')
+    ->everyTenMinutes()
+    ->name('auto-close-expired-tickets')
+    ->withoutOverlapping();
+
+

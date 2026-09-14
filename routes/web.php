@@ -8,8 +8,10 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\MutasiAsetController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OperatorDashboardController;
 use App\Http\Controllers\PanduanController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RisalahRapatController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\UserDashboardController;
@@ -24,6 +26,17 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
     Route::get('/ganti-password-wajib', [LoginController::class, 'forceChangeForm'])->name('password.force-change');
     Route::post('/ganti-password-wajib', [LoginController::class, 'forceChange'])->name('password.force-change.submit');
+
+    // Profile routes
+    Route::get('/profil', [ProfileController::class, 'showProfile'])->name('profile.show');
+    Route::get('/profil/ubah-password', [ProfileController::class, 'showChangePassword'])->name('profile.change-password');
+    Route::post('/profil/ubah-password', [ProfileController::class, 'updatePassword'])->name('profile.update-password');
+
+    // Notification routes
+    Route::get('/notifikasi', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifikasi/{id}/baca', [NotificationController::class, 'read'])->name('notifications.read');
+    Route::post('/notifikasi/{id}/baca', [NotificationController::class, 'read'])->name('notifications.mark-read');
+    Route::post('/notifikasi/tandai-semua-dibaca', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
 
     Route::get('/', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
     Route::get('/user/dashboard', [UserDashboardController::class, 'index'])->name('user.dashboard');
