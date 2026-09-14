@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Concerns\LogsAudit;
+use App\Models\AsCustomField;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use App\Services\AmortisasiCalculator;
@@ -21,6 +22,39 @@ class ModuleController extends Controller
     {
         $cfg = config("modules.$key");
         abort_if(!$cfg, 404, "Modul '$key' tidak ditemukan.");
+
+        // Jika modul mendukung dynamic fields (aset, aset_history), muat konfigurasi field langsung dari DB
+        if (in_array($key, ['aset', 'aset_history'])) {
+            $dbFields = AsCustomField::where('module_key', $key)
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get();
+
+            if ($dbFields->isNotEmpty()) {
+                $fields = [];
+                foreach ($dbFields as $df) {
+                    $fieldConf = [
+                        'label' => $df->label,
+                        'type'  => $df->field_type,
+                        'list'  => (bool) $df->show_in_list,
+                        'req'   => (bool) $df->is_required,
+                        'opts'  => $df->options ?? [],
+                        'help'  => $df->help_text,
+                    ];
+                    if ($df->field_type === 'money') {
+                        $fieldConf['fmt'] = 'money';
+                    } elseif ($df->field_type === 'date') {
+                        $fieldConf['fmt'] = 'date';
+                    } elseif ($df->field_type === 'select') {
+                        $fieldConf['fmt'] = 'badge';
+                    }
+                    $fields[$df->field_name] = $fieldConf;
+                }
+                $cfg['fields'] = $fields;
+            }
+        }
+
         return $cfg;
     }
 
@@ -44,11 +78,18 @@ class ModuleController extends Controller
         $cfg = $this->authorizeModule($key, 'read');
         $model = $cfg['model'];
 
+        $modelInstance = new $model;
+        $tableColumns = \Illuminate\Support\Facades\Schema::getColumnListing($modelInstance->getTable());
+
         $items = $model::query()
-            ->when($request->q, function ($q) use ($cfg, $request) {
-                $q->where(function ($qq) use ($cfg, $request) {
+            ->when($request->q, function ($q) use ($cfg, $request, $tableColumns) {
+                $q->where(function ($qq) use ($cfg, $request, $tableColumns) {
                     foreach (array_keys($cfg['fields']) as $field) {
-                        $qq->orWhere($field, 'like', '%' . $request->q . '%');
+                        if (in_array($field, $tableColumns)) {
+                            $qq->orWhere($field, 'like', '%' . $request->q . '%');
+                        } else {
+                            $qq->orWhere("custom_fields->{$field}", 'like', '%' . $request->q . '%');
+                        }
                     }
                 });
             })
@@ -71,6 +112,11 @@ class ModuleController extends Controller
         $data = $this->validated($request, $cfg);
         $data = $this->hitungAmortisasiJikaPerlu($key, $data);
 
+        // Pisahkan kolom SQL asli dan custom JSON fields untuk modul aset
+        if (in_array($key, ['aset', 'aset_history'])) {
+            $data = $this->splitModelAndCustomFields($cfg['model'], $data);
+        }
+
         if ($cfg['maker_checker']) {
             $data['maker_id'] = auth()->id();
             $data['approval_status'] = 'Diajukan';
@@ -89,6 +135,7 @@ class ModuleController extends Controller
     {
         $cfg = $this->authorizeModule($key, 'write');
         $item = $cfg['model']::findOrFail($id);
+
         return view('modules.form', ['cfg' => $cfg, 'key' => $key, 'item' => $item]);
     }
 
@@ -98,6 +145,11 @@ class ModuleController extends Controller
         $item = $cfg['model']::findOrFail($id);
         $data = $this->validated($request, $cfg);
         $data = $this->hitungAmortisasiJikaPerlu($key, $data);
+
+        // Pisahkan kolom SQL asli dan custom JSON fields untuk modul aset
+        if (in_array($key, ['aset', 'aset_history'])) {
+            $data = $this->splitModelAndCustomFields($cfg['model'], $data, $item);
+        }
 
         $item->update($data);
         $this->audit('UPDATE', $cfg['modul'], $cfg['judul'], $item->id, 'Mengubah data');
@@ -174,24 +226,47 @@ class ModuleController extends Controller
     }
 
     private function hitungAmortisasiJikaPerlu(string $key, array $data): array
-{
-    if ($key !== 'amortisasi') {
+    {
+        if ($key !== 'amortisasi') {
+            return $data;
+        }
+
+        if (empty($data['nilai_per_bulan']) && !empty($data['nilai_perolehan']) && !empty($data['umur_bulan'])) {
+            $data['nilai_per_bulan'] = $this->amortisasiCalculator->hitungNilaiPerBulan(
+                (float) $data['nilai_perolehan'],
+                (int) $data['umur_bulan']
+            );
+        }
+
+        if (!empty($data['tanggal_mulai']) && !empty($data['nilai_per_bulan'])) {
+            $bulanBerjalan = $this->amortisasiCalculator->hitungBulanBerjalan(new \DateTime($data['tanggal_mulai']));
+            $data['akumulasi'] = $this->amortisasiCalculator->hitungAkumulasi((float) $data['nilai_per_bulan'], $bulanBerjalan);
+            $data['nilai_buku'] = $this->amortisasiCalculator->hitungNilaiBuku((float) $data['nilai_perolehan'], $data['akumulasi']);
+        }
+
         return $data;
     }
 
-    if (empty($data['nilai_per_bulan']) && !empty($data['nilai_perolehan']) && !empty($data['umur_bulan'])) {
-        $data['nilai_per_bulan'] = $this->amortisasiCalculator->hitungNilaiPerBulan(
-            (float) $data['nilai_perolehan'],
-            (int) $data['umur_bulan']
-        );
-    }
+    /**
+     * Pisahkan data request antara kolom fisik tabel dan kolom JSON 'custom_fields'.
+     */
+    private function splitModelAndCustomFields(string $modelClass, array $data, $existingItem = null): array
+    {
+        $modelInstance = new $modelClass;
+        $tableColumns = \Illuminate\Support\Facades\Schema::getColumnListing($modelInstance->getTable());
 
-    if (!empty($data['tanggal_mulai']) && !empty($data['nilai_per_bulan'])) {
-        $bulanBerjalan = $this->amortisasiCalculator->hitungBulanBerjalan(new \DateTime($data['tanggal_mulai']));
-        $data['akumulasi'] = $this->amortisasiCalculator->hitungAkumulasi((float) $data['nilai_per_bulan'], $bulanBerjalan);
-        $data['nilai_buku'] = $this->amortisasiCalculator->hitungNilaiBuku((float) $data['nilai_perolehan'], $data['akumulasi']);
-    }
+        $directData = [];
+        $customData = ($existingItem && is_array($existingItem->custom_fields)) ? $existingItem->custom_fields : [];
 
-    return $data;
-}
+        foreach ($data as $fieldName => $value) {
+            if (in_array($fieldName, $tableColumns)) {
+                $directData[$fieldName] = $value;
+            } else {
+                $customData[$fieldName] = $value;
+            }
+        }
+
+        $directData['custom_fields'] = $customData;
+        return $directData;
+    }
 }

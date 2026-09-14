@@ -69,7 +69,6 @@
                         ['key' => 'aset',               'label' => 'Inventarisasi Aset'],
                         ['key' => 'amortisasi',         'label' => 'Amortisasi Aset'],
                         ['key' => 'aset_history',       'label' => 'Riwayat Pergerakan Aset'],
-                        ['key' => 'mutasi_aset',        'label' => 'Mutasi Aset'],
                         ['key' => 'disposal_aset',      'label' => 'Penghapusan Aset (Disposal)'],
                         ['key' => 'rekonsiliasi_aset',  'label' => 'Rekonsiliasi & Reklasifikasi'],
                         ['key' => 'temuan',             'label' => 'Tindak Lanjut Temuan'],
@@ -169,7 +168,7 @@
         {{-- Navigation Menu --}}
         <nav class="flex-1 overflow-y-auto pt-4 pb-2 space-y-4 text-[13px]">
             {{-- 1. PENGAJUAN & MONITORING --}}
-            @if ($canAccess('dashboard') || $canAccess('ticketing'))
+            @if ($canAccess('dashboard') || $canAccess('ticketing') || $canAccess('mutasi_aset'))
                 <div class="pt-1">
                     <p class="px-5 mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/40">Pengajuan &amp; Monitoring</p>
                     <div class="space-y-0.5 px-3">
@@ -241,6 +240,38 @@
                                 @endif
                             </a>
                         @endif
+
+                        @if ($canAccess('mutasi_aset'))
+                            @php
+                                $isMutasiActive = request()->routeIs('mutasi-aset.*');
+                                $mutasiAntriCount = 0;
+                                if ($user?->isOperator()) {
+                                    $mutasiAntriCount = \App\Models\AsMutasiAset::where('status', 'Diajukan')->count();
+                                } elseif ($user?->isUkAdministrasiAset() || $user?->hasRole('aset')) {
+                                    $mutasiAntriCount = \App\Models\AsMutasiAset::where('status', 'Diproses')->count();
+                                } elseif ($user?->isKabagAset() || ($user?->isKabag() && $user?->effectiveDepartmentId() == 2)) {
+                                    $mutasiAntriCount = \App\Models\AsMutasiAset::where('status', 'Menunggu Approval')->count();
+                                } elseif ($user?->isUser()) {
+                                    $mutasiAntriCount = \App\Models\AsMutasiAset::where('pengaju_id', $user->id)->where('status', 'Disetujui')->count();
+                                }
+                            @endphp
+                            <a href="{{ route('mutasi-aset.index') }}"
+                               class="flex items-center justify-between gap-3 py-2 px-3 rounded-xl transition {{ $isMutasiActive ? 'bg-canvas text-[#114E84] font-bold shadow-2xs' : 'text-white/90 hover:bg-white/10 hover:text-white' }}">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <div class="w-6 h-6 flex items-center justify-center {{ $isMutasiActive ? 'text-[#114E84]' : 'text-white/80' }} flex-shrink-0">
+                                        @include('partials.icon', ['name' => 'layers', 'class' => 'w-[17px] h-[17px]'])
+                                    </div>
+                                    <span class="text-[12.5px] truncate">Mutasi Aset</span>
+                                </div>
+                                @if ($mutasiAntriCount > 0)
+                                    <span class="bg-amber-400 text-[#0E1726] text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center" title="{{ $mutasiAntriCount }} mutasi butuh tindakan">
+                                        {{ $mutasiAntriCount }}
+                                    </span>
+                                @else
+                                    <span class="{{ $isMutasiActive ? 'text-[#114E84]' : 'text-white/40' }} text-xs">▸</span>
+                                @endif
+                            </a>
+                        @endif
                     </div>
                 </div>
             @endif
@@ -307,6 +338,20 @@
                                     @endforeach
                                 </div>
                             </details>
+
+                            {{-- Dynamic Field Aset: Sejajar dengan Aset & Logistik di Operasional --}}
+                            @if ($group['label'] === 'Aset & Logistik' && $canAccess('administrasi_aset'))
+                                <a href="{{ route('admin.custom-fields.index') }}"
+                                   class="flex items-center justify-between gap-3 py-2 px-3 rounded-xl transition {{ request()->routeIs('admin.custom-fields.*') ? 'bg-canvas text-[#114E84] font-bold shadow-2xs' : 'text-white/90 hover:bg-white/10 hover:text-white' }}">
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <div class="w-6 h-6 flex items-center justify-center {{ request()->routeIs('admin.custom-fields.*') ? 'text-[#114E84]' : 'text-white/80' }} flex-shrink-0">
+                                            @include('partials.icon', ['name' => 'sliders', 'class' => 'w-[17px] h-[17px]'])
+                                        </div>
+                                        <span class="truncate text-[12.5px]">Dynamic Field Aset</span>
+                                    </div>
+                                    <span class="{{ request()->routeIs('admin.custom-fields.*') ? 'text-[#114E84]' : 'text-white/40' }} text-xs">▸</span>
+                                </a>
+                            @endif
                         @endforeach
                     </div>
                 </div>
@@ -519,7 +564,7 @@
         </div>
         <nav class="flex-1 p-3 space-y-3 text-xs">
             {{-- 1. PENGAJUAN & MONITORING --}}
-            @if ($canAccess('dashboard') || $canAccess('ticketing'))
+            @if ($canAccess('dashboard') || $canAccess('ticketing') || $canAccess('mutasi_aset'))
                 <div class="space-y-1">
                     <p class="text-[10px] font-bold text-white/50 uppercase px-2 mb-1">Pengajuan &amp; Monitoring</p>
                     @if ($canAccess('dashboard'))
@@ -553,6 +598,16 @@
                             @endif
                         </a>
                     @endif
+
+                    @if ($canAccess('mutasi_aset'))
+                        @php
+                            $isMobileMutasiActive = request()->routeIs('mutasi-aset.*');
+                        @endphp
+                        <a href="{{ route('mutasi-aset.index') }}" class="flex items-center gap-3 p-2 rounded-xl {{ $isMobileMutasiActive ? 'bg-white/20 text-white font-bold' : 'text-white/80 hover:bg-white/10' }}">
+                            @include('partials.icon', ['name' => 'layers', 'class' => 'w-4 h-4'])
+                            <span>Mutasi Aset</span>
+                        </a>
+                    @endif
                 </div>
             @endif
 
@@ -581,6 +636,14 @@
                             @endforeach
                         </div>
                     </div>
+                    @if ($group['label'] === 'Aset & Logistik' && $canAccess('administrasi_aset'))
+                        <div class="pt-1">
+                            <a href="{{ route('admin.custom-fields.index') }}" class="flex items-center gap-2.5 p-2 rounded-xl text-white/90 hover:bg-white/10 hover:text-white {{ request()->routeIs('admin.custom-fields.*') ? 'bg-white/20 text-white font-bold' : '' }}">
+                                @include('partials.icon', ['name' => 'sliders', 'class' => 'w-4 h-4 text-white/80'])
+                                <span>Dynamic Field Aset</span>
+                            </a>
+                        </div>
+                    @endif
                 @endforeach
             @endif
 

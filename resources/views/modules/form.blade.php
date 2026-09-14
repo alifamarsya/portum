@@ -35,10 +35,18 @@
                             <span class="text-sm text-slate-500">Ya</span>
                         </label>
                     @elseif (($meta['type'] ?? '') === 'date')
-                        <input type="date" name="{{ $field }}" value="{{ old($field, optional($item?->$field)->format('Y-m-d') ?? $item?->$field) }}"
+                        @php
+                            $dateVal = old($field, $item?->$field);
+                            if ($dateVal instanceof \Illuminate\Support\Carbon) {
+                                $dateVal = $dateVal->format('Y-m-d');
+                            } elseif (is_string($dateVal)) {
+                                $dateVal = substr($dateVal, 0, 10);
+                            }
+                        @endphp
+                        <input type="date" name="{{ $field }}" value="{{ $dateVal }}"
                                class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm focus:border-brand focus:ring-1 focus:ring-brand transition">
                     @elseif (in_array($meta['type'] ?? '', ['number', 'money']))
-                        <input type="number" step="0.01" name="{{ $field }}" value="{{ old($field, $item?->$field) }}"
+                        <input type="number" step="{{ ($meta['type'] ?? '') === 'money' ? '1' : '0.01' }}" name="{{ $field }}" value="{{ old($field, $item?->$field) }}"
                                class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm font-mono focus:border-brand focus:ring-1 focus:ring-brand transition">
                     @elseif (($meta['type'] ?? '') === 'file')
                         <input type="text" name="{{ $field }}" value="{{ old($field, $item?->$field) }}"
@@ -56,8 +64,8 @@
             @endforeach
         </div>
 
-        <div class="pt-6 mt-2 border-t border-slate-100 flex gap-3">
-            <button class="bg-brand text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-brand-light transition">Simpan</button>
+        <div class="pt-6 mt-6 border-t border-slate-100 flex gap-3">
+            <button type="submit" class="bg-brand text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-brand-light transition">Simpan</button>
             <a href="{{ route('modul.index', $key) }}" class="text-sm text-slate-500 px-5 py-2.5 hover:text-ink transition">Batal</a>
         </div>
     </form>

@@ -30,8 +30,9 @@ class RoleController extends Controller
 
     const PERMISSIONS = [
         'Pengajuan & Monitoring' => [
-            'dashboard' => ['label' => 'Dashboard', 'desc' => 'Akses halaman dashboard pemantauan utama sistem'],
-            'ticketing' => ['label' => 'Sistem Tiket', 'desc' => 'Akses modul tiket pengajuan (pemohon, operator, atau unit kerja)'],
+            'dashboard'   => ['label' => 'Dashboard', 'desc' => 'Akses halaman dashboard pemantauan utama sistem'],
+            'ticketing'   => ['label' => 'Sistem Tiket', 'desc' => 'Akses modul tiket pengajuan (pemohon, operator, atau unit kerja)'],
+            'mutasi_aset' => ['label' => 'Mutasi Aset', 'desc' => 'Akses modul pengajuan dan persetujuan mutasi lokasi/penanggung jawab aset'],
         ],
         'Modul Operasional' => [
             'umum_rt' => [
@@ -49,8 +50,8 @@ class RoleController extends Controller
             'administrasi_aset' => [
                 'bagian' => 'Bagian Aset/Inventaris & Logistik',
                 'label' => 'UK Administrasi Aset & Inventaris',
-                'desc' => 'Inventarisasi aset, amortisasi, riwayat pergerakan aset, mutasi aset, disposal, rekonsiliasi, dan temuan audit',
-                'submodules' => ['Inventarisasi Aset', 'Amortisasi Aset', 'Riwayat Pergerakan Aset', 'Mutasi Aset', 'Penghapusan Aset (Disposal)', 'Rekonsiliasi & Reklasifikasi', 'Tindak Lanjut Temuan'],
+                'desc' => 'Inventarisasi aset, amortisasi, riwayat pergerakan aset, disposal, rekonsiliasi, dan temuan audit',
+                'submodules' => ['Inventarisasi Aset', 'Amortisasi Aset', 'Riwayat Pergerakan Aset', 'Penghapusan Aset (Disposal)', 'Rekonsiliasi & Reklasifikasi', 'Tindak Lanjut Temuan'],
             ],
             'logistik_pelaporan' => [
                 'bagian' => 'Bagian Aset/Inventaris & Logistik',

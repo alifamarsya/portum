@@ -100,6 +100,11 @@ class User extends Authenticatable
         return $this->hasRole(['kabag_umum', 'kabag_aset', 'kabag_pengadaan']);
     }
 
+    public function isKabagAset(): bool
+    {
+        return $this->hasRole('kabag_aset');
+    }
+
     /**
      * Apakah user adalah staf Unit Kerja baru (uk_umum_rt atau uk_dokumen).
      */
