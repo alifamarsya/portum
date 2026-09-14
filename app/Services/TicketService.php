@@ -137,9 +137,34 @@ class TicketService
                 app(TicketSlaService::class)->recordVerification($ticket, $user);
             }
 
-            // Jika tiket diselesaikan, catat pencapaian Resolution SLA
-            if (in_array($newStatus, ['Selesai', 'Ditutup Pemohon']) && is_null($ticket->resolved_at)) {
-                app(TicketSlaService::class)->recordResolution($ticket);
+            // Jika staf mengubah status menjadi 'Selesai'
+            if ($newStatus === 'Selesai' && $oldStatus !== 'Selesai') {
+                $completedTime = now();
+                $slaService = app(TicketSlaService::class);
+
+                // Catat SLA Resolusi jika belum tercatat
+                if (is_null($ticket->resolved_at)) {
+                    $slaService->recordResolution($ticket);
+                }
+
+                // Hitung batas waktu konfirmasi 2 x 24 jam kerja (48 jam kerja)
+                $deadline = $slaService->calculateConfirmationDeadline($completedTime);
+
+                $ticket->update([
+                    'completed_at'          => $completedTime,
+                    'confirmation_deadline' => $deadline,
+                ]);
+
+                // Kirim notifikasi konfirmasi ke pemohon
+                if ($ticket->user) {
+                    $formattedDeadline = $deadline->translatedFormat('l, d F Y H:i') . ' WITA';
+                    $ticket->user->notify(new \App\Notifications\TicketCompletedNotification($ticket, $formattedDeadline));
+                }
+            }
+
+            // Jika tiket ditutup (konfirmasi pemohon atau auto-close)
+            if (in_array($newStatus, ['Ditutup Pemohon', 'Ditutup Otomatis (Sistem)']) && is_null($ticket->closed_at)) {
+                $ticket->update(['closed_at' => now()]);
             }
 
             // If status or department changed, insert record to ticket_histories

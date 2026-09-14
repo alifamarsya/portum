@@ -226,6 +226,12 @@
                                             @include('partials.icon', ['name' => 'pencil', 'class' => 'w-3 h-3'])
                                             Disposisi
                                         </a>
+                                    @elseif (auth()->user()->isUser() && $t->user_id === auth()->id() && $t->status === 'Selesai')
+                                        <a href="{{ route('tickets.show', $t) }}"
+                                           class="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg shadow-xs transition animate-pulse">
+                                            @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-3 h-3 text-white'])
+                                            Konfirmasi
+                                        </a>
                                     @else
                                         <a href="{{ route('tickets.show', $t) }}"
                                            class="inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition">

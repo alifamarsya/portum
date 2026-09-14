@@ -60,6 +60,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/tickets/{ticket}/reject', [TicketController::class, 'reject'])->name('tickets.reject');
     Route::post('/tickets/{ticket}/confirm-close', [TicketController::class, 'confirmClose'])
         ->name('tickets.confirm-close');
+    Route::post('/tickets/{ticket}/report-incomplete', [TicketController::class, 'reportIncomplete'])
+        ->name('tickets.report-incomplete');
 
     Route::prefix('admin')->name('admin.')->middleware('superadmin')->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');

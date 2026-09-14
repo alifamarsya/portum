@@ -43,6 +43,9 @@ class Ticket extends Model
         'resolved_at',
         'sla_resolution_time_minutes',
         'sla_resolution_status',
+        'completed_at',
+        'confirmation_deadline',
+        'closed_at',
     ];
 
     protected function casts(): array
@@ -55,8 +58,19 @@ class Ticket extends Model
             'sla_resolution_start_at' => 'datetime',
             'sla_resolution_due_at' => 'datetime',
             'resolved_at' => 'datetime',
+            'completed_at' => 'datetime',
+            'confirmation_deadline' => 'datetime',
+            'closed_at' => 'datetime',
             'estimasi_biaya' => 'decimal:2',
         ];
+    }
+
+    /**
+     * Dynamic Confirmation Info for Requester.
+     */
+    public function getConfirmationInfoAttribute(): array
+    {
+        return app(\App\Services\TicketSlaService::class)->getConfirmationInfo($this);
     }
 
     public function user(): BelongsTo
@@ -205,10 +219,11 @@ class Ticket extends Model
             'Diverifikasi'        => 'bg-blue-50 text-blue-700 border-blue-200',
             'Didistribusikan'     => 'bg-indigo-50 text-indigo-700 border-indigo-200',
             'Dalam Proses'        => 'bg-violet-50 text-violet-700 border-violet-200',
-            'Selesai'             => 'bg-emerald-50 text-emerald-700 border-emerald-200',
-            'Ditutup Pemohon'     => 'bg-teal-50 text-teal-700 border-teal-200',
-            'Ditolak'             => 'bg-rose-50 text-rose-700 border-rose-200',
-            default               => 'bg-slate-50 text-slate-700 border-slate-200',
+            'Selesai'                  => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+            'Ditutup Pemohon'          => 'bg-teal-50 text-teal-700 border-teal-200',
+            'Ditutup Otomatis (Sistem)' => 'bg-slate-100 text-slate-700 border-slate-300',
+            'Ditolak'                  => 'bg-rose-50 text-rose-700 border-rose-200',
+            default                    => 'bg-slate-50 text-slate-700 border-slate-200',
         };
     }
 
@@ -219,15 +234,16 @@ class Ticket extends Model
     public function getPemohonStatusLabelAttribute(): string
     {
         return match ($this->status) {
-            'Menunggu Verifikasi' => 'Diajukan',
-            'Dialokasikan'        => 'Dialokasikan',
-            'Diverifikasi'        => 'Diverifikasi',
-            'Didistribusikan'     => 'Sedang Ditangani',
-            'Dalam Proses'        => 'Sedang Dikerjakan',
-            'Selesai'             => 'Selesai',
-            'Ditutup Pemohon'     => 'Ditutup (Dikonfirmasi)',
-            'Ditolak'             => 'Tidak Dapat Diproses',
-            default               => $this->status,
+            'Menunggu Verifikasi'      => 'Diajukan',
+            'Dialokasikan'             => 'Dialokasikan',
+            'Diverifikasi'             => 'Diverifikasi',
+            'Didistribusikan'          => 'Sedang Ditangani',
+            'Dalam Proses'             => 'Sedang Dikerjakan',
+            'Selesai'                  => 'Selesai (Menunggu Konfirmasi)',
+            'Ditutup Pemohon'          => 'Ditutup (Dikonfirmasi)',
+            'Ditutup Otomatis (Sistem)' => 'Ditutup Otomatis (Kedaluwarsa)',
+            'Ditolak'                  => 'Tidak Dapat Diproses',
+            default                    => $this->status,
         };
     }
 

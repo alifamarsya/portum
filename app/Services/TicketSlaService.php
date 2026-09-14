@@ -515,6 +515,52 @@ class TicketSlaService
         ];
     }
 
+    public const CONFIRMATION_WORKING_HOURS = 48; // 2 x 24 jam kerja (2 hari kerja konfirmasi pemohon)
+
+    /**
+     * Hitung batas waktu konfirmasi pemohon (2 x 24 jam kerja = 48 jam kerja).
+     */
+    public function calculateConfirmationDeadline(Carbon $completedAt): Carbon
+    {
+        return $this->addWorkingHours($completedAt, self::CONFIRMATION_WORKING_HOURS);
+    }
+
+    /**
+     * Dapatkan status dan sisa waktu konfirmasi pemohon untuk tiket berstatus 'Selesai'.
+     */
+    public function getConfirmationInfo(Ticket $ticket): array
+    {
+        if ($ticket->status !== 'Selesai' || is_null($ticket->completed_at)) {
+            return [
+                'is_active'           => false,
+                'is_expired'          => false,
+                'completed_at'        => $ticket->completed_at ? Carbon::parse($ticket->completed_at) : null,
+                'deadline'            => $ticket->confirmation_deadline ? Carbon::parse($ticket->confirmation_deadline) : null,
+                'remaining_formatted' => '-',
+            ];
+        }
+
+        $now = now();
+        $completedAt = Carbon::parse($ticket->completed_at);
+        $deadline = $ticket->confirmation_deadline 
+            ? Carbon::parse($ticket->confirmation_deadline) 
+            : $this->calculateConfirmationDeadline($completedAt);
+
+        $isExpired = $now->gte($deadline);
+        $remainingMinutes = $isExpired ? 0 : $now->diffInMinutes($deadline);
+
+        return [
+            'is_active'           => true,
+            'is_expired'          => $isExpired,
+            'completed_at'        => $completedAt,
+            'deadline'            => $deadline,
+            'remaining_minutes'   => $remainingMinutes,
+            'remaining_formatted' => $isExpired 
+                ? 'Batas konfirmasi telah berakhir (siap ditutup otomatis)' 
+                : $this->formatMinutes($remainingMinutes),
+        ];
+    }
+
     /**
      * Format menit ke format manusiawi yang rapi (contoh: "1 jam 25 mnt", "45 mnt").
      */

@@ -377,8 +377,9 @@ class TicketController extends Controller
 
         // Update status dan rekam ke TicketHistories
         $this->ticketService->updateTicket($ticket, [
-            'status' => 'Ditutup Pemohon',
-            'notes'  => 'Pemohon mengkonfirmasi bahwa kendala telah terselesaikan dan menutup tiket ini.',
+            'status'   => 'Ditutup Pemohon',
+            'notes'    => 'Pemohon mengonfirmasi bahwa kendala telah terselesaikan dengan baik dan menutup tiket ini.',
+            'closed_at'=> now(),
         ], $user);
 
         // Audit Log — masuk ke Hash-Chain
@@ -392,6 +393,49 @@ class TicketController extends Controller
 
         return redirect()->route('tickets.show', $ticket)
             ->with('status', 'Terima kasih! Tiket berhasil dikonfirmasi sebagai selesai dan telah ditutup.');
+    }
+
+    /**
+     * Pemohon menyatakan pekerjaan belum selesai pada tiket yang sudah berstatus Selesai/Tertutup.
+     * Sesuai ketentuan: tiket yang sudah berstatus selesai/tertutup tidak dapat dibuka kembali,
+     * melainkan pemohon wajib membuat tiket pengajuan baru dengan referensi tiket ini.
+     */
+    public function reportIncomplete(Request $request, Ticket $ticket)
+    {
+        $user = auth()->user();
+
+        if ($ticket->user_id !== $user->id) {
+            abort(403, 'Anda bukan pemilik tiket ini.');
+        }
+
+        $validated = $request->validate([
+            'reason' => 'required|string|min:5|max:1000',
+        ]);
+
+        // Catat ke riwayat tiket dan audit log
+        \App\Models\TicketHistory::create([
+            'ticket_id' => $ticket->id,
+            'user_id'   => $user->id,
+            'old_status'=> $ticket->status,
+            'new_status'=> $ticket->status,
+            'notes'     => "Pemohon melaporkan bahwa pekerjaan belum selesai / masih ada kendala: \"{$validated['reason']}\". Pemohon diarahkan untuk membuat tiket baru sesuai SOP.",
+        ]);
+
+        $this->audit(
+            'REPORT_INCOMPLETE',
+            'Ticketing',
+            'Ticket',
+            $ticket->id,
+            "Pemohon menyatakan pekerjaan belum selesai pada tiket {$ticket->ticket_number}: {$validated['reason']}"
+        );
+
+        $newTicketDescription = "[Tindak Lanjut dari Tiket {$ticket->ticket_number}]\n\nKendala yang masih belum terselesaikan:\n{$validated['reason']}\n\nUraian tiket sebelumnya:\n{$ticket->description}";
+
+        return redirect()->route('tickets.create', [
+            'jenis_pengajuan' => $ticket->jenis_pengajuan ?? 'Permasalahan',
+            'priority'        => $ticket->priority ?? 'Sedang',
+            'description'     => $newTicketDescription,
+        ])->with('status', "Tiket {$ticket->ticket_number} tercatat membutuhkan tindak lanjut. Sesuai SOP, silakan lengkapi dan kirim formulir tiket pengajuan baru di bawah ini.");
     }
 
     /**

@@ -455,39 +455,132 @@
 
             {{-- Panel Konfirmasi Penutupan untuk Pemohon (muncul saat status = Selesai) --}}
             @if (auth()->user()->isUser() && $ticket->user_id === auth()->id() && $ticket->status === 'Selesai')
-                <div class="bg-emerald-50 border-2 border-emerald-300 rounded-2xl p-6 shadow-card">
-                    <div class="flex items-start gap-4">
-                        <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0">
-                            @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-5 h-5'])
-                        </div>
-                        <div class="flex-1">
-                            <h3 class="text-base font-bold text-emerald-900 mb-1">Kendala Anda Telah Diselesaikan</h3>
-                            <p class="text-sm text-emerald-700 mb-4">
-                                Bagian yang bertanggung jawab telah menandai tiket ini sebagai <strong>Selesai</strong>.
-                                Jika kendala Anda sudah benar-benar terselesaikan, silakan konfirmasi di bawah ini untuk menutup tiket secara resmi.
-                            </p>
-
-                            @error('error')
-                                <div class="bg-rose-50 border border-rose-200 rounded-lg px-4 py-2.5 mb-4">
-                                    <p class="text-xs text-rose-700 font-medium">{{ $message }}</p>
-                                </div>
-                            @enderror
-
-                            <form method="POST" action="{{ route('tickets.confirm-close', $ticket) }}"
-                                  onsubmit="return confirm('Konfirmasi bahwa masalah Anda sudah benar-benar selesai? Tiket akan ditutup dan tidak bisa dibuka kembali.')"
-                            >
-                                @csrf
-                                <button type="submit"
-                                        class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold px-6 py-2.5 rounded-xl shadow transition">
-                                    @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-4 h-4'])
-                                    Ya, Masalah Sudah Selesai — Tutup Tiket
-                                </button>
-                                <p class="text-[11px] text-emerald-600 mt-2.5">
-                                    * Aksi ini akan dicatat ke Audit Log sistem secara permanen.
+                @php $confirmInfo = $ticket->confirmation_info; @endphp
+                <div class="bg-gradient-to-br from-emerald-50 via-teal-50/40 to-white border-2 border-emerald-300 rounded-2xl p-6 shadow-card space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3 border-b border-emerald-200/70">
+                        <div class="flex items-start gap-3.5">
+                            <div class="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                                @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-6 h-6'])
+                            </div>
+                            <div>
+                                <h3 class="text-base font-bold text-emerald-950">Pekerjaan Telah Selesai — Menunggu Konfirmasi Anda</h3>
+                                <p class="text-xs text-emerald-800 mt-0.5">
+                                    Staf pelaksana telah menyelesaikan kendala/permintaan ini pada <strong>{{ $ticket->completed_at ? $ticket->completed_at->format('d M Y, H:i') . ' WITA' : $ticket->updated_at->format('d M Y, H:i') . ' WITA' }}</strong>.
                                 </p>
-                            </form>
+                            </div>
+                        </div>
+
+                        {{-- Countdown Badge --}}
+                        <div class="flex-shrink-0">
+                            @if ($confirmInfo['is_expired'])
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                                    <span class="w-2 h-2 rounded-full bg-rose-600 animate-ping"></span>
+                                    Batas Waktu Berakhir (Auto-Close)
+                                </span>
+                            @else
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                                    @include('partials.icon', ['name' => 'clock', 'class' => 'w-3.5 h-3.5 text-amber-700'])
+                                    <span>Sisa Waktu: <strong>{{ $confirmInfo['remaining_formatted'] }}</strong></span>
+                                </span>
+                            @endif
                         </div>
                     </div>
+
+                    {{-- Info Box Batas Waktu 2 x 24 Jam Kerja & Auto-Close --}}
+                    <div class="p-3.5 rounded-xl bg-white/80 border border-emerald-200/90 text-xs text-slate-700 space-y-1.5">
+                        <div class="flex items-center gap-2 font-semibold text-emerald-900">
+                            @include('partials.icon', ['name' => 'info', 'class' => 'w-4 h-4 text-emerald-600'])
+                            <span>Ketentuan Konfirmasi &amp; Penutupan Otomatis (Auto-Close):</span>
+                        </div>
+                        <ul class="list-disc pl-5 space-y-1 text-slate-600 leading-relaxed text-[12px]">
+                            <li>Anda memiliki waktu <strong>2 x 24 jam kerja</strong> (08:00 - 17:00 WITA, Senin - Jumat) untuk mengonfirmasi hasil pekerjaan.</li>
+                            <li>Batas akhir konfirmasi: <strong>{{ $confirmInfo['deadline'] ? $confirmInfo['deadline']->translatedFormat('l, d F Y H:i') . ' WITA' : '-' }}</strong>.</li>
+                            <li>Jika dalam kurun waktu 2 hari kerja tidak ada respon, sistem akan secara otomatis <strong>menutup tiket (Auto-Close)</strong>.</li>
+                        </ul>
+                    </div>
+
+                    @error('error')
+                        <div class="bg-rose-50 border border-rose-200 rounded-lg px-4 py-2.5">
+                            <p class="text-xs text-rose-700 font-medium">{{ $message }}</p>
+                        </div>
+                    @enderror
+
+                    {{-- Tombol Aksi Konfirmasi Selesai --}}
+                    <div class="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                        <form method="POST" action="{{ route('tickets.confirm-close', $ticket) }}"
+                              onsubmit="return confirm('Konfirmasi bahwa kendala/permintaan Anda sudah benar-benar selesai? Tiket akan ditutup resmi.')"
+                              class="inline-block"
+                        >
+                            @csrf
+                            <button type="submit"
+                                    class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-6 py-3 rounded-xl shadow transition">
+                                @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-4 h-4 text-emerald-200'])
+                                <span>Ya, Masalah Selesai — Tutup Tiket</span>
+                            </button>
+                        </form>
+
+                        {{-- Tombol Opsi Pekerjaan Belum Selesai (Membuat Tiket Baru) --}}
+                        <button type="button" onclick="document.getElementById('report-incomplete-panel').classList.toggle('hidden')"
+                                class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl bg-white hover:bg-rose-50 text-rose-700 text-xs font-bold border border-rose-200 shadow-2xs transition">
+                            @include('partials.icon', ['name' => 'alert', 'class' => 'w-4 h-4 text-rose-600'])
+                            <span>Pekerjaan Belum Selesai? Laporkan &amp; Buat Tiket Baru &rarr;</span>
+                        </button>
+                    </div>
+
+                    {{-- Dropdown Form Lapor Belum Selesai --}}
+                    <div id="report-incomplete-panel" class="hidden mt-3 p-4 rounded-xl bg-rose-50/70 border border-rose-200 space-y-3">
+                        <div class="flex items-center gap-2 text-xs font-bold text-rose-900">
+                            @include('partials.icon', ['name' => 'alert', 'class' => 'w-4 h-4 text-rose-600'])
+                            <span>Ketentuan Pengajuan Lanjutan</span>
+                        </div>
+                        <p class="text-xs text-rose-800 leading-relaxed">
+                            Sesuai SOP, tiket yang telah diselesaikan oleh staf pelaksana dan/atau ditutup tidak dapat dibuka kembali. Apabila pekerjaan belum tuntas atau kendala masih berulang, uraikan alasannya di bawah ini dan sistem akan mengalihkan Anda ke formulir <strong>Tiket Pengajuan Baru</strong> dengan riwayat tiket ini secara otomatis.
+                        </p>
+                        <form method="POST" action="{{ route('tickets.report-incomplete', $ticket) }}" class="space-y-3">
+                            @csrf
+                            <div>
+                                <label class="block text-xs font-bold text-rose-900 mb-1">
+                                    Jelaskan bagian pekerjaan yang belum selesai / kendala yang masih terjadi: <span class="text-rose-600">*</span>
+                                </label>
+                                <textarea name="reason" rows="3" required
+                                          placeholder="Contoh: AC masih belum dingin di area ruang rapat kasir..."
+                                          class="w-full border border-rose-300 rounded-lg px-3 py-2 text-xs text-ink bg-white focus:ring-1 focus:ring-rose-500"></textarea>
+                            </div>
+                            <button type="submit"
+                                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs transition">
+                                @include('partials.icon', ['name' => 'arrow-right', 'class' => 'w-3.5 h-3.5'])
+                                <span>Lanjutkan ke Formulir Tiket Baru</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            @endif
+
+            {{-- Panel Notifikasi Penutupan Resmi untuk Tiket yang Sudah Ditutup --}}
+            @if (in_array($ticket->status, ['Ditutup Pemohon', 'Ditutup Otomatis (Sistem)']))
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 shadow-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl {{ $ticket->status === 'Ditutup Pemohon' ? 'bg-teal-100 text-teal-700' : 'bg-slate-200 text-slate-700' }} flex items-center justify-center flex-shrink-0">
+                            @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-5 h-5'])
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-bold text-ink">
+                                {{ $ticket->status === 'Ditutup Pemohon' ? 'Tiket Telah Ditutup &amp; Dikonfirmasi Pemohon' : 'Tiket Ditutup Otomatis oleh Sistem' }}
+                            </h4>
+                            <p class="text-xs text-slate-500 mt-0.5">
+                                Ditutup pada {{ $ticket->closed_at ? $ticket->closed_at->format('d M Y, H:i') . ' WITA' : $ticket->updated_at->format('d M Y, H:i') . ' WITA' }}
+                                {{ $ticket->status === 'Ditutup Otomatis (Sistem)' ? '(karena melewati batas waktu konfirmasi 2 hari kerja)' : '' }}.
+                            </p>
+                        </div>
+                    </div>
+
+                    @if (auth()->user()->isUser() && $ticket->user_id === auth()->id())
+                        <a href="{{ route('tickets.create', ['description' => '[Tindak Lanjut dari Tiket ' . $ticket->ticket_number . "]\n\nKendala lanjutan:\n\nUraian sebelumnya:\n" . $ticket->description]) }}"
+                           class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-300 shadow-2xs transition flex-shrink-0">
+                            @include('partials.icon', ['name' => 'plus', 'class' => 'w-3.5 h-3.5'])
+                            <span>Kendala Belum Selesai? Buat Tiket Baru</span>
+                        </a>
+                    @endif
                 </div>
             @endif
         {{-- Right Column: Timeline / Riwayat Proses (Jejak Langkah Vertikal) --}}

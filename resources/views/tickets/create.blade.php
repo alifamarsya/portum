@@ -72,7 +72,7 @@
                 </label>
                 <textarea name="description" id="description" rows="5" required
                           placeholder="Jelaskan kebutuhan, lokasi, kendala teknis, atau permintaan barang/jasa secara rinci..."
-                          class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm focus:border-brand focus:ring-1 focus:ring-brand transition @error('description') border-rose-400 @enderror">{{ old('description') }}</textarea>
+                          class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm focus:border-brand focus:ring-1 focus:ring-brand transition @error('description') border-rose-400 @enderror">{{ old('description', request('description')) }}</textarea>
                 @error('description')
                     <p class="text-rose-500 text-xs mt-1">{{ $message }}</p>
                 @enderror
