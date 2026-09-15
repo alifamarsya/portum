@@ -19,6 +19,10 @@ class DashboardController extends Controller
             return redirect()->route('user.dashboard');
         }
 
+        if (auth()->user()?->isKepalaDivisi() || auth()->user()?->hasRole(['pimpinan', 'kepala_divisi'])) {
+            return redirect()->route('pimpinan.dashboard');
+        }
+
         if (auth()->user()?->isOperator()) {
             return redirect()->route('operator.dashboard');
         }

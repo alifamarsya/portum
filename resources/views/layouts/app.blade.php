@@ -137,6 +137,9 @@
     } elseif ($user?->isSuperAdmin()) {
         $userDashboardRoute = route('admin.dashboard');
         $userDashboardLabel = 'Dashboard Admin';
+    } elseif ($user?->isKepalaDivisi() || $user?->hasRole(['pimpinan', 'kepala_divisi'])) {
+        $userDashboardRoute = route('pimpinan.dashboard');
+        $userDashboardLabel = 'Dashboard Pimpinan';
     } elseif ($user?->isKabag()) {
         $userDashboardRoute = route('kabag.dashboard');
         $userDashboardLabel = 'Dashboard Kabag';
