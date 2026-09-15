@@ -194,7 +194,25 @@
                 @else
                     <div class="divide-y divide-slate-100">
                         @foreach ($antreanTiket as $t)
-                            <div class="p-5 hover:bg-slate-50/60 transition">
+                            @php $slaRes = $t->sla_resolution; @endphp
+                            <div class="p-5 hover:bg-slate-50/60 transition {{ ($slaRes['is_started'] && !$slaRes['is_resolved'] && !$slaRes['is_overdue'] && $slaRes['remaining_minutes'] > 0 && $slaRes['remaining_minutes'] <= 120) ? 'bg-amber-50/20' : '' }}">
+                                @if ($slaRes['is_started'] && !$slaRes['is_resolved'] && !$slaRes['is_overdue'] && $slaRes['remaining_minutes'] > 0 && $slaRes['remaining_minutes'] <= 120)
+                                    <div class="mb-3 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-center justify-between gap-2 shadow-2xs">
+                                        <div class="flex items-center gap-2">
+                                            <span class="p-1 rounded-lg bg-amber-100 text-amber-700">
+                                                @include('partials.icon', ['name' => 'alert', 'class' => 'w-4 h-4'])
+                                            </span>
+                                            <div>
+                                                <strong class="font-bold text-amber-800">Peringatan SLA:</strong>
+                                                <span class="text-amber-700">Sisa waktu kurang dari 2 jam (<strong>{{ $slaRes['remaining_formatted'] }}</strong>). Segera selesaikan.</span>
+                                            </div>
+                                        </div>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-200 text-amber-900 whitespace-nowrap">
+                                            Mendekati Batas
+                                        </span>
+                                    </div>
+                                @endif
+
                                 <div class="flex items-start justify-between gap-3 mb-2">
                                     <div>
                                         <div class="flex items-center gap-2 flex-wrap mb-1">

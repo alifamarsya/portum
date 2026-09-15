@@ -561,6 +561,113 @@ class TicketSlaService
         ];
     }
 
+    public const SLA_WARNING_THRESHOLD_MINUTES = 120; // 2 jam kerja sebelum resolution time habis
+
+    /**
+     * Memeriksa tiket aktif yang ditugaskan kepada Staf Unit Kerja / Internal Staff
+     * yang mendekati batas waktu SLA Resolution (sisa <= 2 jam kerja) dan belum melewati SLA.
+     * Mengirimkan notifikasi peringatan tepat 1 kali per tiket ke staf terkait.
+     *
+     * @return array Ringkasan hasil pemrosesan notifikasi
+     */
+    public function checkAndNotifyStaffSlaWarning(): array
+    {
+        $activeTickets = Ticket::whereIn('status', ['Didistribusikan', 'Dalam Proses'])
+            ->whereNotNull('assigned_to')
+            ->where(function ($q) {
+                $q->whereNotNull('sla_resolution_start_at')
+                  ->orWhereNotNull('disposed_at');
+            })
+            ->with(['assignedStaff.role'])
+            ->get();
+
+        $notifiedTickets = [];
+        $skippedAlreadyNotified = 0;
+        $skippedNotStaff = 0;
+        $skippedNotInWarning = 0;
+
+        foreach ($activeTickets as $ticket) {
+            $staff = $ticket->assignedStaff;
+            if (!$staff) {
+                continue;
+            }
+
+            // Batasan: Hanya untuk role Staf unit kerja (bukan Operator, Kabag, User, atau Pimpinan)
+            $isStaff = ($staff->isUnitKerjaStaf() || $staff->isInternalStaff())
+                && !$staff->isKabag()
+                && !$staff->isOperator()
+                && !$staff->isSuperAdmin()
+                && !$staff->isKepalaDivisi()
+                && !$staff->isUser();
+
+            if (!$isStaff) {
+                $skippedNotStaff++;
+                continue;
+            }
+
+            $slaRes = $this->getSlaResolutionInfo($ticket);
+
+            // Kondisi peringatan SLA:
+            // 1. Timer SLA sudah berjalan ($slaRes['is_started'])
+            // 2. Belum diselesaikan ($slaRes['is_resolved'] === false)
+            // 3. Belum melewati batas waktu ($slaRes['is_overdue'] === false)
+            // 4. Sisa waktu <= 120 menit (2 jam kerja) dan > 0 menit
+            $isInWarning = $slaRes['is_started'] 
+                && !$slaRes['is_resolved'] 
+                && !$slaRes['is_overdue'] 
+                && $slaRes['remaining_minutes'] > 0 
+                && $slaRes['remaining_minutes'] <= self::SLA_WARNING_THRESHOLD_MINUTES;
+
+            if (!$isInWarning) {
+                $skippedNotInWarning++;
+                continue;
+            }
+
+            // Cek deduplikasi: pastikan notifikasi sla_warning belum pernah dikirim untuk tiket ini ke staf ini
+            $alreadyNotified = \Illuminate\Support\Facades\DB::table('notifications')
+                ->where('notifiable_type', User::class)
+                ->where('notifiable_id', $staff->id)
+                ->where(function ($q) {
+                    $q->where('type', 'sla_warning')
+                      ->orWhere('type', \App\Notifications\TicketSlaWarningNotification::class);
+                })
+                ->where(function ($q) use ($ticket) {
+                    $q->whereJsonContains('data->ticket_id', $ticket->id)
+                      ->orWhere('data', 'like', '%"ticket_id":' . $ticket->id . '%')
+                      ->orWhere('data', 'like', '%"ticket_id": ' . $ticket->id . '%')
+                      ->orWhere('data', 'like', '%"ticket_id":"' . $ticket->id . '"%');
+                })
+                ->exists();
+
+            if ($alreadyNotified) {
+                $skippedAlreadyNotified++;
+                continue;
+            }
+
+            // Kirim notifikasi ke staf
+            $staff->notify(new \App\Notifications\TicketSlaWarningNotification($ticket, $slaRes['remaining_formatted']));
+
+            $notifiedTickets[] = [
+                'ticket_id'           => $ticket->id,
+                'ticket_number'       => $ticket->ticket_number,
+                'staff_id'            => $staff->id,
+                'staff_name'          => $staff->nama_lengkap ?? $staff->username,
+                'remaining_formatted' => $slaRes['remaining_formatted'],
+                'remaining_minutes'   => $slaRes['remaining_minutes'],
+                'due_at'              => $slaRes['due_at'],
+            ];
+        }
+
+        return [
+            'notified_count'          => count($notifiedTickets),
+            'notified_tickets'        => $notifiedTickets,
+            'skipped_already_notified'=> $skippedAlreadyNotified,
+            'skipped_not_staff'       => $skippedNotStaff,
+            'skipped_not_in_warning'  => $skippedNotInWarning,
+            'total_checked'           => $activeTickets->count(),
+        ];
+    }
+
     /**
      * Format menit ke format manusiawi yang rapi (contoh: "1 jam 25 mnt", "45 mnt").
      */
@@ -581,3 +688,4 @@ class TicketSlaService
         return "{$remainder} mnt";
     }
 }
+

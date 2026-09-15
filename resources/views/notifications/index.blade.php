@@ -64,6 +64,10 @@
                                     <div class="w-10 h-10 rounded-xl bg-blue-100 text-[#114E84] flex items-center justify-center">
                                         @include('partials.icon', ['name' => 'activity', 'class' => 'w-5 h-5'])
                                     </div>
+                                @elseif($type === 'sla_warning')
+                                    <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center ring-1 ring-amber-300">
+                                        @include('partials.icon', ['name' => 'alert', 'class' => 'w-5 h-5 text-amber-600'])
+                                    </div>
                                 @else
                                     <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
                                         @include('partials.icon', ['name' => 'bell', 'class' => 'w-5 h-5'])
@@ -74,11 +78,11 @@
                             {{-- Content --}}
                             <div>
                                 <div class="flex items-center gap-2 mb-1">
-                                    <h3 class="text-sm font-bold text-ink {{ $isUnread ? 'text-[#114E84]' : '' }}">
+                                    <h3 class="text-sm font-bold text-ink {{ $isUnread ? ($type === 'sla_warning' ? 'text-amber-800' : 'text-[#114E84]') : '' }}">
                                         {{ $title }}
                                     </h3>
                                     @if($isUnread)
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700">Baru</span>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold {{ $type === 'sla_warning' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-700' }}">Baru</span>
                                     @endif
                                 </div>
                                 <p class="text-xs text-slate-600 leading-relaxed mb-2">
