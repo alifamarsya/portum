@@ -43,4 +43,12 @@ Schedule::command('tickets:auto-close')
     ->name('auto-close-expired-tickets')
     ->withoutOverlapping();
 
+// Peringatan SLA Resolution Time kepada staf unit kerja (sisa <= 2 jam kerja).
+// Berjalan setiap 15 menit untuk memeriksa tiket aktif yang mendekati batas waktu SLA resolusi.
+Schedule::command('tickets:check-sla-warning')
+    ->everyFifteenMinutes()
+    ->name('check-ticket-sla-warning')
+    ->withoutOverlapping();
+
+
 

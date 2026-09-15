@@ -65,7 +65,7 @@
                 @endphp
 
                 <a href="{{ $actionUrl }}"
-                   class="block p-3.5 transition duration-150 {{ $isUnread ? 'bg-blue-50/40 hover:bg-blue-50/70' : 'hover:bg-slate-50' }}">
+                   class="block p-3.5 transition duration-150 {{ $isUnread ? ($type === 'sla_warning' ? 'bg-amber-50/50 hover:bg-amber-50/80' : 'bg-blue-50/40 hover:bg-blue-50/70') : 'hover:bg-slate-50' }}">
                     <div class="flex items-start gap-3">
                         {{-- Icon by Type --}}
                         <div class="flex-shrink-0 mt-0.5">
@@ -85,6 +85,10 @@
                                 <div class="w-8 h-8 rounded-xl bg-blue-100 text-[#114E84] flex items-center justify-center">
                                     @include('partials.icon', ['name' => 'activity', 'class' => 'w-4 h-4'])
                                 </div>
+                            @elseif($type === 'sla_warning')
+                                <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center ring-1 ring-amber-300">
+                                    @include('partials.icon', ['name' => 'alert', 'class' => 'w-4 h-4 text-amber-600'])
+                                </div>
                             @else
                                 <div class="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
                                     @include('partials.icon', ['name' => 'bell', 'class' => 'w-4 h-4'])
@@ -95,11 +99,11 @@
                         {{-- Content --}}
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center justify-between gap-1 mb-0.5">
-                                <p class="text-xs font-bold text-ink truncate {{ $isUnread ? 'text-[#114E84]' : '' }}">
+                                <p class="text-xs font-bold text-ink truncate {{ $isUnread ? ($type === 'sla_warning' ? 'text-amber-800' : 'text-[#114E84]') : '' }}">
                                     {{ $title }}
                                 </p>
                                 @if($isUnread)
-                                    <span class="w-2 h-2 rounded-full bg-blue-600 flex-shrink-0"></span>
+                                    <span class="w-2 h-2 rounded-full {{ $type === 'sla_warning' ? 'bg-amber-500' : 'bg-blue-600' }} flex-shrink-0"></span>
                                 @endif
                             </div>
                             <p class="text-[11.5px] text-slate-600 line-clamp-2 leading-relaxed">
