@@ -140,9 +140,18 @@
     } elseif ($user?->isKepalaDivisi() || $user?->hasRole(['pimpinan', 'kepala_divisi'])) {
         $userDashboardRoute = route('pimpinan.dashboard');
         $userDashboardLabel = 'Dashboard Pimpinan';
+    } elseif ($user?->isBagianUmum()) {
+        $userDashboardRoute = route('kabag.dashboard');
+        $userDashboardLabel = 'Dashboard Bagian Umum';
+    } elseif ($user?->isBagianAset()) {
+        $userDashboardRoute = route('kabag.dashboard');
+        $userDashboardLabel = 'Dashboard Bagian Aset';
+    } elseif ($user?->isBagianPengadaan()) {
+        $userDashboardRoute = route('kabag.dashboard');
+        $userDashboardLabel = 'Dashboard Bagian Pengadaan';
     } elseif ($user?->isKabag()) {
         $userDashboardRoute = route('kabag.dashboard');
-        $userDashboardLabel = 'Dashboard Kabag';
+        $userDashboardLabel = 'Dashboard Bagian';
     } elseif ($user?->isUkUmumRt() || $user?->isUkDokumen() || $user?->hasRole('umum_rt')) {
         $userDashboardRoute = route('staf-umum.dashboard');
         $userDashboardLabel = 'Dashboard Staf';
@@ -200,40 +209,26 @@
                                     </div>
                                     <span class="text-[12.5px] truncate">{{ $user?->isUser() ? 'Sistem Tiket' : 'Sistem Tiket' }}</span>
                                 </div>
-                                @if ($user?->isKabag())
+                                @if ($user?->isBagian() || $user?->isKabag())
                                     @php
-                                        $kabagAntri = \App\Models\Ticket::where('department_id', $user->effectiveDepartmentId())
-                                            ->whereIn('status', ['Diverifikasi', 'Dialokasikan'])
-                                            ->whereNull('assigned_to')
+                                        $bagianAntri = \App\Models\Ticket::where('department_id', $user->effectiveDepartmentId())
+                                            ->whereIn('status', ['Dialokasikan', 'Diverifikasi'])
                                             ->count();
                                     @endphp
-                                    @if ($kabagAntri > 0)
-                                        <span class="bg-amber-400 text-[#0E1726] text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center" title="{{ $kabagAntri }} tiket butuh disposisi">
-                                            {{ $kabagAntri }}
+                                    @if ($bagianAntri > 0)
+                                        <span class="bg-amber-400 text-[#0E1726] text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center" title="{{ $bagianAntri }} tiket butuh tindakan">
+                                            {{ $bagianAntri }}
                                         </span>
                                     @else
                                         <span class="{{ request()->routeIs('tickets.*') ? 'text-[#114E84]' : 'text-white/40' }} text-xs">▸</span>
                                     @endif
-                                @elseif ($user?->hasRole(['umum_rt', 'aset']))
+                                @elseif ($user?->isOperator())
                                     @php
-                                        $stafAntri = \App\Models\Ticket::where('assigned_to', $user->id)
-                                            ->whereIn('status', ['Didistribusikan', 'Dalam Proses'])
-                                            ->count();
+                                        $opAntri = \App\Models\Ticket::where('status', 'Menunggu Verifikasi')->count();
                                     @endphp
-                                    @if ($stafAntri > 0)
-                                        <span class="bg-blue-400 text-[#0E1726] text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center" title="{{ $stafAntri }} tiket tugas Anda">
-                                            {{ $stafAntri }}
-                                        </span>
-                                    @else
-                                        <span class="{{ request()->routeIs('tickets.*') ? 'text-[#114E84]' : 'text-white/40' }} text-xs">▸</span>
-                                    @endif
-                                @elseif (!$user?->isUser())
-                                    @php
-                                        $antriCount = \App\Models\Ticket::where('status', 'Menunggu Verifikasi')->count();
-                                    @endphp
-                                    @if ($antriCount > 0)
-                                        <span class="bg-amber-400 text-[#0E1726] text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center">
-                                            {{ $antriCount }}
+                                    @if ($opAntri > 0)
+                                        <span class="bg-amber-400 text-[#0E1726] text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center" title="{{ $opAntri }} tiket menunggu verifikasi">
+                                            {{ $opAntri }}
                                         </span>
                                     @else
                                         <span class="{{ request()->routeIs('tickets.*') ? 'text-[#114E84]' : 'text-white/40' }} text-xs">▸</span>
@@ -241,6 +236,19 @@
                                 @else
                                     <span class="{{ request()->routeIs('tickets.*') ? 'text-[#114E84]' : 'text-white/40' }} text-xs">▸</span>
                                 @endif
+                            </a>
+                        @endif
+
+                        @if ($user?->isAdmin() || $user?->isOperator())
+                            <a href="{{ route('ticket-categories.index') }}"
+                               class="flex items-center justify-between gap-3 py-2 px-3 rounded-xl transition {{ request()->routeIs('ticket-categories.*') ? 'bg-canvas text-[#114E84] font-bold shadow-2xs' : 'text-white/90 hover:bg-white/10 hover:text-white' }}">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <div class="w-6 h-6 flex items-center justify-center {{ request()->routeIs('ticket-categories.*') ? 'text-[#114E84]' : 'text-white/80' }} flex-shrink-0">
+                                        @include('partials.icon', ['name' => 'sliders', 'class' => 'w-[17px] h-[17px]'])
+                                    </div>
+                                    <span class="text-[12.5px] truncate">Kategori Tiket</span>
+                                </div>
+                                <span class="{{ request()->routeIs('ticket-categories.*') ? 'text-[#114E84]' : 'text-white/40' }} text-xs">▸</span>
                             </a>
                         @endif
 
@@ -586,20 +594,25 @@
                                 @include('partials.icon', ['name' => 'inbox', 'class' => 'w-4 h-4'])
                                 <span class="truncate">{{ $user?->isUser() ? 'Tiket Saya' : 'Sistem Tiket' }}</span>
                             </div>
-                            @if ($user?->isKabag())
+                            @if ($user?->isBagian() || $user?->isKabag())
                                 @php
-                                    $kabagAntriMobile = \App\Models\Ticket::where('department_id', $user->effectiveDepartmentId())
-                                        ->whereIn('status', ['Diverifikasi', 'Dialokasikan'])
-                                        ->whereNull('assigned_to')
+                                    $bagianAntriMobile = \App\Models\Ticket::where('department_id', $user->effectiveDepartmentId())
+                                        ->whereIn('status', ['Dialokasikan', 'Diverifikasi'])
                                         ->count();
                                 @endphp
-                                @if ($kabagAntriMobile > 0)
+                                @if ($bagianAntriMobile > 0)
                                     <span class="bg-amber-400 text-[#0E1726] text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center">
-                                        {{ $kabagAntriMobile }}
+                                        {{ $bagianAntriMobile }}
                                     </span>
                                 @endif
                             @endif
                         </a>
+                        @if ($user?->isAdmin() || $user?->isOperator())
+                            <a href="{{ route('ticket-categories.index') }}" class="flex items-center gap-3 p-2 rounded-xl {{ request()->routeIs('ticket-categories.*') ? 'bg-white/20 text-white font-bold' : 'text-white/80 hover:bg-white/10' }}">
+                                @include('partials.icon', ['name' => 'sliders', 'class' => 'w-4 h-4'])
+                                <span>Kategori Tiket</span>
+                            </a>
+                        @endif
                     @endif
 
                     @if ($canAccess('mutasi_aset'))

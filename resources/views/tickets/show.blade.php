@@ -138,7 +138,7 @@
                     @if (!$slaRes['is_started'])
                         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
                             <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                            Menunggu Persetujuan Kabag
+                            Menunggu Penerimaan Bagian
                         </span>
                     @elseif ($slaRes['is_resolved'])
                         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
@@ -171,7 +171,7 @@
                     {{-- Key SLA Metrics Grid --}}
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-slate-50/70 p-3.5 rounded-xl border border-slate-100">
                         <div>
-                            <span class="text-slate-400 block">Mulai (Disetujui Kabag)</span>
+                            <span class="text-slate-400 block">Mulai (Diterima Bagian)</span>
                             <span class="font-semibold text-slate-700 font-mono">{{ $slaRes['start_at'] ? $slaRes['start_at']->format('d M, H:i') . ' WITA' : '-' }}</span>
                         </div>
                         <div>
@@ -196,8 +196,8 @@
                             <span>Timer SLA Resolution belum dimulai</span>
                         </div>
                         <p class="text-amber-700">
-                            Timer akan mulai berjalan otomatis secara resmi saat Kepala Bagian <strong>{{ $ticket->department?->name ?? 'Terkait' }}</strong> menyetujui dan mendisposisikan tiket kepada staf pelaksana sesuai tingkat prioritas <strong>{{ $ticket->priority ?? 'Sedang' }}</strong> ({{ $slaRes['target_hours'] }} Jam Kerja).
-                        </p>
+                             Timer akan mulai berjalan otomatis secara resmi saat anggota <strong>{{ $ticket->department?->name ?? 'Terkait' }}</strong> menerima dan memulai pengerjaan tiket, sesuai tingkat prioritas <strong>{{ $ticket->priority ?? 'Sedang' }}</strong> ({{ $slaRes['target_hours'] }} Jam Kerja).
+                         </p>
                     </div>
                 @endif
 
@@ -269,10 +269,10 @@
                                         @include('partials.icon', ['name' => 'users', 'class' => 'w-3.5 h-3.5 text-emerald-600'])
                                         Staf Pelaksana: {{ $ticket->assignedStaff->nama_lengkap }} ({{ $ticket->assignedStaff->username }})
                                     </span>
-                                @elseif ($ticket->isAwaitingKabagDisposition())
+                                @elseif ($ticket->isAwaitingBagianAcceptance() || $ticket->isAwaitingKabagDisposition())
                                     <span class="inline-flex items-center gap-1 text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200 px-3 py-1.5 rounded-lg">
                                         <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                                        Menunggu Review RBB &amp; Disposisi Kabag
+                                        Menunggu Penerimaan &amp; Pengerjaan Bagian
                                     </span>
                                 @endif
                             </div>
@@ -300,7 +300,7 @@
                             <div class="flex items-center justify-between mb-1.5">
                                 <span class="text-xs font-bold text-[#114E84] flex items-center gap-1.5">
                                     @include('partials.icon', ['name' => 'shield', 'class' => 'w-3.5 h-3.5 text-[#114E84]'])
-                                    Verifikasi &amp; Disposisi Kepala Bagian
+                                    Distribusi &amp; Penugasan Bagian
                                 </span>
                                 <span class="text-[11px] text-slate-500 font-mono">{{ \Carbon\Carbon::parse($ticket->disposed_at)->format('d M Y, H:i') }} WIB</span>
                             </div>
@@ -324,133 +324,198 @@
                     </div>
                 </div>
 
-                {{-- Lampiran --}}
-                @if ($ticket->attachment_path)
-                    @php
-                        $ext = strtolower(pathinfo($ticket->attachment_path, PATHINFO_EXTENSION));
-                        $isImg = in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif']);
-                        $fileName = basename($ticket->attachment_path);
-                    @endphp
+                {{-- Lampiran PDF (Multiple) --}}
+                @php
+                    $attachments = $ticket->attachments;
+                @endphp
+                @if ($attachments->isNotEmpty() || $ticket->attachment_path)
                     <div>
-                        <span class="text-xs text-slate-400 block font-medium mb-2">Berkas / Dokumen Lampiran:</span>
-                        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                            <div class="flex items-center gap-3 mb-3">
-                                <div class="w-10 h-10 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-[#114E84] flex-shrink-0">
-                                    @include('partials.icon', ['name' => 'file-text', 'class' => 'w-5 h-5'])
+                        <span class="text-xs text-slate-400 block font-medium mb-2">Dokumen Lampiran Pendukung (PDF):</span>
+                        <div class="space-y-2">
+                            @forelse ($attachments as $att)
+                                <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <div class="w-9 h-9 rounded-lg bg-red-50 border border-red-200 flex items-center justify-center text-red-600 flex-shrink-0 font-bold text-xs">
+                                            PDF
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <p class="text-xs font-bold text-slate-800 truncate" title="{{ $att->file_name }}">
+                                                {{ $att->file_name }}
+                                            </p>
+                                            <p class="text-[11px] text-slate-400 uppercase font-mono">{{ $att->formatted_size }} &bull; Dokumen Lampiran</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2 flex-shrink-0">
+                                        <a href="{{ route('tickets.attachment.view-file', $att) }}" target="_blank"
+                                           class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white hover:bg-blue-50 text-[#114E84] text-xs font-semibold transition border border-blue-200 shadow-2xs">
+                                            @include('partials.icon', ['name' => 'eye', 'class' => 'w-3.5 h-3.5'])
+                                            Buka Dokumen
+                                        </a>
+                                        <a href="{{ route('tickets.attachment.download-file', $att) }}"
+                                           class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#114E84] hover:bg-[#0E4272] text-white text-xs font-semibold transition shadow-2xs">
+                                            @include('partials.icon', ['name' => 'download', 'class' => 'w-3.5 h-3.5 text-white'])
+                                            Unduh
+                                        </a>
+                                    </div>
                                 </div>
-                                <div class="min-w-0 flex-1">
-                                    <p class="text-xs font-bold text-slate-800 truncate" title="{{ $fileName }}">
-                                        {{ $fileName }}
-                                    </p>
-                                    <p class="text-[11px] text-slate-400 uppercase font-mono">{{ $ext ?: 'File' }} &bull; Lampiran Tiket</p>
-                                </div>
-                            </div>
-
-                            @if ($isImg)
-                                <div class="mb-3 rounded-lg overflow-hidden border border-slate-200 bg-white max-h-60 flex items-center justify-center">
-                                    <img src="{{ route('tickets.attachment', $ticket) }}" alt="Pratinjau Lampiran" class="w-full h-auto object-contain max-h-60">
-                                </div>
-                            @endif
-
-                            <div class="flex flex-wrap gap-2.5">
-                                <a href="{{ route('tickets.attachment', $ticket) }}" target="_blank"
-                                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white hover:bg-blue-50 text-[#114E84] text-xs font-semibold transition border border-blue-200 shadow-2xs">
-                                    @include('partials.icon', ['name' => 'eye', 'class' => 'w-4 h-4'])
-                                    Buka Berkas
-                                </a>
-                                <a href="{{ route('tickets.attachment.download', $ticket) }}"
-                                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#114E84] hover:bg-[#0E4272] text-white text-xs font-semibold transition shadow-2xs">
-                                    @include('partials.icon', ['name' => 'download', 'class' => 'w-4 h-4 text-white'])
-                                    Unduh Berkas
-                                </a>
-                            </div>
+                            @empty
+                                @if ($ticket->attachment_path)
+                                    @php
+                                        $fileName = basename($ticket->attachment_path);
+                                    @endphp
+                                    <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                        <div class="flex items-center gap-3 min-w-0">
+                                            <div class="w-9 h-9 rounded-lg bg-red-50 border border-red-200 flex items-center justify-center text-red-600 flex-shrink-0 font-bold text-xs">
+                                                PDF
+                                            </div>
+                                            <div class="min-w-0 flex-1">
+                                                <p class="text-xs font-bold text-slate-800 truncate">{{ $fileName }}</p>
+                                                <p class="text-[11px] text-slate-400 uppercase font-mono">Lampiran Tiket</p>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-2 flex-shrink-0">
+                                            <a href="{{ route('tickets.attachment', $ticket) }}" target="_blank"
+                                               class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white hover:bg-blue-50 text-[#114E84] text-xs font-semibold transition border border-blue-200 shadow-2xs">
+                                                @include('partials.icon', ['name' => 'eye', 'class' => 'w-3.5 h-3.5'])
+                                                Buka
+                                            </a>
+                                            <a href="{{ route('tickets.attachment.download', $ticket) }}"
+                                               class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#114E84] hover:bg-[#0E4272] text-white text-xs font-semibold transition shadow-2xs">
+                                                @include('partials.icon', ['name' => 'download', 'class' => 'w-3.5 h-3.5 text-white'])
+                                                Unduh
+                                            </a>
+                                        </div>
+                                    </div>
+                                @endif
+                            @endforelse
                         </div>
                     </div>
                 @endif
             </div>
 
-            {{-- PANEL DISPOSISI KEPALA BAGIAN (Hanya tampil bagi Kabag terkait / Superadmin saat tiket butuh disposisi) --}}
+            {{-- PANEL TINDAK LANJUT ROLE BAGIAN (Terima, Tolak, Update Progres, Konfirmasi Selesai) --}}
             @php
-                $isAuthorizedKabag = (auth()->user()->isKabag() && auth()->user()->effectiveDepartmentId() == $ticket->department_id) || auth()->user()->isSuperAdmin();
+                $user = auth()->user();
+                $isAuthorizedBagian = ($user->isBagian() && $user->effectiveDepartmentId() == $ticket->department_id) 
+                    || $user->isSuperAdmin();
             @endphp
-            @if ($isAuthorizedKabag && $ticket->isAwaitingKabagDisposition())
-                <div class="bg-gradient-to-br from-amber-50/90 via-white to-orange-50/50 rounded-2xl border-2 border-amber-300/80 shadow-lg p-6 relative overflow-hidden">
-                    <div class="flex items-start justify-between gap-4 pb-4 mb-5 border-b border-amber-200/80">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold flex-shrink-0 shadow-xs">
-                                @include('partials.icon', ['name' => 'shield', 'class' => 'w-5 h-5 text-white'])
-                            </div>
-                            <div>
-                                <span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-100 text-amber-800 border border-amber-200 uppercase tracking-wider">
-                                    Wewenang Kepala Bagian
-                                </span>
-                                <h3 class="text-base font-bold text-ink mt-0.5">Verifikasi RBB, Pagu Anggaran &amp; Disposisi Staf</h3>
-                                <p class="text-xs text-slate-500">Tiket dari Operator tidak langsung ke meja staf. Pastikan permintaan sesuai RBB sebelum didelegasikan.</p>
-                            </div>
-                        </div>
-                    </div>
 
-                    {{-- Form Disposisi ke Staf & Penetapan SLA Resolusi --}}
-                    <form method="POST" action="{{ route('tickets.dispose', $ticket) }}" class="space-y-4" id="form-disposition">
-                        @csrf
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1">
-                                Pilih Staf Pelaksana yang Ditugaskan <span class="text-rose-500">*</span>
-                            </label>
-                            <select name="assigned_to" required
-                                    class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-ink bg-white focus:border-[#114E84] focus:ring-1 focus:ring-[#114E84] transition">
-                                <option value="">-- Pilih Staf dari Tim {{ $ticket->department?->name }} --</option>
-                                @foreach ($departmentStaff as $staf)
-                                    <option value="{{ $staf->id }}" {{ old('assigned_to') == $staf->id ? 'selected' : '' }}>
-                                        {{ $staf->nama_lengkap }} ({{ $staf->username }}) — {{ $staf->jabatan ?? 'Staf' }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            <p class="text-[11px] text-slate-400 mt-1">Staf di atas terdaftar resmi di sistem Manajemen Pengguna untuk bagian Anda.</p>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1">
-                                Catatan Pengecekan RBB &amp; Ketersediaan Pagu Anggaran <span class="text-rose-500">*</span>
-                            </label>
-                            <textarea name="disposition_notes" rows="3" required
-                                      placeholder="Contoh: Kebutuhan telah dicek dan sesuai dengan RBB 2026. Pagu anggaran tersedia pada pos beban operasional. Disposisikan ke staf untuk segera ditindaklanjuti."
-                                      class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-ink focus:border-[#114E84] focus:ring-1 focus:ring-[#114E84] transition leading-relaxed">{{ old('disposition_notes') }}</textarea>
-                        </div>
-
-                        <div class="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3">
-                            <button type="submit"
-                                    class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow transition">
-                                @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-4 h-4 text-emerald-200'])
-                                <span>Setujui Sesuai RBB &amp; Disposisikan ke Staf</span>
-                            </button>
-                        </div>
-                    </form>
-
-                    {{-- Form Penolakan oleh Kabag jika Tidak Sesuai RBB --}}
-                    <div class="mt-4 pt-4 border-t border-amber-200/80">
-                        <details class="group">
-                            <summary class="cursor-pointer text-xs font-bold text-rose-600 hover:text-rose-700 select-none flex items-center gap-1.5">
-                                <span>Tolak Permintaan Ini (Tidak Sesuai RBB / Pagu Habis)?</span>
-                            </summary>
-                            <form method="POST" action="{{ route('tickets.reject', $ticket) }}" class="mt-3 space-y-3 p-3.5 rounded-xl bg-rose-50/60 border border-rose-200">
-                                @csrf
-                                <div>
-                                    <label class="block text-xs font-bold text-rose-900 mb-1">Alasan Penolakan</label>
-                                    <textarea name="notes" rows="2" required
-                                              placeholder="Jelaskan alasan penolakan, misal: 'Kebutuhan di luar pagu anggaran tahun 2026'..."
-                                              class="w-full border border-rose-200 rounded-lg px-3 py-2 text-xs text-ink bg-white focus:ring-1 focus:ring-rose-500"></textarea>
+            @if ($isAuthorizedBagian)
+                {{-- A. Tahap Penerimaan / Penolakan (Status: Dialokasikan / Diverifikasi / Didistribusikan sebelum diterima) --}}
+                @if (in_array($ticket->status, ['Dialokasikan', 'Diverifikasi', 'Didistribusikan']) && is_null($ticket->completed_at))
+                    <div class="bg-gradient-to-br from-blue-50/90 via-white to-indigo-50/50 rounded-2xl border-2 border-blue-300/80 shadow-lg p-6 relative overflow-hidden">
+                        <div class="flex items-start justify-between gap-4 pb-4 mb-5 border-b border-blue-200/80">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-[#114E84] text-white flex items-center justify-center font-bold flex-shrink-0 shadow-xs">
+                                    @include('partials.icon', ['name' => 'shield', 'class' => 'w-5 h-5 text-white'])
                                 </div>
+                                <div>
+                                    <span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-blue-100 text-[#114E84] border border-blue-200 uppercase tracking-wider">
+                                        Wewenang {{ $ticket->department?->name ?? 'Bagian' }}
+                                    </span>
+                                    <h3 class="text-base font-bold text-ink mt-0.5">Penerimaan &amp; Tindak Lanjut Tiket</h3>
+                                    <p class="text-xs text-slate-500">Tiket telah diverifikasi &amp; dialokasikan ke bagian Anda. Anda dapat menerima untuk langsung memproses tiket atau menolaknya jika tidak sesuai.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                            {{-- Form Terima Tiket --}}
+                            <form method="POST" action="{{ route('tickets.accept', $ticket) }}" class="inline-block flex-1 sm:flex-initial">
+                                @csrf
                                 <button type="submit"
-                                        onclick="return confirm('Yakin ingin menolak tiket ini?')"
-                                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition">
-                                    @include('partials.icon', ['name' => 'x-circle', 'class' => 'w-3.5 h-3.5'])
-                                    <span>Tolak Tiket</span>
+                                        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow transition">
+                                    @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-4 h-4 text-emerald-200'])
+                                    <span>Terima &amp; Mulai Pengerjaan Tiket</span>
                                 </button>
                             </form>
-                        </details>
+
+                            {{-- Trigger Tolak Tiket --}}
+                            <button type="button" onclick="document.getElementById('reject-ticket-panel').classList.toggle('hidden')"
+                                    class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-3 rounded-xl bg-white hover:bg-rose-50 text-rose-700 text-xs font-bold border border-rose-200 shadow-2xs transition">
+                                @include('partials.icon', ['name' => 'x-circle', 'class' => 'w-4 h-4 text-rose-600'])
+                                <span>Tolak Tiket Ini</span>
+                            </button>
+                        </div>
+
+                        {{-- Form Penolakan Tersembunyi --}}
+                        <div id="reject-ticket-panel" class="hidden mt-4 pt-4 border-t border-blue-200/80">
+                            <form method="POST" action="{{ route('tickets.reject', $ticket) }}" class="space-y-3 p-4 rounded-xl bg-rose-50/80 border border-rose-200">
+                                @csrf
+                                <div>
+                                    <label class="block text-xs font-bold text-rose-900 mb-1">Alasan Penolakan Tiket <span class="text-rose-600">*</span></label>
+                                    <textarea name="notes" rows="2" required
+                                              placeholder="Jelaskan alasan penolakan secara jelas (contoh: di luar kewenangan operasional, data tidak lengkap, pagu anggaran tidak memadai)..."
+                                              class="w-full border border-rose-300 rounded-lg p-2.5 text-xs text-ink bg-white focus:ring-1 focus:ring-rose-500"></textarea>
+                                </div>
+                                <button type="submit" onclick="return confirm('Yakin ingin menolak tiket ini?')"
+                                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition">
+                                    @include('partials.icon', ['name' => 'x-circle', 'class' => 'w-3.5 h-3.5'])
+                                    <span>Konfirmasi Tolak Tiket</span>
+                                </button>
+                            </form>
+                        </div>
                     </div>
-                </div>
+                @endif
+
+                {{-- B. Tahap Pengerjaan (Status: Dalam Proses): Form Update Progres & Konfirmasi Selesai --}}
+                @if ($ticket->status === 'Dalam Proses')
+                    <div class="bg-gradient-to-br from-violet-50/90 via-white to-blue-50/60 rounded-2xl border-2 border-violet-300/80 shadow-lg p-6 relative overflow-hidden space-y-5">
+                        <div class="flex items-start justify-between gap-4 pb-4 border-b border-violet-200/80">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-violet-600 text-white flex items-center justify-center font-bold flex-shrink-0 shadow-xs">
+                                    @include('partials.icon', ['name' => 'sliders', 'class' => 'w-5 h-5 text-white'])
+                                </div>
+                                <div>
+                                    <span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-violet-100 text-violet-800 border border-violet-200 uppercase tracking-wider">
+                                        Pengerjaan Sedang Berlangsung
+                                    </span>
+                                    <h3 class="text-base font-bold text-ink mt-0.5">Kelola Progres &amp; Konfirmasi Penyelesaian</h3>
+                                    <p class="text-xs text-slate-500">Anda dapat mengirim catatan uraian progres berkala untuk pemohon, atau menyelesaikan tiket ini jika pengerjaan telah rampung.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- 1. Form Kirim Catatan Update Progres Berkala --}}
+                        <form method="POST" action="{{ route('tickets.add-progress', $ticket) }}" class="space-y-3 bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs">
+                            @csrf
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">
+                                    Kirim Uraian / Catatan Progres Terkini:
+                                </label>
+                                <textarea name="notes" rows="2" required
+                                          placeholder="Contoh: Petugas teknis sedang memeriksa instalasi di lokasi... atau Menunggu konfirmasi suku cadang dari vendor..."
+                                          class="w-full border border-slate-300 rounded-xl p-3 text-xs text-ink focus:border-[#114E84] focus:ring-1 focus:ring-[#114E84]"></textarea>
+                            </div>
+                            <button type="submit"
+                                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#114E84] hover:bg-[#0E4272] text-white text-xs font-bold shadow transition">
+                                @include('partials.icon', ['name' => 'arrow-right', 'class' => 'w-3.5 h-3.5'])
+                                <span>Kirim Catatan Progres</span>
+                            </button>
+                        </form>
+
+                        {{-- 2. Form Konfirmasi Selesai Pengerjaan --}}
+                        <div class="pt-2 border-t border-violet-200/80">
+                            <form method="POST" action="{{ route('tickets.complete', $ticket) }}" class="space-y-3"
+                                  onsubmit="return confirm('Yakin ingin menyelesaikan tiket ini? Status akan menjadi Selesai dan pemohon diberikan waktu 2 hari kerja untuk konfirmasi.')">
+                                @csrf
+                                <div>
+                                    <label class="block text-xs font-bold text-emerald-900 mb-1">
+                                        Catatan Penyelesaian Akhir: <span class="text-xs font-normal text-slate-400">(Opsional)</span>
+                                    </label>
+                                    <textarea name="notes" rows="2"
+                                              placeholder="Contoh: Masalah telah selesai ditangani dengan baik. Seluruh fungsi kembali normal..."
+                                              class="w-full border border-slate-300 rounded-xl p-3 text-xs text-ink focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"></textarea>
+                                </div>
+                                <button type="submit"
+                                        class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow transition">
+                                    @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-4 h-4 text-emerald-200'])
+                                    <span>Konfirmasi Pekerjaan Selesai</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                @endif
             @endif
 
             {{-- Panel Konfirmasi Penutupan untuk Pemohon (muncul saat status = Selesai) --}}

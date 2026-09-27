@@ -12,6 +12,9 @@
     $rolePanelLabel = match(strtolower($dropUser->role?->nama ?? '')) {
         'superadmin', 'admin'   => 'Administrator Panel',
         'operator'              => 'Operator Panel',
+        'bagian_umum'           => 'Bagian Umum Panel',
+        'bagian_aset'           => 'Bagian Aset Panel',
+        'bagian_pengadaan'      => 'Bagian Pengadaan Panel',
         'kabag_umum'            => 'Kabag Umum Panel',
         'kabag_aset'            => 'Kabag Aset Panel',
         'kabag_pengadaan'       => 'Kabag Pengadaan Panel',
@@ -78,7 +81,6 @@
                 </div>
                 <div class="min-w-0 flex-1">
                     <p class="text-sm font-bold text-white leading-tight truncate">{{ $dropUser->nama_lengkap }}</p>
-                    <p class="text-[11px] text-white/70 truncate mt-0.5">@{{ $dropUser->username }}</p>
                     <span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-white/15 border border-white/20 text-[10px] font-semibold text-white/90 backdrop-blur-xs">
                         @include('partials.icon', ['name' => 'shield', 'class' => 'w-2.5 h-2.5'])
                         {{ $dropUser->role?->label ?? '-' }}

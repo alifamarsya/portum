@@ -18,6 +18,9 @@ class RoleController extends Controller
     const SYSTEM_ROLES = [
         'admin',
         'pimpinan',
+        'bagian_umum',
+        'bagian_aset',
+        'bagian_pengadaan',
         'kabag_umum',
         'kabag_aset',
         'kabag_pengadaan',
@@ -36,34 +39,22 @@ class RoleController extends Controller
         ],
         'Modul Operasional' => [
             'umum_rt' => [
-                'bagian' => 'Bagian Umum & Rumah Tangga',
-                'label' => 'UK Umum & Rumah Tangga',
-                'desc' => 'Pengelolaan kendaraan operasional, biaya BBM/RT, fasilitas kantor, pemeliharaan gedung, kebersihan, dan K3',
-                'submodules' => ['Kendaraan & Driver', 'Biaya BBM & Perawatan RT', 'Fasilitas Kantor', 'Pemeliharaan Gedung', 'Kebersihan & Keamanan', 'Catatan K3 & Lingkungan'],
-            ],
-            'dokumen_arsip' => [
-                'bagian' => 'Bagian Umum & Rumah Tangga',
-                'label' => 'UK Dokumen & Kearsipan',
-                'desc' => 'Pengelolaan surat masuk/keluar, memo internal/eksternal, master arsip dokumen fisik & digital, dan legalitas',
-                'submodules' => ['Surat Masuk', 'Surat Keluar', 'Memo Masuk', 'Memo Keluar', 'Master Arsip Dokumen', 'Dokumen Legalitas'],
+                'label' => 'Bagian Umum & Rumah Tangga',
+                'desc' => 'Pengelolaan kendaraan dinas, biaya BBM/RT, fasilitas gedung, K3, kearsipan persuratan & dokumen legalitas.',
+                'submodules' => ['Kendaraan & Driver', 'Biaya BBM & RT', 'Fasilitas Kantor', 'Pemeliharaan Gedung', 'Kebersihan & Keamanan', 'Catatan K3', 'Surat Masuk/Keluar', 'Memo Masuk/Keluar', 'Master Arsip Dokumen', 'Dokumen Legalitas'],
+                'linked_keys' => ['umum_rt', 'dokumen_arsip'],
             ],
             'administrasi_aset' => [
-                'bagian' => 'Bagian Aset/Inventaris & Logistik',
-                'label' => 'UK Administrasi Aset & Inventaris',
-                'desc' => 'Inventarisasi aset, amortisasi, riwayat pergerakan aset, disposal, rekonsiliasi, dan temuan audit',
-                'submodules' => ['Inventarisasi Aset', 'Amortisasi Aset', 'Riwayat Pergerakan Aset', 'Penghapusan Aset (Disposal)', 'Rekonsiliasi & Reklasifikasi', 'Tindak Lanjut Temuan'],
-            ],
-            'logistik_pelaporan' => [
-                'bagian' => 'Bagian Aset/Inventaris & Logistik',
-                'label' => 'UK Logistik & Pelaporan',
-                'desc' => 'Tagihan invoice sewa, PKS & reminder jatuh tempo, memo sewa cabang, penerimaan/distribusi barang, dan pembayaran tagihan',
-                'submodules' => ['Tagihan / Invoice Sewa', 'PKS & Jatuh Tempo', 'Memo Sewa Cabang', 'Penerimaan Barang / Jasa', 'Distribusi Barang / Jasa', 'Administrasi Pembayaran Tagihan'],
+                'label' => 'Bagian Aset/Inventaris & Logistik',
+                'desc' => 'Inventarisasi aset, amortisasi, riwayat mutasi/disposal, rekonsiliasi temuan, tagihan sewa cabang, PKS, dan distribusi barang.',
+                'submodules' => ['Inventarisasi Aset', 'Amortisasi Aset', 'Riwayat Pergerakan', 'Disposal Aset', 'Rekonsiliasi & Temuan', 'Invoice Sewa', 'PKS & Jatuh Tempo', 'Memo Sewa Cabang', 'Distribusi Barang / Jasa', 'Pembayaran Tagihan'],
+                'linked_keys' => ['administrasi_aset', 'logistik_pelaporan'],
             ],
             'pengadaan' => [
-                'bagian' => 'Bagian Pengadaan & Pemeliharaan',
-                'label' => 'Pengadaan & Pemeliharaan',
-                'desc' => 'Memo internal pengadaan, penawaran vendor, negosiasi harga, draft dokumen SPK, penerbitan SPK, dan reminder pengerjaan',
-                'submodules' => ['Memo Internal', 'Penawaran Vendor', 'Negosiasi Harga', 'Draft Dokumen SPK', 'Surat Perintah Kerja (SPK)', 'Reminder & Monitoring'],
+                'label' => 'Bagian Pengadaan & Pemeliharaan',
+                'desc' => 'Pengadaan barang/jasa (memo, vendor, negosiasi, SPK, reminder) dan pemeliharaan aset berkala & monitoring kondisi.',
+                'submodules' => ['Memo Internal', 'Penawaran Vendor', 'Negosiasi Harga', 'Draft Dokumen SPK', 'Surat Perintah Kerja (SPK)', 'Reminder & Monitoring', 'Perencanaan Kebutuhan', 'Jadwal Pemeliharaan', 'Monitoring Kondisi Aset', 'Tindak Lanjut Perbaikan'],
+                'linked_keys' => ['pengadaan', 'pemeliharaan_pengawasan'],
             ],
         ],
         'Dokumentasi & Referensi' => [
@@ -173,20 +164,25 @@ class RoleController extends Controller
 
     public function updatePermissions(Request $request, Role $role)
     {
-        foreach (self::allKeys() as $key) {
-            $hasAccess = $request->boolean("access_{$key}");
-            $canWrite = $request->boolean("write_{$key}");
+        foreach (self::PERMISSIONS as $groupItems) {
+            foreach ($groupItems as $key => $meta) {
+                $hasAccess = $request->boolean("access_{$key}");
+                $canWrite = $request->boolean("write_{$key}");
+                $keysToSync = $meta['linked_keys'] ?? [$key];
 
-            if ($hasAccess) {
-                DB::table('role_permissions')->updateOrInsert(
-                    ['role_id' => $role->id, 'perm_key' => $key],
-                    ['can_write' => $canWrite ? 1 : 0]
-                );
-            } else {
-                DB::table('role_permissions')
-                    ->where('role_id', $role->id)
-                    ->where('perm_key', $key)
-                    ->delete();
+                foreach ($keysToSync as $syncKey) {
+                    if ($hasAccess) {
+                        DB::table('role_permissions')->updateOrInsert(
+                            ['role_id' => $role->id, 'perm_key' => $syncKey],
+                            ['can_write' => $canWrite ? 1 : 0]
+                        );
+                    } else {
+                        DB::table('role_permissions')
+                            ->where('role_id', $role->id)
+                            ->where('perm_key', $syncKey)
+                            ->delete();
+                    }
+                }
             }
         }
 

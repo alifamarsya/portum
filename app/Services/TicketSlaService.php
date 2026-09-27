@@ -592,9 +592,9 @@ class TicketSlaService
                 continue;
             }
 
-            // Batasan: Hanya untuk role Staf unit kerja (bukan Operator, Kabag, User, atau Pimpinan)
-            $isStaff = ($staff->isUnitKerjaStaf() || $staff->isInternalStaff())
-                && !$staff->isKabag()
+            // Batasan: Hanya untuk role Staf unit kerja / pelaksana Bagian (bukan Operator, User, Pimpinan, atau legacy Kabag)
+            $isStaff = ($staff->isBagian() || $staff->isUnitKerjaStaf() || $staff->isInternalStaff())
+                && !$staff->hasRole(['kabag_umum', 'kabag_aset', 'kabag_pengadaan'])
                 && !$staff->isOperator()
                 && !$staff->isSuperAdmin()
                 && !$staff->isKepalaDivisi()

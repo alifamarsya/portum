@@ -14,6 +14,7 @@ use App\Http\Controllers\PanduanController;
 use App\Http\Controllers\PimpinanDashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RisalahRapatController;
+use App\Http\Controllers\TicketCategoryController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\UserDashboardController;
 use Illuminate\Support\Facades\Route;
@@ -70,9 +71,26 @@ Route::middleware('auth')->group(function () {
     Route::delete('/panduan/{panduan}', [PanduanController::class, 'destroy'])->name('panduan.destroy');
 
     Route::resource('risalah', RisalahRapatController::class)->except(['show']);
+
+    // Manajemen Kategori Tiket & SLA (Operator & Admin)
+    Route::prefix('kategori-tiket')->name('ticket-categories.')->group(function () {
+        Route::get('/', [TicketCategoryController::class, 'index'])->name('index');
+        Route::post('/', [TicketCategoryController::class, 'store'])->name('store');
+        Route::put('/{category}', [TicketCategoryController::class, 'update'])->name('update');
+        Route::delete('/{category}', [TicketCategoryController::class, 'destroy'])->name('destroy');
+        Route::patch('/{category}/toggle', [TicketCategoryController::class, 'toggleStatus'])->name('toggle');
+    });
+    Route::get('/api/ticket-categories', [TicketCategoryController::class, 'getCategoriesByJenis'])->name('api.ticket-categories');
+
+    // Sistem Tiket
     Route::resource('tickets', TicketController::class);
     Route::get('/tickets/{ticket}/attachment', [TicketController::class, 'viewAttachment'])->name('tickets.attachment');
     Route::get('/tickets/{ticket}/attachment/download', [TicketController::class, 'downloadAttachment'])->name('tickets.attachment.download');
+    Route::get('/tickets/attachments/{attachment}/view', [TicketController::class, 'viewAttachmentFile'])->name('tickets.attachment.view-file');
+    Route::get('/tickets/attachments/{attachment}/download', [TicketController::class, 'downloadAttachmentFile'])->name('tickets.attachment.download-file');
+    Route::post('/tickets/{ticket}/accept', [TicketController::class, 'accept'])->name('tickets.accept');
+    Route::post('/tickets/{ticket}/add-progress', [TicketController::class, 'addProgress'])->name('tickets.add-progress');
+    Route::post('/tickets/{ticket}/complete', [TicketController::class, 'complete'])->name('tickets.complete');
     Route::post('/tickets/{ticket}/dispose', [TicketController::class, 'dispose'])->name('tickets.dispose');
     Route::post('/tickets/{ticket}/reject', [TicketController::class, 'reject'])->name('tickets.reject');
     Route::post('/tickets/{ticket}/confirm-close', [TicketController::class, 'confirmClose'])

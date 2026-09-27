@@ -49,7 +49,6 @@
             <div class="flex items-start justify-between gap-4 flex-wrap">
                 <div>
                     <h2 class="text-lg font-bold text-ink">{{ $user->nama_lengkap }}</h2>
-                    <p class="text-sm text-muted">@{{ $user->username }}</p>
                 </div>
                 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#E8F1FB] text-[#114E84] border border-[#114E84]/20">
                     @include('partials.icon', ['name' => 'shield', 'class' => 'w-3 h-3'])

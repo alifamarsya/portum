@@ -15,10 +15,10 @@ class Ticket extends Model
 
     protected $fillable = [
         'ticket_number',
+        'title',
         'user_id',
         'category_id',
         'department_id',
-        'unit_kerja_id',
         'assigned_to',
         'disposed_by',
         'priority',
@@ -46,6 +46,8 @@ class Ticket extends Model
         'completed_at',
         'confirmation_deadline',
         'closed_at',
+        'rating',
+        'feedback',
     ];
 
     protected function casts(): array
@@ -151,6 +153,14 @@ class Ticket extends Model
     }
 
     /**
+     * Get the multiple attachment files for the ticket.
+     */
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(TicketAttachment::class, 'ticket_id');
+    }
+
+    /**
      * Scope a query to only include tickets visible to the given user role.
      */
     public function scopeVisibleTo($query, ?User $user = null)
@@ -166,36 +176,12 @@ class Ticket extends Model
             return $query;
         }
 
-        // 2. Kepala Bagian (kabag_umum, kabag_aset, kabag_pengadaan): melihat semua tiket di bagiannya
-        if ($user->isKabag()) {
+        // 2. Role Bagian (bagian_umum, bagian_aset, bagian_pengadaan): melihat semua tiket di bagiannya
+        if ($user->isBagian() || $user->isKabag() || $user->isInternalStaff()) {
             return $query->where('department_id', $user->effectiveDepartmentId());
         }
 
-        // 3. Staf Unit Kerja Baru (uk_umum_rt, uk_dokumen):
-        // Hanya melihat tiket yang di-assign ke unit kerjanya (dan sudah diverifikasi/didisposisikan)
-        if ($user->isUnitKerjaStaf()) {
-            $q = $query->where('department_id', $user->effectiveDepartmentId())
-                       ->where('status', '!=', 'Menunggu Verifikasi');
-
-            // Jika punya unit_kerja_id, filter lebih spesifik ke unit kerja tersebut
-            if ($user->effectiveUnitKerjaId()) {
-                $q->where(function ($inner) use ($user) {
-                    $inner->where('unit_kerja_id', $user->effectiveUnitKerjaId())
-                          ->orWhereNull('unit_kerja_id'); // tiket yg belum di-assign ke UK spesifik
-                });
-            }
-
-            return $q;
-        }
-
-        // 4. Staf Bagian Internal Legacy (umum_rt, aset, pengadaan):
-        // Tiket yang dialokasikan ke bagiannya dan sudah diverifikasi/didisposisikan
-        if ($user->isInternalStaff()) {
-            return $query->where('department_id', $user->effectiveDepartmentId())
-                         ->where('status', '!=', 'Menunggu Verifikasi');
-        }
-
-        // 5. User Pemohon: hanya tiket miliknya sendiri
+        // 3. User Pemohon: hanya tiket miliknya sendiri
         if ($user->isUser()) {
             return $query->where('user_id', $user->id);
         }
@@ -203,9 +189,14 @@ class Ticket extends Model
         return $query->whereRaw('1 = 0');
     }
 
+    public function isAwaitingBagianAcceptance(): bool
+    {
+        return $this->status === 'Dialokasikan';
+    }
+
     public function isAwaitingKabagDisposition(): bool
     {
-        return in_array($this->status, ['Dialokasikan', 'Diverifikasi', 'Didistribusikan']) && is_null($this->assigned_to);
+        return $this->status === 'Dialokasikan' || (in_array($this->status, ['Dialokasikan', 'Diverifikasi', 'Didistribusikan']) && is_null($this->assigned_to));
     }
 
     /**

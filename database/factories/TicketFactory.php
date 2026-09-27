@@ -23,6 +23,7 @@ class TicketFactory extends Factory
 
         return [
             'ticket_number'         => 'REQ-' . $date->format('Ymd') . '-' . str_pad($counter, 4, '0', STR_PAD_LEFT),
+            'title'                 => fake()->sentence(4),
             'user_id'               => 1,
             'department_id'         => rand(1, 3),
             'category_id'           => null,
@@ -39,16 +40,18 @@ class TicketFactory extends Factory
             'verified_at'           => null,
             'verified_by'           => null,
             'sla_response_time_minutes' => null,
-            'sla_response_status'   => null,
+            'sla_response_status'   => 'Menunggu',  // NOT NULL di migration, wajib diisi
             'sla_resolution_hours'  => null,
             'sla_resolution_start_at' => null,
             'sla_resolution_due_at' => null,
             'resolved_at'           => null,
             'sla_resolution_time_minutes' => null,
-            'sla_resolution_status' => null,
+            'sla_resolution_status' => 'Menunggu Disposisi', // NOT NULL di migration, wajib diisi
             'completed_at'          => null,
             'confirmation_deadline' => null,
             'closed_at'             => null,
+            'rating'                => null,
+            'feedback'              => null,
             'created_at'            => $date,
             'updated_at'            => $date,
         ];

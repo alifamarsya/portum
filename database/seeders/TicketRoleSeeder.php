@@ -26,7 +26,7 @@ class TicketRoleSeeder extends Seeder
             InternalDepartment::updateOrCreate(['id' => $dept['id']], $dept);
         }
 
-        // 2. Unit Kerja (Fase 1)
+        // 2. Unit Kerja
         $unitKerja = [
             ['id' => 1, 'department_id' => 1, 'kode' => 'UK-URT', 'nama' => 'Unit Kerja Umum & Rumah Tangga',               'deskripsi' => 'Mengelola kendaraan operasional, biaya harian, fasilitas kantor, pemeliharaan gedung, kebersihan, keamanan, dan K3.', 'is_active' => true],
             ['id' => 2, 'department_id' => 1, 'kode' => 'UK-DOK', 'nama' => 'Unit Kerja Pengelolaan Dokumen & Kearsipan',    'deskripsi' => 'Mengelola surat masuk/keluar, memo, arsip dokumen fisik & digital, dan dokumen legalitas.', 'is_active' => true],
@@ -36,72 +36,220 @@ class TicketRoleSeeder extends Seeder
             UnitKerja::updateOrCreate(['id' => $uk['id']], $uk);
         }
 
-        // 3. Kategori Sistem Tiket (Fase 1 — sesuai unit kerja)
+        // 3. Kategori Sistem Tiket Dinamis (Permintaan & Permasalahan untuk tiap Bagian)
         $categories = [
-            // UK-URT
-            ['id' => 1, 'name' => 'Permintaan Sarana & Prasarana',   'default_sla_hours' => 24],
-            ['id' => 2, 'name' => 'Layanan Umum & Kebersihan',        'default_sla_hours' => 24],
-            ['id' => 3, 'name' => 'Keamanan & K3',                    'default_sla_hours' => 12],
-            ['id' => 4, 'name' => 'Pemeliharaan Gedung & Utilitas',   'default_sla_hours' => 48],
-            // UK-DOK
-            ['id' => 5, 'name' => 'Pengelolaan Dokumen & Arsip',      'default_sla_hours' => 24],
-            // General (multi-unit)
-            ['id' => 6, 'name' => 'Pengadaan Barang & Jasa',          'default_sla_hours' => 72],
-            ['id' => 7, 'name' => 'Perbaikan & Pemeliharaan Aset',    'default_sla_hours' => 48],
+            // === Bagian Umum & Rumah Tangga (Dept 1) ===
+            [
+                'id' => 1,
+                'name' => 'Perbaikan AC & Pendingin Ruangan',
+                'jenis_pengajuan' => 'Permasalahan',
+                'sla_resolution_hours' => 24,
+                'default_sla_hours' => 24,
+                'department_id' => 1,
+                'is_active' => true,
+                'sort_order' => 1,
+            ],
+            [
+                'id' => 2,
+                'name' => 'Gangguan Listrik, Lampu & Genset',
+                'jenis_pengajuan' => 'Permasalahan',
+                'sla_resolution_hours' => 12,
+                'default_sla_hours' => 12,
+                'department_id' => 1,
+                'is_active' => true,
+                'sort_order' => 2,
+            ],
+            [
+                'id' => 3,
+                'name' => 'Kerusakan Fasilitas Gedung / Kebocoran Atap',
+                'jenis_pengajuan' => 'Permasalahan',
+                'sla_resolution_hours' => 48,
+                'default_sla_hours' => 48,
+                'department_id' => 1,
+                'is_active' => true,
+                'sort_order' => 3,
+            ],
+            [
+                'id' => 4,
+                'name' => 'Kendala Kendaraan Operasional / Mobil Dinas',
+                'jenis_pengajuan' => 'Permasalahan',
+                'sla_resolution_hours' => 24,
+                'default_sla_hours' => 24,
+                'department_id' => 1,
+                'is_active' => true,
+                'sort_order' => 4,
+            ],
+            [
+                'id' => 5,
+                'name' => 'Permintaan ATK & Kebutuhan Operasional',
+                'jenis_pengajuan' => 'Permintaan',
+                'sla_resolution_hours' => 24,
+                'default_sla_hours' => 24,
+                'department_id' => 1,
+                'is_active' => true,
+                'sort_order' => 5,
+            ],
+            [
+                'id' => 6,
+                'name' => 'Peminjaman Kendaraan Dinas & Driver',
+                'jenis_pengajuan' => 'Permintaan',
+                'sla_resolution_hours' => 12,
+                'default_sla_hours' => 12,
+                'department_id' => 1,
+                'is_active' => true,
+                'sort_order' => 6,
+            ],
+            [
+                'id' => 7,
+                'name' => 'Layanan Kebersihan Khusus & Penataan Ruang',
+                'jenis_pengajuan' => 'Permintaan',
+                'sla_resolution_hours' => 24,
+                'default_sla_hours' => 24,
+                'department_id' => 1,
+                'is_active' => true,
+                'sort_order' => 7,
+            ],
+            [
+                'id' => 8,
+                'name' => 'Pengambilan / Pengiriman Dokumen & Arsip',
+                'jenis_pengajuan' => 'Permintaan',
+                'sla_resolution_hours' => 24,
+                'default_sla_hours' => 24,
+                'department_id' => 1,
+                'is_active' => true,
+                'sort_order' => 8,
+            ],
+
+            // === Bagian Aset/Inventaris & Logistik (Dept 2) ===
+            [
+                'id' => 9,
+                'name' => 'Kerusakan Peralatan Kerja / Meja & Kursi',
+                'jenis_pengajuan' => 'Permasalahan',
+                'sla_resolution_hours' => 48,
+                'default_sla_hours' => 48,
+                'department_id' => 2,
+                'is_active' => true,
+                'sort_order' => 9,
+            ],
+            [
+                'id' => 10,
+                'name' => 'Kendala Pengiriman Logistik / Ekspedisi Cabang',
+                'jenis_pengajuan' => 'Permasalahan',
+                'sla_resolution_hours' => 24,
+                'default_sla_hours' => 24,
+                'department_id' => 2,
+                'is_active' => true,
+                'sort_order' => 10,
+            ],
+            [
+                'id' => 11,
+                'name' => 'Permintaan Distribusi Barang & Inventaris',
+                'jenis_pengajuan' => 'Permintaan',
+                'sla_resolution_hours' => 48,
+                'default_sla_hours' => 48,
+                'department_id' => 2,
+                'is_active' => true,
+                'sort_order' => 11,
+            ],
+            [
+                'id' => 12,
+                'name' => 'Pengajuan Mutasi Lokasi / Penanggung Jawab Aset',
+                'jenis_pengajuan' => 'Permintaan',
+                'sla_resolution_hours' => 72,
+                'default_sla_hours' => 72,
+                'department_id' => 2,
+                'is_active' => true,
+                'sort_order' => 12,
+            ],
+            [
+                'id' => 13,
+                'name' => 'Usulan Penghapusan / Disposal Aset Rusak Berat',
+                'jenis_pengajuan' => 'Permintaan',
+                'sla_resolution_hours' => 72,
+                'default_sla_hours' => 72,
+                'department_id' => 2,
+                'is_active' => true,
+                'sort_order' => 13,
+            ],
+
+            // === Bagian Pengadaan & Pemeliharaan (Dept 3) ===
+            [
+                'id' => 14,
+                'name' => 'Kerusakan Komputer / Server / Hardware IT',
+                'jenis_pengajuan' => 'Permasalahan',
+                'sla_resolution_hours' => 24,
+                'default_sla_hours' => 24,
+                'department_id' => 3,
+                'is_active' => true,
+                'sort_order' => 14,
+            ],
+            [
+                'id' => 15,
+                'name' => 'Kerusakan Mesin ATM & Perangkat Teller/CS',
+                'jenis_pengajuan' => 'Permasalahan',
+                'sla_resolution_hours' => 8,
+                'default_sla_hours' => 8,
+                'department_id' => 3,
+                'is_active' => true,
+                'sort_order' => 15,
+            ],
+            [
+                'id' => 16,
+                'name' => 'Pengajuan Pengadaan Barang / Jasa Baru',
+                'jenis_pengajuan' => 'Permintaan',
+                'sla_resolution_hours' => 72,
+                'default_sla_hours' => 72,
+                'department_id' => 3,
+                'is_active' => true,
+                'sort_order' => 16,
+            ],
+            [
+                'id' => 17,
+                'name' => 'Jadwal Servis Berkala & Pemeliharaan Sarana',
+                'jenis_pengajuan' => 'Permintaan',
+                'sla_resolution_hours' => 48,
+                'default_sla_hours' => 48,
+                'department_id' => 3,
+                'is_active' => true,
+                'sort_order' => 17,
+            ],
         ];
 
         foreach ($categories as $cat) {
             TicketCategory::updateOrCreate(['id' => $cat['id']], $cat);
         }
 
-        // 4. Bersihkan role generik 'bagian_internal' & user dummy jika ada
-        DB::table('role_permissions')->where('role_id', 8)->delete();
-        User::whereIn('username', ['staf_internal_umum', 'staf_internal_aset'])->delete();
-        Role::where('id', 8)->orWhere('nama', 'bagian_internal')->delete();
-
-        // 5. Pastikan Role Pemohon (User) dan Operator Tersedia
-        $roles = [
-            ['id' => 6, 'nama' => 'user',     'label' => 'User',     'deskripsi' => 'User / Pemohon tiket layanan'],
-            ['id' => 7, 'nama' => 'operator', 'label' => 'Operator', 'deskripsi' => 'Operator / Helpdesk penerima dan verifikator tiket'],
+        // 4. Role Penyederhanaan (Role Bagian)
+        $bagianRoles = [
+            ['nama' => 'bagian_umum',      'label' => 'Bagian Umum & Rumah Tangga',                                'deskripsi' => 'Pengelolaan operasional umum, rumah tangga, kearsipan persuratan, dan penanganan tiket'],
+            ['nama' => 'bagian_aset',      'label' => 'Bagian Aset/Inventaris & Logistik',                         'deskripsi' => 'Pengelolaan inventarisasi aset, logistik, pengadaan sewa, mutasi aset, dan penanganan tiket'],
+            ['nama' => 'bagian_pengadaan', 'label' => 'Bagian Pengadaan serta Pemeliharaan Aset dan Inventaris',   'deskripsi' => 'Pengelolaan pengadaan barang/jasa, pemeliharaan sarana/prasarana, dan penanganan tiket'],
+            ['nama' => 'user',             'label' => 'User',                                                      'deskripsi' => 'User / Pemohon tiket layanan'],
+            ['nama' => 'operator',         'label' => 'Operator',                                                  'deskripsi' => 'Operator / Helpdesk penerima dan verifikator tiket'],
         ];
 
-        foreach ($roles as $r) {
-            Role::updateOrCreate(['id' => $r['id']], $r);
+        foreach ($bagianRoles as $r) {
+            Role::firstOrCreate(['nama' => $r['nama']], $r);
         }
 
-        // 6. Matriks Permission Ticketing untuk Semua Role Terkait
-        $perms = [
-            [1,  'ticketing', 1],
-            [2,  'ticketing', 0],
-            [6,  'ticketing', 1],
-            [7,  'ticketing', 1],
-            [10, 'ticketing', 1],
-            [11, 'ticketing', 1],
-            [12, 'ticketing', 1],
-            [13, 'ticketing', 1],
-            [14, 'ticketing', 1],
-            [15, 'ticketing', 1],
-            [16, 'ticketing', 1],
-            // Fase 3
-            [17, 'ticketing', 1],
-            [18, 'ticketing', 1],
-        ];
-
-        foreach ($perms as [$roleId, $key, $write]) {
-            if (Role::where('id', $roleId)->exists()) {
-                DB::table('role_permissions')->updateOrInsert(
-                    ['role_id' => $roleId, 'perm_key' => $key],
-                    ['can_write' => $write]
-                );
-            }
+        // 5. Matriks Permission Ticketing untuk Semua Role Terkait
+        $rolesWithTicketing = Role::whereIn('nama', ['admin', 'user', 'operator', 'bagian_umum', 'bagian_aset', 'bagian_pengadaan'])->get();
+        foreach ($rolesWithTicketing as $role) {
+            DB::table('role_permissions')->updateOrInsert(
+                ['role_id' => $role->id, 'perm_key' => 'ticketing'],
+                ['can_write' => 1]
+            );
         }
 
-        // 7. Hubungkan User Eksisting ke Departemen Masing-Masing (jika belum)
+        // 6. Hubungkan User Eksisting ke Departemen Masing-Masing
         User::where('username', 'umum')->update(['department_id' => 1]);
         User::where('username', 'aset')->update(['department_id' => 2]);
         User::where('username', 'pengadaan')->update(['department_id' => 3]);
 
-        // 8. Akun Pemohon & Operator (fallback jika belum ada dari UserSeeder)
+        // 7. Akun Pemohon & Operator
+        $userRole = Role::where('nama', 'user')->first();
+        $operatorRole = Role::where('nama', 'operator')->first();
+
         $additionalUsers = [
             [
                 'username'     => 'pemohon_user',
@@ -111,7 +259,7 @@ class TicketRoleSeeder extends Seeder
                 'bagian'       => 'Cabang Utama',
                 'department_id'=> null,
                 'unit_kerja_id'=> null,
-                'role_id'      => 6,
+                'role_id'      => $userRole?->id ?? 6,
             ],
             [
                 'username'     => 'operator_helpdesk',
@@ -121,7 +269,7 @@ class TicketRoleSeeder extends Seeder
                 'bagian'       => 'Divisi Umum',
                 'department_id'=> null,
                 'unit_kerja_id'=> null,
-                'role_id'      => 7,
+                'role_id'      => $operatorRole?->id ?? 7,
             ],
         ];
 

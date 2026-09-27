@@ -16,21 +16,23 @@ class UserSeeder extends Seeder
             ['username' => 'admin', 'nama_lengkap' => 'Admin', 'email' => 'admin@banksulteng.co.id', 'jabatan' => 'Administrator IT', 'bagian' => 'Divisi Umum', 'role_id' => 1, 'department_id' => null],
             ['username' => 'pimpinan', 'nama_lengkap' => 'Pimpinan Divisi', 'email' => 'pimpinan@banksulteng.co.id', 'jabatan' => 'Pimpinan Divisi', 'bagian' => 'Divisi Umum', 'role_id' => 2, 'department_id' => null],
             ['username' => 'operator', 'nama_lengkap' => 'Operator', 'email' => 'operator@banksulteng.co.id', 'jabatan' => 'Operator Helpdesk', 'bagian' => 'Divisi Umum', 'role_id' => 7, 'department_id' => null],
-            ['username' => 'kabag umum', 'nama_lengkap' => 'Kepala Bagian Umum & Rumah Tangga', 'email' => 'kabagumum@banksulteng.co.id', 'jabatan' => 'Kepala Bagian', 'bagian' => 'Kantor Pusat', 'role_id' => 10, 'department_id' => 1],
-            ['username' => 'kabag aset', 'nama_lengkap' => 'Kepala Bagian Aset/Inventaris & Logistik', 'email' => 'kabagaset@banksulteng.co.id', 'jabatan' => 'Kepala Bagian', 'bagian' => 'Kantor Pusat', 'role_id' => 11, 'department_id' => 2],
-            ['username' => 'kabag pengadaan', 'nama_lengkap' => 'Kepala Bagian Pengadaan serta Pemeliharaan Aset dan Inventaris', 'email' => 'kabagpengadaan@banksulteng.co.id', 'jabatan' => 'Kepala Bagian', 'bagian' => 'Kantor Pusat', 'role_id' => 12, 'department_id' => 3],
-            ['username' => 'staf 1', 'nama_lengkap' => 'Dirli', 'email' => 'dirli@banksulteng.co.id', 'jabatan' => 'Staf Unit Kerja Umum & RT', 'bagian' => 'Bagian Umum & Rumah Tangga', 'role_id' => 13, 'department_id' => 1],
-            ['username' => 'staf 2', 'nama_lengkap' => 'Marsya', 'email' => 'umum@banksulteng.co.id', 'jabatan' => 'Staf Pengelolaan Dokumen & Kearsipan', 'bagian' => 'Bagian Umum & Rumah Tangga', 'role_id' => 14, 'department_id' => 1],
-            ['username' => 'staf 3', 'nama_lengkap' => 'Dirli', 'email' => 'aset@banksulteng.co.id', 'jabatan' => 'Staf Administrasi Aset & Inventaris', 'bagian' => 'Bagian Aset/Inventaris & Logistik', 'role_id' => 15, 'department_id' => 2],
-            ['username' => 'staf 4', 'nama_lengkap' => 'Zahra', 'email' => 'aset@banksulteng.co.id', 'jabatan' => 'Staf Logistik & Pelaporan', 'bagian' => 'Bagian Aset/Inventaris & Logistik', 'role_id' => 16, 'department_id' => 2],
-            ['username' => 'staf 5', 'nama_lengkap' => 'Marsya', 'email' => 'pengadaan@banksulteng.co.id', 'jabatan' => 'Staf Unit Kerja Pengadaan', 'bagian' => 'Bagian Pengadaan & Pemeliharaan Aset & Inventaris', 'role_id' => 17, 'department_id' => null],
-            ['username' => 'staf 6', 'nama_lengkap' => 'Zahra', 'email' => 'pengadaan@banksulteng.co.id', 'jabatan' => 'Staf Unit Kerja Pemeliharaan & Pengawasan', 'bagian' => 'Bagian Pengadaan & Pemeliharaan Aset & Inventaris', 'role_id' => 18, 'department_id' => null],
+            ['username' => 'operator_helpdesk', 'nama_lengkap' => 'Operator Helpdesk', 'email' => 'operator@banksulteng.co.id', 'jabatan' => 'Helpdesk Operator', 'bagian' => 'Divisi Umum', 'role_id' => 7, 'department_id' => null],
+            ['username' => 'staf 1', 'nama_lengkap' => 'Dirli', 'email' => 'dirli@banksulteng.co.id', 'jabatan' => 'Staf Unit Kerja Umum & RT', 'bagian' => 'Bagian Umum & Rumah Tangga', 'role_id' => 19, 'department_id' => 1],
+            ['username' => 'staf 2', 'nama_lengkap' => 'Marsya', 'email' => 'umum@banksulteng.co.id', 'jabatan' => 'Staf Pengelolaan Dokumen & Kearsipan', 'bagian' => 'Bagian Umum & Rumah Tangga', 'role_id' => 19, 'department_id' => 1],
+            ['username' => 'kabag umum', 'nama_lengkap' => 'Kepala Bagian Umum & Rumah Tangga', 'email' => 'kabagumum@banksulteng.co.id', 'jabatan' => 'Kepala Bagian', 'bagian' => 'Kantor Pusat', 'role_id' => 19, 'department_id' => 1],
+            ['username' => 'kabag aset', 'nama_lengkap' => 'Kepala Bagian Aset/Inventaris & Logistik', 'email' => 'kabagaset@banksulteng.co.id', 'jabatan' => 'Kepala Bagian', 'bagian' => 'Kantor Pusat', 'role_id' => 20, 'department_id' => 2],
+            ['username' => 'staf 3', 'nama_lengkap' => 'Dirli', 'email' => 'aset@banksulteng.co.id', 'jabatan' => 'Staf Administrasi Aset & Inventaris', 'bagian' => 'Bagian Aset/Inventaris & Logistik', 'role_id' => 20, 'department_id' => 2],
+            ['username' => 'staf 4', 'nama_lengkap' => 'Zahra', 'email' => 'aset@banksulteng.co.id', 'jabatan' => 'Staf Logistik & Pelaporan', 'bagian' => 'Bagian Aset/Inventaris & Logistik', 'role_id' => 20, 'department_id' => 2],
+            ['username' => 'kabag pengadaan', 'nama_lengkap' => 'Kepala Bagian Pengadaan serta Pemeliharaan Aset dan Inventaris', 'email' => 'kabagpengadaan@banksulteng.co.id', 'jabatan' => 'Kepala Bagian', 'bagian' => 'Kantor Pusat', 'role_id' => 21, 'department_id' => 3],
+            ['username' => 'staf 5', 'nama_lengkap' => 'Marsya', 'email' => 'pengadaan@banksulteng.co.id', 'jabatan' => 'Staf Unit Kerja Pengadaan', 'bagian' => 'Bagian Pengadaan & Pemeliharaan Aset & Inventaris', 'role_id' => 21, 'department_id' => 3],
+            ['username' => 'staf 6', 'nama_lengkap' => 'Zahra', 'email' => 'pengadaan@banksulteng.co.id', 'jabatan' => 'Staf Unit Kerja Pemeliharaan & Pengawasan', 'bagian' => 'Bagian Pengadaan & Pemeliharaan Aset & Inventaris', 'role_id' => 21, 'department_id' => 3],
         ];
 
         // Role Multi-User (Pemohon Cabang & Divisi)
         $multiRoleUsers = [
             ['username' => 'cabang tawaeli', 'nama_lengkap' => 'Staf Cabang Tawaeli', 'email' => 'cabang.palu@banksulteng.co.id', 'jabatan' => 'Staff Customer Service', 'bagian' => 'Kantor Cabang Palu', 'role_id' => 6, 'department_id' => null],
             ['username' => 'Reza', 'nama_lengkap' => 'Reza Gilang Kenanza', 'email' => 'ukksiber@banksulteng.co.id', 'jabatan' => 'Pemimpin Unit Kerja Analis Ketahanan & Keamanan Siber', 'bagian' => 'Divisi Unit Khusus Keamanan Siber Kantor Pusat', 'role_id' => 6, 'department_id' => null],
+            ['username' => 'pemohon_user', 'nama_lengkap' => 'Staff Pemohon Layanan', 'email' => 'pemohon@banksulteng.co.id', 'jabatan' => 'Staff Cabang', 'bagian' => 'Cabang Utama', 'role_id' => 6, 'department_id' => null],
         ];
 
         foreach (array_merge($singleRoleUsers, $multiRoleUsers) as $u) {

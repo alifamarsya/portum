@@ -90,76 +90,96 @@ class User extends Authenticatable
         return $this->hasRole(['superadmin', 'admin']);
     }
 
+    /** Alias backward-compatible untuk isSuperAdmin(). */
+    public function isAdmin(): bool
+    {
+        return $this->isSuperAdmin();
+    }
+
     public function isOperator(): bool
     {
         return $this->hasRole('operator');
     }
 
+    public function isBagianUmum(): bool
+    {
+        return $this->hasRole(['bagian_umum', 'kabag_umum', 'uk_umum_rt', 'uk_dokumen', 'umum_rt'])
+            || ($this->department_id === 1 && !$this->isUser() && !$this->isOperator() && !$this->isSuperAdmin() && !$this->isKepalaDivisi());
+    }
+
+    public function isBagianAset(): bool
+    {
+        return $this->hasRole(['bagian_aset', 'kabag_aset', 'uk_administrasi_aset', 'uk_logistik', 'aset'])
+            || ($this->department_id === 2 && !$this->isUser() && !$this->isOperator() && !$this->isSuperAdmin() && !$this->isKepalaDivisi());
+    }
+
+    public function isBagianPengadaan(): bool
+    {
+        return $this->hasRole(['bagian_pengadaan', 'kabag_pengadaan', 'uk_pengadaan', 'uk_pemeliharaan', 'pengadaan'])
+            || ($this->department_id === 3 && !$this->isUser() && !$this->isOperator() && !$this->isSuperAdmin() && !$this->isKepalaDivisi());
+    }
+
+    public function isBagian(): bool
+    {
+        return $this->isBagianUmum() || $this->isBagianAset() || $this->isBagianPengadaan();
+    }
+
     public function isKabag(): bool
     {
-        return $this->hasRole(['kabag_umum', 'kabag_aset', 'kabag_pengadaan']);
+        return $this->hasRole(['bagian_umum', 'bagian_aset', 'bagian_pengadaan', 'kabag_umum', 'kabag_aset', 'kabag_pengadaan']);
     }
 
     public function isKabagAset(): bool
     {
-        return $this->hasRole('kabag_aset');
+        return $this->hasRole(['bagian_aset', 'kabag_aset']);
     }
 
     /**
-     * Apakah user adalah staf Unit Kerja baru (uk_umum_rt atau uk_dokumen).
+     * Kompatibilitas dengan modul operasional internal
      */
     public function isUkUmumRt(): bool
     {
-        return $this->hasRole('uk_umum_rt');
+        return $this->isBagianUmum() || $this->hasRole('uk_umum_rt');
     }
 
     public function isUkDokumen(): bool
     {
-        return $this->hasRole('uk_dokumen');
+        return $this->isBagianUmum() || $this->hasRole('uk_dokumen');
     }
 
     public function isUkAdministrasiAset(): bool
     {
-        return $this->hasRole('uk_administrasi_aset');
+        return $this->isBagianAset() || $this->hasRole('uk_administrasi_aset');
     }
 
     public function isUkLogistik(): bool
     {
-        return $this->hasRole('uk_logistik');
+        return $this->isBagianAset() || $this->hasRole('uk_logistik');
     }
 
-    /**
-     * Fase 3 — Unit Kerja Pengadaan Aset & Inventaris.
-     */
     public function isUkPengadaan(): bool
     {
-        return $this->hasRole('uk_pengadaan');
+        return $this->isBagianPengadaan() || $this->hasRole('uk_pengadaan');
     }
 
-    /**
-     * Fase 3 — Unit Kerja Pemeliharaan & Pengawasan Aset/Inventaris.
-     */
     public function isUkPemeliharaan(): bool
     {
-        return $this->hasRole('uk_pemeliharaan');
+        return $this->isBagianPengadaan() || $this->hasRole('uk_pemeliharaan');
     }
 
-    /**
-     * True jika user adalah staf Unit Kerja (role baru Fase 1, 2 & 3).
-     */
     public function isUnitKerjaStaf(): bool
     {
-        return $this->hasRole(['uk_umum_rt', 'uk_dokumen', 'uk_administrasi_aset', 'uk_logistik', 'uk_pengadaan', 'uk_pemeliharaan']);
+        return $this->isBagian() || $this->hasRole(['uk_umum_rt', 'uk_dokumen', 'uk_administrasi_aset', 'uk_logistik', 'uk_pengadaan', 'uk_pemeliharaan']);
     }
 
     public function kabagDepartmentId(): ?int
     {
         $roleName = strtolower($this->role?->nama ?? '');
         return match ($roleName) {
-            'kabag_umum'      => 1,
-            'kabag_aset'      => 2,
-            'kabag_pengadaan' => 3,
-            default           => $this->department_id,
+            'bagian_umum', 'kabag_umum'           => 1,
+            'bagian_aset', 'kabag_aset'           => 2,
+            'bagian_pengadaan', 'kabag_pengadaan' => 3,
+            default                               => $this->department_id,
         };
     }
 
@@ -171,16 +191,15 @@ class User extends Authenticatable
 
         $roleName = strtolower($this->role?->nama ?? '');
         return match ($roleName) {
-            'umum_rt', 'kabag_umum', 'uk_umum_rt', 'uk_dokumen'                            => 1,
-            'aset', 'kabag_aset', 'uk_administrasi_aset', 'uk_logistik'                    => 2,
-            'pengadaan', 'kabag_pengadaan', 'uk_pengadaan', 'uk_pemeliharaan'              => 3,
-            default                                                                         => null,
+            'bagian_umum', 'umum_rt', 'kabag_umum', 'uk_umum_rt', 'uk_dokumen'               => 1,
+            'bagian_aset', 'aset', 'kabag_aset', 'uk_administrasi_aset', 'uk_logistik'       => 2,
+            'bagian_pengadaan', 'pengadaan', 'kabag_pengadaan', 'uk_pengadaan', 'uk_pemeliharaan' => 3,
+            default                                                                          => null,
         };
     }
 
     /**
      * Unit Kerja ID efektif user.
-     * Untuk role uk_umum_rt / uk_dokumen mengambil dari kolom unit_kerja_id.
      */
     public function effectiveUnitKerjaId(): ?int
     {
@@ -192,7 +211,7 @@ class User extends Authenticatable
 
     public function isInternalStaff(): bool
     {
-        return !is_null($this->effectiveDepartmentId()) && !$this->isKabag();
+        return $this->isBagian() || (!is_null($this->effectiveDepartmentId()) && !$this->isKabag());
     }
 
     public function isBagianInternal(): bool

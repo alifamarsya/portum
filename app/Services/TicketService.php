@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\Ticket;
+use App\Models\TicketAttachment;
+use App\Models\TicketCategory;
 use App\Models\TicketHistory;
 use App\Models\User;
 use Carbon\Carbon;
@@ -20,7 +22,6 @@ class TicketService
         $date = $date ?? Carbon::now();
         $prefix = 'REQ-' . $date->format('Ymd') . '-';
 
-        // Lock for update or find the highest sequence for the day
         $lastTicket = Ticket::where('ticket_number', 'LIKE', $prefix . '%')
             ->orderBy('ticket_number', 'desc')
             ->first();
@@ -36,39 +37,89 @@ class TicketService
     }
 
     /**
-     * Create a new ticket with initial status 'Menunggu Verifikasi' and record history.
+     * Create a new ticket with initial status 'Menunggu Verifikasi', dynamic category SLA, and multiple PDF attachments.
      */
-    public function createTicket(array $data, User $user, ?UploadedFile $file = null): Ticket
+    public function createTicket(array $data, User $user, array|UploadedFile|null $files = null): Ticket
     {
-        return DB::transaction(function () use ($data, $user, $file) {
-            $attachmentPath = null;
-            if ($file) {
-                $attachmentPath = $file->store('attachments/tickets', 'public');
-            } elseif (!empty($data['attachment_path'])) {
-                $attachmentPath = $data['attachment_path'];
-            }
-
+        return DB::transaction(function () use ($data, $user, $files) {
             $slaService = app(TicketSlaService::class);
             $now = now();
             $startAt = $slaService->calculateSlaStart($now);
             $dueAt = $slaService->calculateResponseDueAt($now);
             $ticketNumber = $this->generateTicketNumber();
 
+            // Ambil Kategori & SLA jika dipilih
+            $category = null;
+            $slaResolutionHours = null;
+            $departmentId = $data['department_id'] ?? null;
+
+            if (!empty($data['category_id'])) {
+                $category = TicketCategory::find($data['category_id']);
+                if ($category) {
+                    $slaResolutionHours = $category->sla_resolution_hours;
+                    $departmentId = $departmentId ?? $category->department_id;
+                }
+            }
+
+            // Map priority dari SLA Resolution jam jika tidak diisi manual
+            $priority = $data['priority'] ?? null;
+            if (!$priority && $slaResolutionHours) {
+                if ($slaResolutionHours <= 8) {
+                    $priority = 'Kritis';
+                } elseif ($slaResolutionHours <= 12) {
+                    $priority = 'Tinggi';
+                } elseif ($slaResolutionHours <= 48) {
+                    $priority = 'Sedang';
+                } else {
+                    $priority = 'Rendah';
+                }
+            }
+            $priority = $priority ?? 'Sedang';
+
             $ticket = Ticket::create([
                 'ticket_number' => $ticketNumber,
+                'title'         => $data['title'] ?? null,
                 'user_id' => $user->id,
                 'category_id' => $data['category_id'] ?? null,
-                'department_id' => $data['department_id'] ?? null,
-                'unit_kerja_id' => $user->unit_kerja_id ?? null,
-                'priority' => $data['priority'] ?? 'Sedang',
-                'jenis_pengajuan' => $data['jenis_pengajuan'] ?? null,
+                'department_id' => $departmentId,
+                'priority' => $priority,
+                'jenis_pengajuan' => $data['jenis_pengajuan'] ?? ($category?->jenis_pengajuan ?? 'Permintaan'),
                 'status' => 'Menunggu Verifikasi',
                 'description' => $data['description'],
-                'attachment_path' => $attachmentPath,
+                'sla_resolution_hours' => $slaResolutionHours,
                 'sla_response_start_at' => $startAt,
                 'sla_response_due_at' => $dueAt,
                 'sla_response_status' => 'Menunggu',
             ]);
+
+            // Tangani upload lampiran (single atau multiple PDF)
+            $uploadedFiles = [];
+            if ($files instanceof UploadedFile) {
+                $uploadedFiles = [$files];
+            } elseif (is_array($files)) {
+                $uploadedFiles = $files;
+            }
+
+            $firstAttachmentPath = null;
+            foreach ($uploadedFiles as $file) {
+                if ($file instanceof UploadedFile) {
+                    $storedPath = $file->store('attachments/tickets', 'public');
+                    if (!$firstAttachmentPath) {
+                        $firstAttachmentPath = $storedPath;
+                    }
+
+                    TicketAttachment::create([
+                        'ticket_id' => $ticket->id,
+                        'file_path' => $storedPath,
+                        'file_name' => $file->getClientOriginalName(),
+                        'file_size' => $file->getSize(),
+                    ]);
+                }
+            }
+
+            if ($firstAttachmentPath) {
+                $ticket->update(['attachment_path' => $firstAttachmentPath]);
+            }
 
             // Insert initial history
             TicketHistory::create([
@@ -137,13 +188,23 @@ class TicketService
                 app(TicketSlaService::class)->recordVerification($ticket, $user);
             }
 
+            // Saat Operator memverifikasi (status → Dialokasikan): mulai timer SLA Resolution
+            if ($oldStatus === 'Menunggu Verifikasi' && $newStatus === 'Dialokasikan' && is_null($ticket->sla_resolution_start_at)) {
+                $ticket->refresh();
+                app(TicketSlaService::class)->startResolutionSla(
+                    $ticket,
+                    ['sla_resolution_hours' => $ticket->sla_resolution_hours],
+                    $user
+                );
+            }
+
             // Notifikasi pemohon saat tiket diterima / dialokasikan
             if ($oldStatus === 'Menunggu Verifikasi' && in_array($newStatus, ['Dialokasikan', 'Diverifikasi']) && $ticket->user) {
                 $deptName = $ticket->fresh()->department?->name ?? 'Unit Terkait';
                 $ticket->user->notify(new \App\Notifications\TicketAllocatedNotification($ticket, $deptName));
             }
 
-            // Jika staf mengubah status menjadi 'Selesai'
+            // Jika role Bagian atau staf mengubah status menjadi 'Selesai'
             if ($newStatus === 'Selesai' && $oldStatus !== 'Selesai') {
                 $completedTime = now();
                 $slaService = app(TicketSlaService::class);
@@ -217,7 +278,110 @@ class TicketService
     }
 
     /**
-     * Dispose ticket by Kabag to a specific staff member with RBB/budget verification notes.
+     * Mengalokasikan tiket dari status 'Menunggu Verifikasi' ke department oleh Operator.
+     * Status berubah menjadi 'Dialokasikan'.
+     */
+    public function allocateTicket(Ticket $ticket, int $departmentId, string $notes, User $operator): Ticket
+    {
+        return $this->updateTicket($ticket, [
+            'status'        => 'Dialokasikan',
+            'department_id' => $departmentId,
+            'notes'         => $notes,
+        ], $operator);
+    }
+
+    /**
+     * Menerima tiket oleh role Bagian dan langsung mengubah status menjadi 'Dalam Proses'.
+     * Sekaligus memulai timer SLA Resolution secara otomatis.
+     */
+    public function acceptTicket(Ticket $ticket, User $user, ?string $notes = null): Ticket
+    {
+        return DB::transaction(function () use ($ticket, $user, $notes) {
+            $oldStatus = $ticket->status;
+            $newStatus = 'Dalam Proses';
+
+            $roleLabel = $user->role?->label ?? 'Bagian Penanganan';
+            $noteText = $notes ?? "Tiket diterima dan langsung diproses oleh {$user->nama_lengkap} ({$roleLabel}).";
+
+            $ticket->update([
+                'assigned_to' => $user->id,
+                'disposed_by' => $user->id,
+                'disposed_at' => now(),
+                'status' => $newStatus,
+            ]);
+
+            // Mulai SLA Resolusi jika belum berjalan
+            if (is_null($ticket->sla_resolution_start_at)) {
+                app(TicketSlaService::class)->startResolutionSla(
+                    $ticket,
+                    ['sla_resolution_hours' => $ticket->sla_resolution_hours],
+                    $user
+                );
+            }
+
+            TicketHistory::create([
+                'ticket_id' => $ticket->id,
+                'user_id' => $user->id,
+                'old_status' => $oldStatus,
+                'new_status' => $newStatus,
+                'notes' => $noteText,
+            ]);
+
+            return $ticket;
+        });
+    }
+
+    /**
+     * Menambahkan catatan / uraian update progres berkala oleh role Bagian.
+     */
+    public function addProgress(Ticket $ticket, User $user, string $notes): TicketHistory
+    {
+        return DB::transaction(function () use ($ticket, $user, $notes) {
+            $history = TicketHistory::create([
+                'ticket_id' => $ticket->id,
+                'user_id' => $user->id,
+                'old_status' => $ticket->status,
+                'new_status' => $ticket->status,
+                'notes' => "Update Progres: " . $notes,
+            ]);
+
+            $ticket->touch();
+
+            return $history;
+        });
+    }
+
+    /**
+     * Konfirmasi selesai oleh role Bagian.
+     */
+    public function completeTicket(Ticket $ticket, User $user, ?string $notes = null): Ticket
+    {
+        $noteText = $notes 
+            ? "Pekerjaan dinyatakan selesai oleh {$user->nama_lengkap}. Uraian: {$notes}" 
+            : "Pekerjaan dinyatakan selesai oleh {$user->nama_lengkap} ({$user->role?->label}). Menunggu konfirmasi pemohon.";
+
+        return $this->updateTicket($ticket, [
+            'status' => 'Selesai',
+            'notes' => $noteText,
+        ], $user);
+    }
+
+    /**
+     * Penolakan tiket oleh role Bagian atau Operator.
+     */
+    public function rejectTicket(Ticket $ticket, User $user, string $reason): Ticket
+    {
+        $noteText = "Tiket ditolak oleh {$user->nama_lengkap} ({$user->role?->label}). Alasan: {$reason}";
+
+        return $this->updateTicket($ticket, [
+            'status' => 'Ditolak',
+            'notes' => $noteText,
+            'reject_reason' => $reason,
+        ], $user);
+    }
+
+    /**
+     * Dispose ticket (kompatibilitas jika dibutuhkan pembagian spesifik ke rekan tim).
      */
     public function disposeTicket(Ticket $ticket, User $staff, string $notes, User $kabag, array $resolutionData = []): Ticket
     {
@@ -233,7 +397,6 @@ class TicketService
                 'status' => $newStatus,
             ]);
 
-            // Mulai SLA Resolution Time timer secara otomatis
             app(TicketSlaService::class)->startResolutionSla($ticket, $resolutionData, $kabag);
 
             TicketHistory::create([
@@ -241,7 +404,7 @@ class TicketService
                 'user_id' => $kabag->id,
                 'old_status' => $oldStatus,
                 'new_status' => $newStatus,
-                'notes' => "Disposisi oleh Kepala Bagian ke {$staff->nama_lengkap} ({$staff->username}). Catatan RBB/Anggaran: {$notes}",
+                'notes' => "Disposisi ke {$staff->nama_lengkap} ({$staff->username}). Catatan: {$notes}",
             ]);
 
             return $ticket;

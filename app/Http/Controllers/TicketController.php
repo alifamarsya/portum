@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Concerns\LogsAudit;
 use App\Models\InternalDepartment;
 use App\Models\Ticket;
+use App\Models\TicketAttachment;
 use App\Models\TicketCategory;
 use App\Models\UnitKerja;
 use App\Models\User;
@@ -31,34 +32,30 @@ class TicketController extends Controller
         $user = auth()->user();
         $baseQuery = Ticket::visibleTo($user);
 
-        // Calculate overview counts for current user's visible tickets
+        // Overview counts for current user's visible tickets
         $stats = [
             'total' => (clone $baseQuery)->count(),
             'menunggu' => (clone $baseQuery)->where('status', 'Menunggu Verifikasi')->count(),
             'diverifikasi' => (clone $baseQuery)->whereIn('status', ['Diverifikasi', 'Dialokasikan'])->count(),
             'dalam_proses' => (clone $baseQuery)->whereIn('status', ['Didistribusikan', 'Dalam Proses'])->count(),
-            'selesai' => (clone $baseQuery)->whereIn('status', ['Selesai', 'Ditutup Pemohon'])->count(),
+            'selesai' => (clone $baseQuery)->whereIn('status', ['Selesai', 'Ditutup Pemohon', 'Ditutup Otomatis (Sistem)'])->count(),
             'ditolak' => (clone $baseQuery)->where('status', 'Ditolak')->count(),
         ];
 
-        $query = (clone $baseQuery)->with(['user', 'category', 'department'])->latest();
+        $query = (clone $baseQuery)->with(['user', 'category', 'department', 'attachments'])->latest();
 
-        // Filter by status if provided in request
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        // Filter by category if provided in request
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->category_id);
         }
 
-        // Filter by department if provided in request
         if ($request->filled('department_id')) {
             $query->where('department_id', $request->department_id);
         }
 
-        // Search by ticket number or description
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -68,13 +65,12 @@ class TicketController extends Controller
             });
         }
 
-        // Filter by jenis_pengajuan if provided
         if ($request->filled('jenis_pengajuan')) {
             $query->where('jenis_pengajuan', $request->jenis_pengajuan);
         }
 
         $tickets = $query->paginate(15)->withQueryString();
-        $categories = TicketCategory::all();
+        $categories = TicketCategory::active()->orderBy('name')->get();
         $departments = InternalDepartment::all();
 
         return view('tickets.index', compact('tickets', 'categories', 'departments', 'stats'));
@@ -89,11 +85,13 @@ class TicketController extends Controller
             abort(403, 'Hanya role User (Pemohon Layanan) yang berwenang membuat tiket baru. Role lainnya hanya dapat memantau dan memproses tiket.');
         }
 
-        return view('tickets.create');
+        $categories = TicketCategory::active()->with('department')->orderBy('sort_order')->orderBy('name')->get();
+
+        return view('tickets.create', compact('categories'));
     }
 
     /**
-     * Store a newly created ticket in storage.
+     * Store a newly created ticket in storage with multiple PDF attachments.
      */
     public function store(Request $request)
     {
@@ -102,16 +100,28 @@ class TicketController extends Controller
         }
 
         $validated = $request->validate([
+            'title'           => 'nullable|string|max:255',
             'jenis_pengajuan' => 'required|in:Permintaan,Permasalahan',
-            'priority' => 'required|in:Rendah,Normal,Sedang,Tinggi,Darurat,Kritis',
-            'description' => 'required|string|min:10',
-            'attachment' => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc,docx,zip|max:10240',
+            'category_id'     => 'required|exists:ticket_categories,id',
+            'description'     => 'required|string|min:10',
+            'attachments'     => 'nullable|array',
+            'attachments.*'   => 'file|mimes:pdf|max:102400', // Hanya PDF, max 100MB per file
+        ], [
+            'attachments.*.mimes' => 'Semua lampiran wajib berupa file dokumen PDF (.pdf).',
+            'attachments.*.max'   => 'Ukuran tiap file lampiran tidak boleh melebihi 100 MB.',
+            'category_id.required'=> 'Silakan pilih Kategori Tiket yang sesuai.',
         ]);
+
+        // Cek total ukuran attachment jika diunggah
+        $files = $request->file('attachments') ?? [];
+        if (!is_array($files) && $files) {
+            $files = [$files];
+        }
 
         $ticket = $this->ticketService->createTicket(
             $validated,
             auth()->user(),
-            $request->file('attachment')
+            $files
         );
 
         $this->audit(
@@ -119,15 +129,15 @@ class TicketController extends Controller
             'Ticketing',
             'Ticket',
             $ticket->id,
-            "Membuat tiket baru {$ticket->ticket_number}"
+            "Membuat tiket baru {$ticket->ticket_number} (Kategori: {$ticket->category?->name})"
         );
 
         return redirect()->route('tickets.show', $ticket)
-            ->with('status', "Tiket {$ticket->ticket_number} berhasil dibuat dan sedang menunggu verifikasi.");
+            ->with('status', "Tiket {$ticket->ticket_number} berhasil dibuat dan sedang menunggu verifikasi Operator Helpdesk.");
     }
 
     /**
-     * Display the specified ticket with history timeline.
+     * Display the specified ticket with details, attachments, and history timeline.
      */
     public function show(Ticket $ticket)
     {
@@ -149,6 +159,7 @@ class TicketController extends Controller
             'department',
             'assignedStaff',
             'disposedBy',
+            'attachments',
             'histories' => function ($q) {
                 $q->with('user')->latest();
             }
@@ -156,27 +167,16 @@ class TicketController extends Controller
 
         $departments = InternalDepartment::all();
 
-        // Daftar staf aktif di bagian ini untuk dipilih oleh Kabag saat mendisposisikan tiket
+        // Staf / rekan kerja di bagian ini
         $departmentStaff = collect();
         if ($ticket->department_id) {
-            $departmentStaff = User::where(function ($q) use ($ticket) {
-                    $q->where('department_id', $ticket->department_id);
-                    if ($ticket->department_id == 1) {
-                        // Sertakan role lama (umum_rt) dan role baru (uk_umum_rt, uk_dokumen)
-                        $q->orWhereHas('role', fn($r) => $r->whereIn('nama', ['umum_rt', 'uk_umum_rt', 'uk_dokumen']));
-                    } elseif ($ticket->department_id == 2) {
-                        $q->orWhereHas('role', fn($r) => $r->whereIn('nama', ['aset', 'uk_administrasi_aset', 'uk_logistik']));
-                    } elseif ($ticket->department_id == 3) {
-                        $q->orWhereHas('role', fn($r) => $r->whereIn('nama', ['pengadaan', 'uk_pengadaan', 'uk_pemeliharaan']));
-                    }
-                })
+            $departmentStaff = User::where('department_id', $ticket->department_id)
                 ->where('is_active', true)
-                ->whereDoesntHave('role', fn($q) => $q->whereIn('nama', ['kabag_umum', 'kabag_aset', 'kabag_pengadaan']))
                 ->orderBy('nama_lengkap')
                 ->get();
         }
 
-        // Audit: Pemohon membuka detail tiket miliknya — catat sebagai aksi VIEW
+        // Audit: Pemohon membuka detail tiket miliknya
         if ($user->isUser() && $ticket->user_id === $user->id) {
             $this->audit(
                 'VIEW',
@@ -193,66 +193,114 @@ class TicketController extends Controller
     }
 
     /**
-     * Disposisi tiket oleh Kepala Bagian (Kabag) kepada staf tertentu di timnya
-     * setelah pengecekan kesesuaian RBB / pagu anggaran.
+     * Aksi Role Bagian: Menerima Tiket (Accept).
+     * Mengubah status menjadi 'Dalam Proses' dan memulai timer SLA Resolusi.
      */
-    public function dispose(Request $request, Ticket $ticket)
+    public function accept(Request $request, Ticket $ticket)
     {
         $user = auth()->user();
 
-        $isAuthorizedKabag = ($user->isKabag() && $user->effectiveDepartmentId() == $ticket->department_id) || $user->isSuperAdmin();
-        if (!$isAuthorizedKabag) {
-            abort(403, 'Hanya Kepala Bagian penanggung jawab yang berwenang mendisposisikan tiket ini.');
+        $isAuthorized = ($user->isBagian() && $user->effectiveDepartmentId() == $ticket->department_id)
+            || $user->isSuperAdmin();
+
+        if (!$isAuthorized) {
+            abort(403, 'Hanya anggota Bagian penanggung jawab yang berwenang menerima tiket ini.');
         }
 
-        $validated = $request->validate([
-            'assigned_to' => 'required|exists:users,id',
-            'disposition_notes' => 'required|string|min:5|max:1000',
-            'kategori_pekerjaan' => 'nullable|string|max:100',
-            'skala_eselonisasi' => 'nullable|string|max:100',
-            'estimasi_biaya' => 'nullable|numeric|min:0',
-            'sla_resolution_hours' => 'nullable|integer|min:1|max:500',
-        ]);
-
-        $staff = \App\Models\User::findOrFail($validated['assigned_to']);
-        if ($staff->effectiveDepartmentId() != $ticket->department_id) {
-            return back()->withErrors(['assigned_to' => 'Staf yang dipilih bukan anggota bagian ini.'])->withInput();
+        if ($ticket->status !== 'Dialokasikan' && $ticket->status !== 'Diverifikasi' && $ticket->status !== 'Didistribusikan') {
+            return back()->with('error', 'Tiket ini tidak dalam status menunggu penerimaan.');
         }
 
-        $this->ticketService->disposeTicket(
-            $ticket,
-            $staff,
-            $validated['disposition_notes'],
-            $user,
-            [
-                'kategori_pekerjaan'   => $validated['kategori_pekerjaan'] ?? null,
-                'skala_eselonisasi'    => $validated['skala_eselonisasi'] ?? null,
-                'estimasi_biaya'       => $validated['estimasi_biaya'] ?? null,
-                'sla_resolution_hours' => $validated['sla_resolution_hours'] ?? null,
-            ]
-        );
+        $notes = $request->input('notes');
+        $this->ticketService->acceptTicket($ticket, $user, $notes);
 
         $this->audit(
-            'DISPOSE',
+            'ACCEPT',
             'Ticketing',
             'Ticket',
             $ticket->id,
-            "Kepala Bagian {$user->nama_lengkap} mendisposisikan tiket {$ticket->ticket_number} ke staf {$staff->nama_lengkap} ({$staff->username}). Catatan RBB/Anggaran: {$validated['disposition_notes']}"
+            "Bagian {$user->role?->label} ({$user->nama_lengkap}) menerima tiket {$ticket->ticket_number} untuk langsung diproses."
         );
 
         return redirect()->route('tickets.show', $ticket)
-            ->with('status', "Tiket {$ticket->ticket_number} berhasil disetujui & didisposisikan kepada staf {$staff->nama_lengkap}.");
+            ->with('status', "Tiket {$ticket->ticket_number} berhasil diterima. Status kini 'Dalam Proses' dan timer SLA resolusi telah berjalan.");
     }
 
     /**
-     * Penolakan tiket oleh Kepala Bagian atau Operator (misal: tidak sesuai RBB / pagu habis).
+     * Aksi Role Bagian: Menambahkan update progres berkala.
+     */
+    public function addProgress(Request $request, Ticket $ticket)
+    {
+        $user = auth()->user();
+
+        $isAuthorized = ($user->isBagian() && $user->effectiveDepartmentId() == $ticket->department_id)
+            || $user->isOperator()
+            || $user->isSuperAdmin();
+
+        if (!$isAuthorized) {
+            abort(403, 'Anda tidak berwenang menambahkan catatan progres pada tiket ini.');
+        }
+
+        $validated = $request->validate([
+            'notes' => 'required|string|min:3|max:1000',
+        ], [
+            'notes.required' => 'Uraian progres pengerjaan wajib diisi.',
+            'notes.min'      => 'Uraian progres minimal 3 karakter.',
+        ]);
+
+        $this->ticketService->addProgress($ticket, $user, $validated['notes']);
+
+        $this->audit(
+            'UPDATE_PROGRESS',
+            'Ticketing',
+            'Ticket',
+            $ticket->id,
+            "Menambahkan catatan progres pengerjaan pada tiket {$ticket->ticket_number}: {$validated['notes']}"
+        );
+
+        return redirect()->route('tickets.show', $ticket)
+            ->with('status', "Catatan progres pengerjaan berhasil ditambahkan ke riwayat tiket.");
+    }
+
+    /**
+     * Aksi Role Bagian: Konfirmasi Selesai Pengerjaan Tiket.
+     * Mengubah status menjadi 'Selesai', mencatat SLA resolusi, dan menyalakan batas waktu 2 hari konfirmasi pemohon.
+     */
+    public function complete(Request $request, Ticket $ticket)
+    {
+        $user = auth()->user();
+
+        $isAuthorized = ($user->isBagian() && $user->effectiveDepartmentId() == $ticket->department_id)
+            || $user->isSuperAdmin();
+
+        if (!$isAuthorized) {
+            abort(403, 'Hanya anggota Bagian penanggung jawab yang berwenang mengonfirmasi penyelesaian tiket ini.');
+        }
+
+        $notes = $request->input('notes');
+        $this->ticketService->completeTicket($ticket, $user, $notes);
+
+        $this->audit(
+            'COMPLETE',
+            'Ticketing',
+            'Ticket',
+            $ticket->id,
+            "Bagian {$user->nama_lengkap} mengonfirmasi pekerjaan tiket {$ticket->ticket_number} telah selesai."
+        );
+
+        return redirect()->route('tickets.show', $ticket)
+            ->with('status', "Tiket {$ticket->ticket_number} telah ditandai Selesai. Sistem kini menunggu konfirmasi dari pemohon layanan.");
+    }
+
+    /**
+     * Penolakan tiket oleh Bagian atau Operator.
      */
     public function reject(Request $request, Ticket $ticket)
     {
         $user = auth()->user();
 
-        $isAuthorized = ($user->isKabag() && $user->effectiveDepartmentId() == $ticket->department_id) 
-            || $user->isOperator() 
+        $isAuthorized = ($user->isBagian() && $user->effectiveDepartmentId() == $ticket->department_id)
+            || $user->isOperator()
             || $user->isSuperAdmin();
 
         if (!$isAuthorized) {
@@ -261,13 +309,12 @@ class TicketController extends Controller
 
         $validated = $request->validate([
             'notes' => 'required|string|min:5|max:1000',
+        ], [
+            'notes.required' => 'Alasan penolakan tiket wajib diisi.',
+            'notes.min'      => 'Alasan penolakan minimal 5 karakter.',
         ]);
 
-        $oldStatus = $ticket->status;
-        $this->ticketService->updateTicket($ticket, [
-            'status' => 'Ditolak',
-            'notes' => "Tiket ditolak oleh {$user->nama_lengkap} ({$user->role?->label}). Alasan: {$validated['notes']}",
-        ], $user);
+        $this->ticketService->rejectTicket($ticket, $user, $validated['notes']);
 
         $this->audit(
             'REJECT',
@@ -282,7 +329,7 @@ class TicketController extends Controller
     }
 
     /**
-     * Show the form for editing/updating ticket status or assignment.
+     * Show the form for editing/updating ticket status or assignment (Operator).
      */
     public function edit(Ticket $ticket)
     {
@@ -291,24 +338,23 @@ class TicketController extends Controller
         $isInternal = !is_null($user->effectiveDepartmentId());
 
         if (!$isOperator && !$isInternal) {
-            abort(403, 'Hanya Operator dan Staf/Kepala Bagian Internal yang berwenang mengubah tiket.');
+            abort(403, 'Hanya Operator dan Bagian Internal yang berwenang mengubah tiket.');
         }
 
         if ($isInternal && !$isOperator && $ticket->department_id !== $user->effectiveDepartmentId()) {
             abort(403, 'Tiket ini tidak ditugaskan ke bagian Anda.');
         }
 
-        $categories = TicketCategory::all();
+        $categories = TicketCategory::active()->orderBy('name')->get();
         $departments = InternalDepartment::all();
 
-        $ticket->load(['user', 'category', 'department', 'assignedStaff', 'disposedBy', 'histories' => fn($q) => $q->with('user')->latest()]);
+        $ticket->load(['user', 'category', 'department', 'attachments', 'histories' => fn($q) => $q->with('user')->latest()]);
 
         return view('tickets.edit', compact('ticket', 'categories', 'departments'));
     }
 
     /**
-     * Update the specified ticket in storage.
-     * Records changes to TicketHistories on status/department updates.
+     * Update the specified ticket in storage (Operator Alokasi / Verifikasi).
      */
     public function update(Request $request, Ticket $ticket)
     {
@@ -316,7 +362,6 @@ class TicketController extends Controller
         $isOperator = $user->isOperator() || $user->isSuperAdmin();
         $isInternal = !is_null($user->effectiveDepartmentId());
 
-        // Authorization check
         if (!$isOperator && !$isInternal) {
             abort(403, 'Anda tidak memiliki hak akses untuk mengubah tiket.');
         }
@@ -327,20 +372,38 @@ class TicketController extends Controller
 
         $rules = [
             'status' => 'required|string|in:Menunggu Verifikasi,Diverifikasi,Didistribusikan,Dialokasikan,Dalam Proses,Selesai,Ditolak,Ditutup Pemohon',
-            'notes' => 'nullable|string|max:1000',
+            'notes'  => 'nullable|string|max:1000',
         ];
 
-        // Operator verifies and allocates directly to department: status is automatically set to 'Dialokasikan'
+        // Operator verifikasi dan langsung alokasikan ke Bagian: status menjadi 'Dialokasikan'
         if ($isOperator) {
             $request->merge(['status' => 'Dialokasikan']);
             $rules['department_id']    = 'required|exists:internal_departments,id';
-            $rules['unit_kerja_id']    = 'nullable|exists:unit_kerja,id';
             $rules['category_id']      = 'nullable|exists:ticket_categories,id';
-            $rules['priority']         = 'nullable|in:Rendah,Normal,Sedang,Tinggi,Kritis,Darurat';
             $rules['jenis_pengajuan']  = 'nullable|in:Permintaan,Permasalahan';
+            $rules['priority']         = 'nullable|in:Rendah,Sedang,Tinggi,Kritis';
         }
 
         $validated = $request->validate($rules);
+
+        // Sinkronisasi SLA dan auto-derive priority jika kategori diubah
+        if (!empty($validated['category_id'])) {
+            $cat = TicketCategory::find($validated['category_id']);
+            if ($cat) {
+                $validated['sla_resolution_hours'] = $cat->sla_resolution_hours;
+
+                // Auto-derive priority dari SLA jam jika tidak dipilih secara eksplisit
+                if (empty($validated['priority'])) {
+                    $slaHours = $cat->sla_resolution_hours;
+                    $validated['priority'] = match (true) {
+                        $slaHours <= 8  => 'Kritis',
+                        $slaHours <= 12 => 'Tinggi',
+                        $slaHours <= 48 => 'Sedang',
+                        default         => 'Rendah',
+                    };
+                }
+            }
+        }
 
         $oldStatus = $ticket->status;
         $this->ticketService->updateTicket($ticket, $validated, $user);
@@ -358,31 +421,61 @@ class TicketController extends Controller
     }
 
     /**
-     * Allow the ticket requester (pemohon) to confirm closure when status is 'Selesai'.
-     * This records the confirmation as 'Ditutup Pemohon' in histories and audit log.
+     * Disposisi tiket (kompatibilitas).
      */
-    public function confirmClose(Ticket $ticket)
+    public function dispose(Request $request, Ticket $ticket)
     {
         $user = auth()->user();
 
-        // Hanya pemohon pemilik tiket yang bisa konfirmasi
+        $isAuthorized = ($user->isBagian() && $user->effectiveDepartmentId() == $ticket->department_id) || $user->isSuperAdmin();
+        if (!$isAuthorized) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        $validated = $request->validate([
+            'assigned_to' => 'required|exists:users,id',
+            'disposition_notes' => 'required|string|min:5|max:1000',
+        ]);
+
+        $staff = User::findOrFail($validated['assigned_to']);
+        $this->ticketService->disposeTicket($ticket, $staff, $validated['disposition_notes'], $user);
+
+        return redirect()->route('tickets.show', $ticket)
+            ->with('status', "Tiket {$ticket->ticket_number} berhasil didisposisikan kepada {$staff->nama_lengkap}.");
+    }
+
+    /**
+     * Konfirmasi penutupan tiket oleh pemohon saat status 'Selesai'.
+     */
+    public function confirmClose(Request $request, Ticket $ticket)
+    {
+        $user = auth()->user();
+
         if ($ticket->user_id !== $user->id) {
             abort(403, 'Anda bukan pemilik tiket ini.');
         }
 
-        // Hanya bisa konfirmasi jika status sudah Selesai dari pihak internal
         if ($ticket->status !== 'Selesai') {
             return back()->with('error', 'Tiket hanya dapat dikonfirmasi jika sudah berstatus Selesai dari bagian yang menangani.');
         }
 
-        // Update status dan rekam ke TicketHistories
+        $validated = $request->validate([
+            'rating'   => 'nullable|integer|min:1|max:5',
+            'feedback' => 'nullable|string|max:1000',
+        ]);
+
         $this->ticketService->updateTicket($ticket, [
             'status'   => 'Ditutup Pemohon',
             'notes'    => 'Pemohon mengonfirmasi bahwa kendala telah terselesaikan dengan baik dan menutup tiket ini.',
             'closed_at'=> now(),
         ], $user);
 
-        // Audit Log — masuk ke Hash-Chain
+        // Simpan rating dan feedback jika diisi
+        $ticket->update(array_filter([
+            'rating'   => $validated['rating'] ?? null,
+            'feedback' => $validated['feedback'] ?? null,
+        ], fn ($v) => !is_null($v)));
+
         $this->audit(
             'CONFIRM_CLOSE',
             'Ticketing',
@@ -396,9 +489,7 @@ class TicketController extends Controller
     }
 
     /**
-     * Pemohon menyatakan pekerjaan belum selesai pada tiket yang sudah berstatus Selesai/Tertutup.
-     * Sesuai ketentuan: tiket yang sudah berstatus selesai/tertutup tidak dapat dibuka kembali,
-     * melainkan pemohon wajib membuat tiket pengajuan baru dengan referensi tiket ini.
+     * Pemohon melaporkan kendala belum tuntas pada tiket berstatus Selesai/Tertutup.
      */
     public function reportIncomplete(Request $request, Ticket $ticket)
     {
@@ -412,13 +503,12 @@ class TicketController extends Controller
             'reason' => 'required|string|min:5|max:1000',
         ]);
 
-        // Catat ke riwayat tiket dan audit log
         \App\Models\TicketHistory::create([
             'ticket_id' => $ticket->id,
             'user_id'   => $user->id,
             'old_status'=> $ticket->status,
             'new_status'=> $ticket->status,
-            'notes'     => "Pemohon melaporkan bahwa pekerjaan belum selesai / masih ada kendala: \"{$validated['reason']}\". Pemohon diarahkan untuk membuat tiket baru sesuai SOP.",
+            'notes'     => "Pemohon melaporkan bahwa pekerjaan belum selesai: \"{$validated['reason']}\". Pemohon diarahkan untuk membuat tiket baru sesuai SOP.",
         ]);
 
         $this->audit(
@@ -433,51 +523,84 @@ class TicketController extends Controller
 
         return redirect()->route('tickets.create', [
             'jenis_pengajuan' => $ticket->jenis_pengajuan ?? 'Permasalahan',
-            'priority'        => $ticket->priority ?? 'Sedang',
+            'category_id'     => $ticket->category_id,
             'description'     => $newTicketDescription,
-        ])->with('status', "Tiket {$ticket->ticket_number} tercatat membutuhkan tindak lanjut. Sesuai SOP, silakan lengkapi dan kirim formulir tiket pengajuan baru di bawah ini.");
+        ])->with('status', "Tiket {$ticket->ticket_number} tercatat membutuhkan tindak lanjut. Silakan lengkapi dan kirim formulir tiket pengajuan baru di bawah ini.");
     }
 
     /**
-     * View ticket attachment in browser.
+     * View specific attachment file.
      */
-    public function viewAttachment(Ticket $ticket)
+    public function viewAttachmentFile(TicketAttachment $attachment)
     {
+        $ticket = $attachment->ticket;
         $user = auth()->user();
 
-        // Check view authorization
         $userDeptId = $user->effectiveDepartmentId();
         if (!is_null($userDeptId) && !$user->isSuperAdmin() && !$user->isOperator() && !$user->isKepalaDivisi() && $ticket->department_id !== $userDeptId) {
             abort(403, 'Akses ditolak.');
         }
 
         if ($user->isUser() && $ticket->user_id !== $user->id) {
-            abort(403, 'Anda tidak berwenang mengakses lampiran tiket ini.');
+            abort(403, 'Anda tidak berwenang mengakses lampiran ini.');
+        }
+
+        if (!Storage::disk('public')->exists($attachment->file_path)) {
+            abort(404, 'Berkas lampiran tidak ditemukan pada server.');
+        }
+
+        return response()->file(Storage::disk('public')->path($attachment->file_path));
+    }
+
+    /**
+     * Download specific attachment file.
+     */
+    public function downloadAttachmentFile(TicketAttachment $attachment)
+    {
+        $ticket = $attachment->ticket;
+        $user = auth()->user();
+
+        $userDeptId = $user->effectiveDepartmentId();
+        if (!is_null($userDeptId) && !$user->isSuperAdmin() && !$user->isOperator() && !$user->isKepalaDivisi() && $ticket->department_id !== $userDeptId) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        if ($user->isUser() && $ticket->user_id !== $user->id) {
+            abort(403, 'Anda tidak berwenang mengunduh lampiran ini.');
+        }
+
+        if (!Storage::disk('public')->exists($attachment->file_path)) {
+            abort(404, 'Berkas lampiran tidak ditemukan pada server.');
+        }
+
+        return Storage::disk('public')->download($attachment->file_path, $attachment->file_name);
+    }
+
+    /**
+     * View legacy ticket attachment in browser.
+     */
+    public function viewAttachment(Ticket $ticket)
+    {
+        $firstAttachment = $ticket->attachments()->first();
+        if ($firstAttachment) {
+            return $this->viewAttachmentFile($firstAttachment);
         }
 
         if (!$ticket->attachment_path || !Storage::disk('public')->exists($ticket->attachment_path)) {
             abort(404, 'Berkas lampiran tidak ditemukan pada server.');
         }
 
-        $fullPath = Storage::disk('public')->path($ticket->attachment_path);
-        return response()->file($fullPath);
+        return response()->file(Storage::disk('public')->path($ticket->attachment_path));
     }
 
     /**
-     * Download ticket attachment directly.
+     * Download legacy ticket attachment directly.
      */
     public function downloadAttachment(Ticket $ticket)
     {
-        $user = auth()->user();
-
-        // Check view authorization
-        $userDeptId = $user->effectiveDepartmentId();
-        if (!is_null($userDeptId) && !$user->isSuperAdmin() && !$user->isOperator() && !$user->isKepalaDivisi() && $ticket->department_id !== $userDeptId) {
-            abort(403, 'Akses ditolak.');
-        }
-
-        if ($user->isUser() && $ticket->user_id !== $user->id) {
-            abort(403, 'Anda tidak berwenang mengunduh lampiran tiket ini.');
+        $firstAttachment = $ticket->attachments()->first();
+        if ($firstAttachment) {
+            return $this->downloadAttachmentFile($firstAttachment);
         }
 
         if (!$ticket->attachment_path || !Storage::disk('public')->exists($ticket->attachment_path)) {
