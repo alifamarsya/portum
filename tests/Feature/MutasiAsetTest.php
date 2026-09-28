@@ -271,9 +271,19 @@ class MutasiAsetTest extends TestCase
 
         $response->assertRedirect();
         $mutasi->refresh();
-        $this->assertEquals('Ditutup', $mutasi->status);
+        $this->assertEquals('Disetujui', $mutasi->status);
         $this->assertEquals('Disetujui', $mutasi->status_hasil);
         $this->assertEquals($this->kabagAset->id, $mutasi->approver_id);
+
+        // Tahap konfirmasi akhir & penutupan oleh Pengaju
+        $confirmResponse = $this->actingAs($this->user)->post(route('mutasi-aset.konfirmasi-pengaju', $mutasi), [
+            'catatan_konfirmasi' => 'Aset telah diterima dengan baik.',
+        ]);
+        $confirmResponse->assertRedirect();
+
+        $mutasi->refresh();
+        $this->assertEquals('Ditutup', $mutasi->status);
+        $this->assertEquals('Disetujui', $mutasi->status_hasil);
 
         // Verifikasi tabel as_aset terupdate otomatis
         $this->aset->refresh();
@@ -282,7 +292,7 @@ class MutasiAsetTest extends TestCase
 
         // Verifikasi tabel as_aset_histories mencatat mutasi
         $history = AsAsetHistory::where('aset_id', $this->aset->id)
-            ->where('field_changed', 'Mutasi Aset')
+            ->where('field_changed', 'Mutasi Aset Selesai')
             ->latest('id')
             ->first();
 

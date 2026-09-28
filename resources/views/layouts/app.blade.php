@@ -130,37 +130,20 @@
     $userDashboardLabel = 'Dashboard';
     if ($user?->isUser()) {
         $userDashboardRoute = route('user.dashboard');
-        $userDashboardLabel = 'Dashboard';
     } elseif ($user?->isOperator()) {
         $userDashboardRoute = route('operator.dashboard');
-        $userDashboardLabel = 'Dashboard Operator';
     } elseif ($user?->isSuperAdmin()) {
         $userDashboardRoute = route('admin.dashboard');
-        $userDashboardLabel = 'Dashboard Admin';
     } elseif ($user?->isKepalaDivisi() || $user?->hasRole(['pimpinan', 'kepala_divisi'])) {
         $userDashboardRoute = route('pimpinan.dashboard');
-        $userDashboardLabel = 'Dashboard Pimpinan';
-    } elseif ($user?->isBagianUmum()) {
+    } elseif ($user?->isBagian() || $user?->isKabag()) {
         $userDashboardRoute = route('kabag.dashboard');
-        $userDashboardLabel = 'Dashboard Bagian Umum';
-    } elseif ($user?->isBagianAset()) {
-        $userDashboardRoute = route('kabag.dashboard');
-        $userDashboardLabel = 'Dashboard Bagian Aset';
-    } elseif ($user?->isBagianPengadaan()) {
-        $userDashboardRoute = route('kabag.dashboard');
-        $userDashboardLabel = 'Dashboard Bagian Pengadaan';
-    } elseif ($user?->isKabag()) {
-        $userDashboardRoute = route('kabag.dashboard');
-        $userDashboardLabel = 'Dashboard Bagian';
     } elseif ($user?->isUkUmumRt() || $user?->isUkDokumen() || $user?->hasRole('umum_rt')) {
         $userDashboardRoute = route('staf-umum.dashboard');
-        $userDashboardLabel = 'Dashboard Staf';
     } elseif ($user?->isUkAdministrasiAset() || $user?->isUkLogistik() || $user?->hasRole('aset')) {
         $userDashboardRoute = route('staf-aset.dashboard');
-        $userDashboardLabel = 'Dashboard Staf';
     } elseif ($user?->isUkPengadaan() || $user?->isUkPemeliharaan() || $user?->hasRole('pengadaan')) {
         $userDashboardRoute = route('staf-pengadaan.dashboard');
-        $userDashboardLabel = 'Dashboard Staf';
     }
 @endphp
 

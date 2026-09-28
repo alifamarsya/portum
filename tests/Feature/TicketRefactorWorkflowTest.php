@@ -107,7 +107,23 @@ class TicketRefactorWorkflowTest extends TestCase
     }
 
     /**
-     * 2. Test File Upload Validation: Rejects non-PDF
+     * 2. Test Description Validation: Rejects description under 100 characters
+     */
+    public function test_ticket_creation_rejects_description_under_100_characters(): void
+    {
+        $response = $this->actingAs($this->user)
+            ->post(route('tickets.store'), [
+                'title' => 'Pengujian Deskripsi Pendek',
+                'jenis_pengajuan' => 'Permintaan',
+                'category_id' => $this->categoryPermintaan->id,
+                'description' => 'Uraian ini sengaja dibuat pendek di bawah 100 karakter.',
+            ]);
+
+        $response->assertSessionHasErrors(['description']);
+    }
+
+    /**
+     * 3. Test File Upload Validation: Rejects non-PDF
      */
     public function test_ticket_creation_rejects_non_pdf_files(): void
     {
@@ -118,7 +134,7 @@ class TicketRefactorWorkflowTest extends TestCase
                 'title' => 'Uji Coba Validasi Non PDF',
                 'jenis_pengajuan' => 'Permintaan',
                 'category_id' => $this->categoryPermintaan->id,
-                'description' => 'Mencoba mengunggah file non PDF yang seharusnya ditolak oleh sistem.',
+                'description' => 'Mencoba mengunggah file non PDF yang seharusnya ditolak oleh sistem validasi tiket layanan Bank Sulteng agar format file yang terunggah selalu berupa dokumen PDF valid.',
                 'attachments' => [$nonPdfFile],
             ]);
 
@@ -126,7 +142,7 @@ class TicketRefactorWorkflowTest extends TestCase
     }
 
     /**
-     * 3. Test File Upload: Accepts Multiple PDF files up to 100MB
+     * 4. Test File Upload: Accepts Multiple PDF files up to 100MB
      */
     public function test_ticket_creation_accepts_multiple_pdf_files(): void
     {
@@ -138,7 +154,7 @@ class TicketRefactorWorkflowTest extends TestCase
                 'title' => 'Pengadaan ATK Multi PDF',
                 'jenis_pengajuan' => 'Permintaan',
                 'category_id' => $this->categoryPermintaan->id,
-                'description' => 'Deskripsi pengajuan dengan multi lampiran PDF.',
+                'description' => 'Permohonan pengadaan alat tulis kantor dan perlengkapan kerja untuk mendukung operasional harian cabang secara lengkap dan terperinci sesuai ketentuan yang berlaku.',
                 'attachments' => [$pdf1, $pdf2],
             ]);
 
@@ -157,7 +173,7 @@ class TicketRefactorWorkflowTest extends TestCase
     }
 
     /**
-     * 4. Test Streamlined Workflow End-to-End:
+     * 5. Test Streamlined Workflow End-to-End:
      * User creates -> Operator allocates -> Bagian accepts -> Bagian updates progress -> Bagian completes -> User closes
      */
     public function test_full_streamlined_ticketing_workflow(): void
@@ -169,28 +185,40 @@ class TicketRefactorWorkflowTest extends TestCase
             'title' => 'AC Ruang Kerja Mati Total',
             'jenis_pengajuan' => 'Permasalahan',
             'category_id' => $this->categoryPermasalahan->id,
-            'description' => 'AC tiba-tiba mati dan mengeluarkan bau hangus.',
+            'description' => 'Unit AC di ruang staf operasional lantai 2 tiba-tiba mati total dan mengeluarkan bau hangus sejak pagi hari ini sehingga ruangan menjadi panas dan tidak kondusif.',
         ], $this->user);
 
         $this->assertEquals('Menunggu Verifikasi', $ticket->status);
         $this->assertEquals(12, $ticket->sla_resolution_hours);
 
-        // Step 2: Operator allocates to Bagian Umum
-        $ticket = $ticketService->allocateTicket($ticket, 1, 'Dialokasikan ke Bagian Umum untuk penanganan teknis.', $this->operator);
-        $this->assertEquals('Dialokasikan', $ticket->status);
+        // Step 2: Operator allocates/verifies to Bagian Umum
+        $ticket = $ticketService->allocateTicket($ticket, 1, null, $this->operator);
+        $this->assertEquals('Diverifikasi', $ticket->status);
         $this->assertEquals(1, $ticket->department_id);
 
-        // Step 3: Bagian Umum accepts ticket (status -> Dalam Proses, SLA starts)
+        $verifyHistory = \App\Models\TicketHistory::where('ticket_id', $ticket->id)
+            ->where('new_status', 'Diverifikasi')
+            ->latest('id')
+            ->first();
+        $this->assertNotNull($verifyHistory);
+        $this->assertEquals('Tiket diterima dan langsung diproses oleh Bagian Umum & Rumah Tangga', $verifyHistory->notes);
+
+        // Step 3: Bagian Umum accepts ticket without notes (status -> Dalam Proses, default note "Sedang diproses oleh...")
         $responseAccept = $this->actingAs($this->bagianUmum)
-            ->post(route('tickets.accept', $ticket), [
-                'notes' => 'Tiket diterima oleh tim Bagian Umum dan teknisi segera diberangkatkan.',
-            ]);
+            ->post(route('tickets.accept', $ticket));
         $responseAccept->assertRedirect();
 
         $ticket->refresh();
         $this->assertEquals('Dalam Proses', $ticket->status);
         $this->assertNotNull($ticket->sla_resolution_start_at);
         $this->assertEquals($this->bagianUmum->id, $ticket->assigned_to);
+
+        $processHistory = \App\Models\TicketHistory::where('ticket_id', $ticket->id)
+            ->where('new_status', 'Dalam Proses')
+            ->latest('id')
+            ->first();
+        $this->assertNotNull($processHistory);
+        $this->assertEquals('Sedang diproses oleh Bagian Umum & Rumah Tangga', $processHistory->notes);
 
         // Step 4: Bagian Umum adds progress notes
         $responseProgress = $this->actingAs($this->bagianUmum)

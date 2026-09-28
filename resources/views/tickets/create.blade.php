@@ -92,15 +92,25 @@
 
             {{-- 4. Deskripsi / Uraian Masalah --}}
             <div>
-                <label for="description" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Deskripsi / Uraian Lengkap <span class="text-rose-500">*</span>
-                </label>
-                <textarea name="description" id="description" rows="5" required
-                          placeholder="Jelaskan kebutuhan, lokasi, kendala spesifik, atau perincian barang/jasa secara detail..."
+                <div class="flex items-center justify-between mb-1.5">
+                    <label for="description" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        Deskripsi / Uraian Lengkap <span class="text-rose-500">*</span>
+                    </label>
+                    <span id="char-counter" class="text-[11px] font-mono font-semibold text-slate-400">
+                        <span id="char-count">0</span> / 100 karakter minimal
+                    </span>
+                </div>
+                <textarea name="description" id="description" rows="5" required minlength="100"
+                          placeholder="Jelaskan kebutuhan, lokasi, kendala spesifik, atau perincian barang/jasa secara rinci (minimal 100 karakter)..."
+                          oninput="updateCharCount(this)"
                           class="w-full border border-slate-300 rounded-xl p-3.5 text-xs text-ink focus:border-[#114E84] focus:ring-1 focus:ring-[#114E84] transition leading-relaxed @error('description') border-rose-400 @enderror">{{ old('description', request('description')) }}</textarea>
-                @error('description')
-                    <p class="text-rose-500 text-xs mt-1">{{ $message }}</p>
-                @enderror
+                <div class="flex items-center justify-between mt-1">
+                    @error('description')
+                        <p class="text-rose-500 text-xs">{{ $message }}</p>
+                    @else
+                        <p class="text-[11px] text-slate-400">Mohon uraikan secara detail agar petugas dapat memahami dan segera menindaklanjuti.</p>
+                    @enderror
+                </div>
             </div>
 
             {{-- 5. Lampiran Multiple Berkas PDF --}}
@@ -112,16 +122,16 @@
                     <span class="text-[11px] text-slate-400">Khusus berkas <strong>PDF</strong> &bull; Maks 100 MB / file</span>
                 </div>
 
-                <div class="border-2 border-dashed border-slate-300 hover:border-[#114E84] rounded-2xl p-5 text-center bg-slate-50/60 hover:bg-blue-50/20 transition cursor-pointer"
+                <div id="drop-zone" class="border-2 border-dashed border-slate-300 hover:border-[#114E84] rounded-2xl p-6 text-center bg-slate-50/60 hover:bg-blue-50/20 transition cursor-pointer"
                      onclick="document.getElementById('attachments').click()">
-                    <div class="w-10 h-10 mx-auto mb-2 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
-                        @include('partials.icon', ['name' => 'file-text', 'class' => 'w-5 h-5'])
+                    <div class="w-12 h-12 mx-auto mb-2 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center shadow-2xs">
+                        @include('partials.icon', ['name' => 'file-text', 'class' => 'w-6 h-6'])
                     </div>
-                    <p class="text-xs font-semibold text-slate-700">
-                        Klik untuk memilih satu atau beberapa dokumen PDF
+                    <p class="text-xs font-bold text-slate-800">
+                        Klik untuk memilih atau seret (drag &amp; drop) berkas PDF ke sini
                     </p>
-                    <p class="text-[11px] text-slate-400 mt-0.5">
-                        Dapat mengunggah lebih dari 1 file PDF sekaligus (Maksimal 100 MB per file)
+                    <p class="text-[11px] text-slate-400 mt-1">
+                        Dapat memilih lebih dari 1 file sekaligus atau menambahkan satu per satu (Maksimal 100 MB per file)
                     </p>
                     <input type="file" name="attachments[]" id="attachments" multiple accept=".pdf"
                            class="hidden" onchange="onFilesSelected(this)">
@@ -136,8 +146,13 @@
 
                 {{-- File Selected Preview List --}}
                 <div id="file-list-container" class="hidden space-y-2 pt-2">
-                    <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Berkas Terpilih:</p>
-                    <div id="file-list" class="space-y-1.5"></div>
+                    <div class="flex items-center justify-between">
+                        <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Berkas Terpilih (<span id="file-count">0</span>):</p>
+                        <button type="button" onclick="clearAllFiles()" class="text-[11px] text-rose-600 hover:text-rose-800 font-semibold hover:underline">
+                            Hapus Semua
+                        </button>
+                    </div>
+                    <div id="file-list" class="space-y-2"></div>
                 </div>
             </div>
 
@@ -232,39 +247,105 @@
             }
         }
 
+        // Progressive File Queue menggunakan DataTransfer
+        let fileQueue = new DataTransfer();
+
+        function addFilesToQueue(files) {
+            if (!files || files.length === 0) return;
+
+            Array.from(files).forEach(file => {
+                // Hindari duplikasi file dengan nama dan ukuran yang sama persis
+                const alreadyExists = Array.from(fileQueue.files).some(
+                    f => f.name === file.name && f.size === file.size
+                );
+                if (!alreadyExists) {
+                    fileQueue.items.add(file);
+                }
+            });
+
+            syncInputAndRender();
+        }
+
         function onFilesSelected(input) {
+            if (input.files && input.files.length > 0) {
+                addFilesToQueue(input.files);
+            }
+            // Reset input value agar user bisa memilih file yang sama atau menambah file baru lagi
+            input.value = '';
+        }
+
+        function removeQueuedFile(index) {
+            const nextQueue = new DataTransfer();
+            Array.from(fileQueue.files).forEach((file, i) => {
+                if (i !== index) {
+                    nextQueue.items.add(file);
+                }
+            });
+            fileQueue = nextQueue;
+            syncInputAndRender();
+        }
+
+        function clearAllFiles() {
+            fileQueue = new DataTransfer();
+            syncInputAndRender();
+        }
+
+        function syncInputAndRender() {
+            const input = document.getElementById('attachments');
+            input.files = fileQueue.files;
+
             const container = document.getElementById('file-list-container');
             const list = document.getElementById('file-list');
+            const countSpan = document.getElementById('file-count');
             list.innerHTML = '';
 
-            if (!input.files || input.files.length === 0) {
+            const total = fileQueue.files.length;
+            countSpan.textContent = total;
+
+            if (total === 0) {
                 container.classList.add('hidden');
+                document.getElementById('btn-submit').disabled = false;
                 return;
             }
 
             container.classList.remove('hidden');
             let hasError = false;
 
-            Array.from(input.files).forEach((file, index) => {
+            Array.from(fileQueue.files).forEach((file, index) => {
                 const isPdf = file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
                 const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
                 const isTooLarge = file.size > (100 * 1024 * 1024);
 
                 const item = document.createElement('div');
-                item.className = 'flex items-center justify-between p-2.5 rounded-xl border text-xs ' + 
+                item.className = 'flex items-center justify-between p-3 rounded-xl border text-xs transition ' + 
                     (!isPdf || isTooLarge ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-slate-50 border-slate-200 text-slate-800');
 
                 item.innerHTML = `
-                    <div class="flex items-center gap-2.5 min-w-0">
-                        <span class="w-6 h-6 rounded flex items-center justify-center font-bold text-[10px] ${!isPdf || isTooLarge ? 'bg-rose-200 text-rose-800' : 'bg-red-100 text-red-700'}">PDF</span>
-                        <div class="min-w-0">
-                            <p class="font-semibold truncate">${file.name}</p>
-                            <p class="text-[11px] text-slate-400 font-mono">${sizeMB} MB ${isTooLarge ? '— Melebihi batas 100MB!' : ''} ${!isPdf ? '— Bukan file PDF!' : ''}</p>
+                    <div class="flex items-center gap-3 min-w-0 flex-1">
+                        <span class="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-[10px] flex-shrink-0 ${!isPdf || isTooLarge ? 'bg-rose-200 text-rose-800' : 'bg-red-100 text-red-700'}">
+                            PDF
+                        </span>
+                        <div class="min-w-0 flex-1">
+                            <p class="font-semibold text-slate-800 truncate" title="${file.name}">${file.name}</p>
+                            <p class="text-[11px] text-slate-400 font-mono mt-0.5">
+                                ${sizeMB} MB
+                                ${isTooLarge ? '<span class="text-rose-600 font-bold">&bull; Melebihi batas 100MB!</span>' : ''}
+                                ${!isPdf ? '<span class="text-rose-600 font-bold">&bull; Bukan file PDF!</span>' : ''}
+                            </p>
                         </div>
                     </div>
-                    <span class="text-xs ${!isPdf || isTooLarge ? 'text-rose-600 font-bold' : 'text-emerald-600 font-bold'}">
-                        ${!isPdf || isTooLarge ? '✗ Tidak Valid' : '✓ Siap Upload'}
-                    </span>
+                    <div class="flex items-center gap-2 flex-shrink-0 ml-3">
+                        <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full ${!isPdf || isTooLarge ? 'bg-rose-100 text-rose-700 border border-rose-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}">
+                            ${!isPdf || isTooLarge ? 'Tidak Valid' : 'Siap Diunggah'}
+                        </span>
+                        <button type="button" onclick="removeQueuedFile(${index})"
+                                class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-100/70 transition"
+                                title="Hapus berkas ini dari antrean">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                    </div>
                 `;
 
                 if (!isPdf || isTooLarge) {
@@ -275,13 +356,55 @@
             });
 
             document.getElementById('btn-submit').disabled = hasError;
-            if (hasError) {
-                alert('Terdapat file yang bukan PDF atau ukurannya melebihi 100 MB. Harap periksa kembali berkas yang Anda pilih.');
+        }
+
+        // Drag & Drop Listener pada Drop Zone
+        const dropZone = document.getElementById('drop-zone');
+        if (dropZone) {
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropZone.classList.add('border-[#114E84]', 'bg-blue-50/50');
+                });
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropZone.classList.remove('border-[#114E84]', 'bg-blue-50/50');
+                });
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                if (dt && dt.files && dt.files.length > 0) {
+                    addFilesToQueue(dt.files);
+                }
+            });
+        }
+
+        function updateCharCount(textarea) {
+            const count = textarea.value.length;
+            const countSpan = document.getElementById('char-count');
+            const counterDiv = document.getElementById('char-counter');
+            if (countSpan) countSpan.textContent = count;
+
+            if (counterDiv) {
+                if (count < 100) {
+                    counterDiv.className = 'text-[11px] font-mono font-semibold text-rose-500';
+                } else {
+                    counterDiv.className = 'text-[11px] font-mono font-semibold text-emerald-600';
+                }
             }
         }
 
         // Jalankan saat pertama kali halaman dimuat untuk menangani pre-fill (misal old() / back validation)
         document.addEventListener('DOMContentLoaded', function () {
+            const desc = document.getElementById('description');
+            if (desc) updateCharCount(desc);
+
             if (document.getElementById('jenis_pengajuan').value) {
                 onJenisPengajuanChange();
             }

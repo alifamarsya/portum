@@ -14,8 +14,8 @@
                 <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
                     Selamat Datang, {{ auth()->user()->nama_lengkap }}
                 </h1>
-                <p class="text-sm text-blue-100/90 mt-1 max-w-2xl leading-relaxed">
-                    Pusat kendali evaluasi tiket layanan, verifikasi kesesuaian RBB &amp; pagu anggaran, serta supervisi penugasan kerja tim staf {{ $department->name ?? 'bagian' }}.
+                <p class="text-xs text-blue-100/90 mt-1">
+                    Pemantauan dan pengelolaan tiket layanan {{ $department->name ?? 'Bagian' }}
                 </p>
             </div>
 

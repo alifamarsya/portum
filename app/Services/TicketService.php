@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\InternalDepartment;
 use App\Models\Ticket;
 use App\Models\TicketAttachment;
 use App\Models\TicketCategory;
@@ -188,8 +189,8 @@ class TicketService
                 app(TicketSlaService::class)->recordVerification($ticket, $user);
             }
 
-            // Saat Operator memverifikasi (status → Dialokasikan): mulai timer SLA Resolution
-            if ($oldStatus === 'Menunggu Verifikasi' && $newStatus === 'Dialokasikan' && is_null($ticket->sla_resolution_start_at)) {
+            // Saat Operator memverifikasi (status → Diverifikasi atau Dialokasikan): mulai timer SLA Resolution
+            if ($oldStatus === 'Menunggu Verifikasi' && in_array($newStatus, ['Diverifikasi', 'Dialokasikan']) && is_null($ticket->sla_resolution_start_at)) {
                 $ticket->refresh();
                 app(TicketSlaService::class)->startResolutionSla(
                     $ticket,
@@ -253,15 +254,23 @@ class TicketService
                 $notes = $data['notes'] ?? null;
 
                 if (empty($notes)) {
-                    $changes = [];
-                    if ($isStatusChanged) {
-                        $changes[] = "Status diubah dari '{$oldStatus}' menjadi '{$newStatus}'";
+                    if (in_array($newStatus, ['Diverifikasi', 'Dialokasikan'])) {
+                        $deptName = $ticket->fresh()->department?->name ?? 'Bagian Terkait';
+                        $notes = "Tiket diterima dan langsung diproses oleh {$deptName}";
+                    } elseif ($newStatus === 'Dalam Proses') {
+                        $deptName = $ticket->fresh()->department?->name ?? 'Bagian Terkait';
+                        $notes = "Sedang diproses oleh {$deptName}";
+                    } else {
+                        $changes = [];
+                        if ($isStatusChanged) {
+                            $changes[] = "Status diubah dari '{$oldStatus}' menjadi '{$newStatus}'";
+                        }
+                        if ($isDepartmentChanged) {
+                            $deptName = $ticket->fresh()->department?->name ?? 'Belum Ditugaskan';
+                            $changes[] = "Departemen dialokasikan ke '{$deptName}'";
+                        }
+                        $notes = implode('. ', $changes);
                     }
-                    if ($isDepartmentChanged) {
-                        $deptName = $ticket->fresh()->department?->name ?? 'Belum Ditugaskan';
-                        $changes[] = "Departemen dialokasikan ke '{$deptName}'";
-                    }
-                    $notes = implode('. ', $changes);
                 }
 
                 TicketHistory::create([
@@ -278,21 +287,23 @@ class TicketService
     }
 
     /**
-     * Mengalokasikan tiket dari status 'Menunggu Verifikasi' ke department oleh Operator.
-     * Status berubah menjadi 'Dialokasikan'.
+     * Mengalokasikan / memverifikasi tiket dari status 'Menunggu Verifikasi' ke department oleh Operator.
+     * Status berubah menjadi 'Diverifikasi'.
      */
-    public function allocateTicket(Ticket $ticket, int $departmentId, string $notes, User $operator): Ticket
+    public function allocateTicket(Ticket $ticket, int $departmentId, ?string $notes, User $operator): Ticket
     {
+        $deptName = InternalDepartment::find($departmentId)?->name ?? 'Bagian Terkait';
+        $defaultNote = "Tiket diterima dan langsung diproses oleh {$deptName}";
         return $this->updateTicket($ticket, [
-            'status'        => 'Dialokasikan',
+            'status'        => 'Diverifikasi',
             'department_id' => $departmentId,
-            'notes'         => $notes,
+            'notes'         => !empty($notes) ? $notes : $defaultNote,
         ], $operator);
     }
 
     /**
      * Menerima tiket oleh role Bagian dan langsung mengubah status menjadi 'Dalam Proses'.
-     * Sekaligus memulai timer SLA Resolution secara otomatis.
+     * Sekaligus memulai timer SLA Resolution secara otomatis jika belum berjalan.
      */
     public function acceptTicket(Ticket $ticket, User $user, ?string $notes = null): Ticket
     {
@@ -300,8 +311,9 @@ class TicketService
             $oldStatus = $ticket->status;
             $newStatus = 'Dalam Proses';
 
-            $roleLabel = $user->role?->label ?? 'Bagian Penanganan';
-            $noteText = $notes ?? "Tiket diterima dan langsung diproses oleh {$user->nama_lengkap} ({$roleLabel}).";
+            $deptName = $ticket->department?->name ?? ($user->department?->name ?? 'Bagian Terkait');
+            $defaultNote = "Sedang diproses oleh {$deptName}";
+            $noteText = !empty($notes) ? $notes : $defaultNote;
 
             $ticket->update([
                 'assigned_to' => $user->id,
@@ -371,7 +383,7 @@ class TicketService
      */
     public function rejectTicket(Ticket $ticket, User $user, string $reason): Ticket
     {
-        $noteText = "Tiket ditolak oleh {$user->nama_lengkap} ({$user->role?->label}). Alasan: {$reason}";
+        $noteText = "Tiket ditolak dengan Alasan : {$reason}";
 
         return $this->updateTicket($ticket, [
             'status' => 'Ditolak',

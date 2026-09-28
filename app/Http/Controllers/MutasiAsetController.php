@@ -124,9 +124,12 @@ class MutasiAsetController extends Controller
         $user = auth()->user();
 
         // Hanya role 'user' / pemohon yang boleh membuat pengajuan mutasi aset
-        if (!$user->isUser() && !$user->isSuperAdmin()) {
-            abort(403, 'Hanya User / Pemohon yang berhak mengajukan Mutasi Aset.');
-        }
+        // Fallback info pemohon dari akun aktif jika tidak diisi eksplisit
+        $request->merge([
+            'nama_pemohon'     => $request->input('nama_pemohon') ?: $user->nama_lengkap,
+            'jabatan_pemohon'  => $request->input('jabatan_pemohon') ?: ($user->jabatan ?? '-'),
+            'username_pemohon' => $request->input('username_pemohon') ?: $user->username,
+        ]);
 
         $validated = $request->validate([
             'nama_pemohon'        => 'required|string|max:255',

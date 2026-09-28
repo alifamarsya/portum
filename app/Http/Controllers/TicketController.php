@@ -103,13 +103,15 @@ class TicketController extends Controller
             'title'           => 'nullable|string|max:255',
             'jenis_pengajuan' => 'required|in:Permintaan,Permasalahan',
             'category_id'     => 'required|exists:ticket_categories,id',
-            'description'     => 'required|string|min:10',
+            'description'     => 'required|string|min:100',
             'attachments'     => 'nullable|array',
             'attachments.*'   => 'file|mimes:pdf|max:102400', // Hanya PDF, max 100MB per file
         ], [
-            'attachments.*.mimes' => 'Semua lampiran wajib berupa file dokumen PDF (.pdf).',
-            'attachments.*.max'   => 'Ukuran tiap file lampiran tidak boleh melebihi 100 MB.',
-            'category_id.required'=> 'Silakan pilih Kategori Tiket yang sesuai.',
+            'description.required' => 'Deskripsi atau uraian lengkap permohonan wajib diisi.',
+            'description.min'      => 'Deskripsi / uraian lengkap minimal 100 karakter agar informasi kendala atau kebutuhan layanan jelas.',
+            'attachments.*.mimes'  => 'Semua lampiran wajib berupa file dokumen PDF (.pdf).',
+            'attachments.*.max'    => 'Ukuran tiap file lampiran tidak boleh melebihi 100 MB.',
+            'category_id.required' => 'Silakan pilih Kategori Tiket yang sesuai.',
         ]);
 
         // Cek total ukuran attachment jika diunggah
@@ -375,9 +377,9 @@ class TicketController extends Controller
             'notes'  => 'nullable|string|max:1000',
         ];
 
-        // Operator verifikasi dan langsung alokasikan ke Bagian: status menjadi 'Dialokasikan'
+        // Operator verifikasi dan langsung alokasikan ke Bagian: status menjadi 'Diverifikasi'
         if ($isOperator) {
-            $request->merge(['status' => 'Dialokasikan']);
+            $request->merge(['status' => 'Diverifikasi']);
             $rules['department_id']    = 'required|exists:internal_departments,id';
             $rules['category_id']      = 'nullable|exists:ticket_categories,id';
             $rules['jenis_pengajuan']  = 'nullable|in:Permintaan,Permasalahan';

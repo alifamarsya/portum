@@ -191,12 +191,12 @@ class Ticket extends Model
 
     public function isAwaitingBagianAcceptance(): bool
     {
-        return $this->status === 'Dialokasikan';
+        return in_array($this->status, ['Diverifikasi', 'Dialokasikan']);
     }
 
     public function isAwaitingKabagDisposition(): bool
     {
-        return $this->status === 'Dialokasikan' || (in_array($this->status, ['Dialokasikan', 'Diverifikasi', 'Didistribusikan']) && is_null($this->assigned_to));
+        return in_array($this->status, ['Diverifikasi', 'Dialokasikan', 'Didistribusikan']) && is_null($this->assigned_to);
     }
 
     /**

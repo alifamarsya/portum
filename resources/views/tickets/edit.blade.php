@@ -191,23 +191,6 @@
                             </div>
                         </div>
 
-                        {{-- Status Otomatis Dialokasikan (Tanpa Dropdown) --}}
-                        <input type="hidden" name="status" value="Dialokasikan">
-                        <div class="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200 flex items-center justify-between gap-3">
-                            <div class="flex items-center gap-2.5">
-                                <div class="w-8 h-8 rounded-lg bg-[#114E84] text-white flex items-center justify-center flex-shrink-0 shadow-2xs">
-                                    @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-4 h-4 text-white'])
-                                </div>
-                                <div>
-                                    <p class="text-xs font-bold text-[#114E84]">Status Alokasi Tiket</p>
-                                    <p class="text-[11px] text-slate-500">Status otomatis ditetapkan ke <strong>Dialokasikan</strong> saat tombol di bawah ditekan.</p>
-                                </div>
-                            </div>
-                            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-300">
-                                Dialokasikan
-                            </span>
-                        </div>
-
                         {{-- Kategori Tiket (Koreksi Operator) --}}
                         <div>
                             <label for="category_id" class="block text-sm font-bold text-slate-700 mb-1.5">
@@ -230,33 +213,25 @@
                                 <p class="text-rose-500 text-xs mt-1">{{ $message }}</p>
                             @enderror
                         </div>
-
-                        {{-- Prioritas --}}
+                        {{-- Jenis Pengajuan (Permintaan / Permasalahan) --}}
                         <div>
-                            <label for="priority" class="block text-sm font-bold text-slate-700 mb-1.5">
-                                Tingkat Prioritas <span class="text-rose-500">*</span>
+                            <label class="block text-sm font-bold text-slate-700 mb-1.5">
+                                Jenis Pengajuan
+                                <span class="text-xs text-slate-400 font-normal ml-1">(opsional — diisi saat verifikasi)</span>
                             </label>
-                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                @foreach ([
-                                    'Rendah'  => ['color' => 'emerald', 'desc' => 'SLA 72 Jam'],
-                                    'Sedang'  => ['color' => 'blue',    'desc' => 'SLA 48 Jam'],
-                                    'Tinggi'  => ['color' => 'orange',  'desc' => 'SLA 12 Jam'],
-                                    'Kritis'  => ['color' => 'rose',    'desc' => 'SLA 4 Jam'],
-                                ] as $pval => $popt)
-                                    <label class="relative cursor-pointer">
-                                        <input type="radio" name="priority" value="{{ $pval }}" class="sr-only peer"
-                                               {{ old('priority', $ticket->priority) === $pval ? 'checked' : '' }}>
+                            <div class="flex gap-3">
+                                @foreach (['Permintaan' => 'sky', 'Permasalahan' => 'orange'] as $jenis => $color)
+                                    <label class="flex-1 relative cursor-pointer">
+                                        <input type="radio" name="jenis_pengajuan" value="{{ $jenis }}" class="sr-only peer"
+                                               {{ old('jenis_pengajuan', $ticket->jenis_pengajuan) === $jenis ? 'checked' : '' }}>
                                         <div class="border-2 rounded-xl p-3 text-center transition
-                                            border-slate-200 bg-slate-50 peer-checked:border-{{ $popt['color'] }}-500 peer-checked:bg-{{ $popt['color'] }}-50">
-                                            <p class="text-xs font-bold text-slate-700 peer-checked:text-{{ $popt['color'] }}-700 {{ old('priority', $ticket->priority) === $pval ? 'text-'.$popt['color'].'-700' : '' }}">
-                                                {{ $pval }}
-                                            </p>
-                                            <p class="text-[10px] text-slate-400 mt-0.5">{{ $popt['desc'] }}</p>
+                                            border-slate-200 bg-slate-50 peer-checked:border-{{ $color }}-500 peer-checked:bg-{{ $color }}-50">
+                                            <p class="text-xs font-bold text-slate-700">{{ $jenis }}</p>
                                         </div>
                                     </label>
                                 @endforeach
                             </div>
-                            @error('priority')
+                            @error('jenis_pengajuan')
                                 <p class="text-rose-500 text-xs mt-1">{{ $message }}</p>
                             @enderror
                         </div>
@@ -283,28 +258,6 @@
                             @enderror
                         </div>
 
-                        {{-- Jenis Pengajuan (Permintaan / Permasalahan) --}}
-                        <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1.5">
-                                Jenis Pengajuan
-                                <span class="text-xs text-slate-400 font-normal ml-1">(opsional — diisi saat verifikasi)</span>
-                            </label>
-                            <div class="flex gap-3">
-                                @foreach (['Permintaan' => 'sky', 'Permasalahan' => 'orange'] as $jenis => $color)
-                                    <label class="flex-1 relative cursor-pointer">
-                                        <input type="radio" name="jenis_pengajuan" value="{{ $jenis }}" class="sr-only peer"
-                                               {{ old('jenis_pengajuan', $ticket->jenis_pengajuan) === $jenis ? 'checked' : '' }}>
-                                        <div class="border-2 rounded-xl p-3 text-center transition
-                                            border-slate-200 bg-slate-50 peer-checked:border-{{ $color }}-500 peer-checked:bg-{{ $color }}-50">
-                                            <p class="text-xs font-bold text-slate-700">{{ $jenis }}</p>
-                                        </div>
-                                    </label>
-                                @endforeach
-                            </div>
-                            @error('jenis_pengajuan')
-                                <p class="text-rose-500 text-xs mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
                     @endif
 
                     {{-- Catatan Operator --}}
