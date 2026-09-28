@@ -134,54 +134,95 @@
                             </div>
                         </div>
                     </div>
-                </div>
-
-                {{-- 3. TUJUAN MUTASI --}}
+                </div>                {{-- 3. RINCIAN PENGISIAN MUTASI ASET (DYNAMIC FIELDS) --}}
                 <div class="space-y-4 pt-2">
-                    <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-2">
-                        <span class="w-6 h-6 rounded-full bg-[#114E84] text-white flex items-center justify-center text-xs">3</span>
-                        Tujuan Mutasi &amp; Penanggung Jawab Baru
-                    </h2>
+                    <div class="border-b border-slate-100 pb-2 flex items-center justify-between">
+                        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-[#114E84] text-white flex items-center justify-center text-xs">3</span>
+                            Rincian Pengajuan Mutasi Aset
+                        </h2>
+                        <span class="text-[11px] text-slate-400">Field formulir terintegrasi secara dinamis</span>
+                    </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label for="ke_lokasi" class="block text-xs font-semibold text-slate-700 mb-1.5">
-                                Lokasi Tujuan Pemindahan <span class="text-rose-500">*</span>
-                            </label>
-                            <input type="text" id="ke_lokasi" name="ke_lokasi" value="{{ old('ke_lokasi') }}" required
-                                   placeholder="Contoh: Kantor Cabang Palu, Ruang Rapat Lt.2, dll."
-                                   class="w-full py-2.5 px-3 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition">
-                            <span class="text-[11px] text-slate-400 mt-1 block">Tentukan cabang, unit kerja, atau ruangan tujuan aset.</span>
+                    @if ($dynamicFields->isEmpty())
+                        <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
+                            Belum ada field mutasi aset yang aktif. Hubungi Unit Kerja Administrasi Aset untuk mengaktifkan field formulir mutasi.
                         </div>
+                    @else
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            @foreach ($dynamicFields as $df)
+                                @continue(!$df->is_active)
+                                @php
+                                    $isFullWidth = in_array($df->field_type, ['textarea', 'file']);
+                                @endphp
 
-                        <div>
-                            <label for="ke_penanggung_jawab" class="block text-xs font-semibold text-slate-700 mb-1.5">
-                                Penanggung Jawab Baru <span class="text-rose-500">*</span>
-                            </label>
-                            <input type="text" id="ke_penanggung_jawab" name="ke_penanggung_jawab" value="{{ old('ke_penanggung_jawab') }}" required
-                                   placeholder="Contoh: Ahmad Fauzi / Pimpinan Cabang Luwuk"
-                                   class="w-full py-2.5 px-3 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition">
-                            <span class="text-[11px] text-slate-400 mt-1 block">Nama pejabat / staf / bagian yang menerima aset.</span>
+                                <div class="{{ $isFullWidth ? 'md:col-span-2' : 'md:col-span-1' }}">
+                                    <label for="{{ $df->field_name }}" class="block text-xs font-semibold text-slate-700 mb-1.5">
+                                        {{ $df->label }}
+                                        @if ($df->is_required)
+                                            <span class="text-rose-500">*</span>
+                                        @else
+                                            <span class="text-slate-400 font-normal text-[11px]">(Opsional)</span>
+                                        @endif
+                                    </label>
+
+                                    @if ($df->field_type === 'select')
+                                        <select id="{{ $df->field_name }}" name="{{ $df->field_name }}"
+                                                {{ $df->is_required ? 'required' : '' }}
+                                                class="w-full py-2.5 px-3 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white transition">
+                                            <option value="">-- Pilih {{ $df->label }} --</option>
+                                            @if (!empty($df->options) && is_array($df->options))
+                                                @foreach ($df->options as $opt)
+                                                    <option value="{{ $opt }}" {{ old($df->field_name) == $opt ? 'selected' : '' }}>
+                                                        {{ $opt }}
+                                                    </option>
+                                                @endforeach
+                                            @endif
+                                        </select>
+                                    @elseif ($df->field_type === 'textarea')
+                                        <textarea id="{{ $df->field_name }}" name="{{ $df->field_name }}" rows="3"
+                                                  {{ $df->is_required ? 'required' : '' }}
+                                                  placeholder="{{ $df->help_text ?? 'Isi ' . strtolower($df->label) . '...' }}"
+                                                  class="w-full py-2.5 px-3 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition">{{ old($df->field_name) }}</textarea>
+                                    @elseif ($df->field_type === 'file')
+                                        <input type="file" id="{{ $df->field_name }}" name="{{ $df->field_name }}"
+                                               accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                                               {{ $df->is_required ? 'required' : '' }}
+                                               class="w-full text-xs text-slate-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-[#114E84] hover:file:bg-blue-100 transition border border-slate-200 rounded-xl p-1 bg-slate-50/50">
+                                    @elseif ($df->field_type === 'date')
+                                        <input type="date" id="{{ $df->field_name }}" name="{{ $df->field_name }}"
+                                               value="{{ old($df->field_name) }}"
+                                               {{ $df->is_required ? 'required' : '' }}
+                                               class="w-full py-2.5 px-3 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white transition">
+                                    @elseif (in_array($df->field_type, ['number', 'money']))
+                                        <input type="number" id="{{ $df->field_name }}" name="{{ $df->field_name }}"
+                                               step="{{ $df->field_type === 'money' ? '1' : '0.01' }}"
+                                               value="{{ old($df->field_name) }}"
+                                               {{ $df->is_required ? 'required' : '' }}
+                                               placeholder="{{ $df->field_type === 'money' ? '0 (Nominal Rupiah)' : '0' }}"
+                                               class="w-full py-2.5 px-3 text-sm font-mono border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition">
+                                    @elseif ($df->field_type === 'checkbox')
+                                        <label class="flex items-center gap-2.5 cursor-pointer p-2.5 rounded-xl border border-slate-200 bg-slate-50/50">
+                                            <input type="checkbox" id="{{ $df->field_name }}" name="{{ $df->field_name }}" value="1"
+                                                   {{ old($df->field_name) ? 'checked' : '' }}
+                                                   class="rounded text-[#114E84] focus:ring-blue-500">
+                                            <span class="text-xs font-medium text-slate-700">Ya / Setuju</span>
+                                        </label>
+                                    @else
+                                        <input type="text" id="{{ $df->field_name }}" name="{{ $df->field_name }}"
+                                               value="{{ old($df->field_name) }}"
+                                               {{ $df->is_required ? 'required' : '' }}
+                                               placeholder="{{ $df->help_text ?? 'Masukkan ' . strtolower($df->label) . '...' }}"
+                                               class="w-full py-2.5 px-3 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition">
+                                    @endif
+
+                                    @if ($df->help_text && $df->field_type !== 'textarea')
+                                        <span class="text-[11px] text-slate-400 mt-1 block">{{ $df->help_text }}</span>
+                                    @endif
+                                </div>
+                            @endforeach
                         </div>
-                    </div>
-
-                    <div>
-                        <label for="alasan" class="block text-xs font-semibold text-slate-700 mb-1.5">
-                            Alasan Pemindahan / Mutasi Aset <span class="text-rose-500">*</span>
-                        </label>
-                        <textarea id="alasan" name="alasan" rows="3" required
-                                  placeholder="Jelaskan secara rinci kebutuhan atau alasan pemindahan aset inventaris ini..."
-                                  class="w-full py-2.5 px-3 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition">{{ old('alasan') }}</textarea>
-                    </div>
-
-                    <div>
-                        <label for="dokumen" class="block text-xs font-semibold text-slate-700 mb-1.5">
-                            Dokumen Pendukung <span class="text-slate-400 font-normal">(Opsional — Berita Acara, Nota Dinas, Foto Aset)</span>
-                        </label>
-                        <input type="file" id="dokumen" name="dokumen" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                               class="w-full text-xs text-slate-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-[#114E84] hover:file:bg-blue-100 transition border border-slate-200 rounded-xl p-1 bg-slate-50/50">
-                        <span class="text-[11px] text-slate-400 mt-1 block">Format: PDF, JPG, PNG, DOC/DOCX. Maksimal ukuran file 10MB.</span>
-                    </div>
+                    @endif
                 </div>
 
                 {{-- Action Buttons --}}

@@ -39,6 +39,6 @@ class AsCustomField extends Model
 
     public function scopeForModule($query, string $moduleKey)
     {
-        return $query->where('module_key', $moduleKey)->where('is_active', true)->orderBy('sort_order');
+        return $query->where('module_key', $moduleKey)->where('is_active', true)->orderBy('sort_order')->orderBy('id');
     }
 }

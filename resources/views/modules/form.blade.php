@@ -22,12 +22,14 @@
                     @if (($meta['type'] ?? '') === 'textarea')
                         <textarea name="{{ $field }}" rows="3"
                             class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm focus:border-brand focus:ring-1 focus:ring-brand transition">{{ old($field, $item?->$field) }}</textarea>
-                    @elseif (($meta['type'] ?? '') === 'select' && !empty($meta['opts']))
+                    @elseif (($meta['type'] ?? '') === 'select')
                         <select name="{{ $field }}" class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm bg-white focus:border-brand focus:ring-1 focus:ring-brand transition">
-                            <option value="">— pilih —</option>
-                            @foreach ($meta['opts'] as $opt)
-                                <option value="{{ $opt }}" @selected(old($field, $item?->$field) === $opt)>{{ $opt }}</option>
-                            @endforeach
+                            <option value="">— pilih {{ strtolower($meta['label'] ?? '') }} —</option>
+                            @if (!empty($meta['opts']) && is_array($meta['opts']))
+                                @foreach ($meta['opts'] as $opt)
+                                    <option value="{{ $opt }}" @selected(old($field, $item?->$field) === $opt)>{{ $opt }}</option>
+                                @endforeach
+                            @endif
                         </select>
                     @elseif (($meta['type'] ?? '') === 'checkbox')
                         <label class="inline-flex items-center gap-2 mt-1">

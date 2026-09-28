@@ -10,6 +10,15 @@
             .portum-sidebar-rail { position: fixed; inset: 0 auto 0 0; width: 270px; z-index: 50; }
             .portum-main { margin-left: 270px; min-height: 100vh; }
         }
+        .portum-sidebar-rail,
+        .portum-sidebar-rail nav,
+        .portum-sidebar-rail *,
+        #mobileDrawer,
+        #mobileDrawer *,
+        .overscroll-contain {
+            overscroll-behavior: contain !important;
+            overscroll-behavior-y: contain !important;
+        }
         .portum-nav-details > summary { list-style: none; }
         .portum-nav-details > summary::-webkit-details-marker { display: none; }
         .portum-nav-details[open] > summary .portum-chevron { transform: rotate(90deg); }
@@ -17,7 +26,7 @@
         .portum-submenu { animation: portumSubmenu .18s ease-out; }
         @keyframes portumSubmenu { from { opacity: .3; transform: translateY(-3px); } to { opacity: 1; transform: translateY(0); } }
     </style>
-</head>06
+</head>
 <body class="bg-canvas text-ink antialiased min-h-full flex flex-col selection:bg-brand selection:text-gold">
 @php
     $user = auth()->user();
@@ -161,7 +170,7 @@
     {{-- 2. Blue Sidebar Body with Rounded Top-Right Corner --}}
     <div class="flex-1 flex flex-col bg-gradient-to-b from-[#114E84] via-[#0E4272] to-[#0A335A] text-white rounded-tr-[36px] rounded-br-[36px] overflow-hidden shadow-2xl">
         {{-- Navigation Menu --}}
-        <nav class="flex-1 overflow-y-auto pt-4 pb-2 space-y-4 text-[13px]">
+        <nav class="flex-1 overflow-y-auto overscroll-contain pt-4 pb-2 space-y-4 text-[13px]">
             {{-- 1. PENGAJUAN & MONITORING --}}
             @if ($canAccess('dashboard') || $canAccess('ticketing') || $canAccess('mutasi_aset'))
                 <div class="pt-1">
@@ -547,7 +556,7 @@
 
 {{-- Mobile Sidebar Drawer --}}
 <div id="mobileDrawer" class="lg:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden transition-opacity">
-    <div class="fixed inset-y-0 left-0 w-[280px] bg-gradient-to-b from-[#114E84] to-[#0A335A] text-white flex flex-col shadow-2xl overflow-y-auto">
+    <div class="fixed inset-y-0 left-0 w-[280px] bg-gradient-to-b from-[#114E84] to-[#0A335A] text-white flex flex-col shadow-2xl overflow-y-auto overscroll-contain">
         <div class="pt-4 pb-3 pl-0 pr-3 flex items-center justify-between border-b border-white/10">
             <div class="bg-white rounded-r-full py-2 px-4 shadow-sm inline-flex items-center">
                 <img src="{{ asset('images/bank-sulteng.png') }}" alt="Bank Sulteng" class="h-5 w-auto" style="max-height: 22px; width: auto;">
@@ -803,6 +812,25 @@
         });
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape' && !profileSheet.classList.contains('hidden')) closeSheet();
+        });
+    })();
+
+    // Cegah scroll sidebar merembet ke main content saat mentok batas atas/bawah
+    (function () {
+        const sidebars = document.querySelectorAll('.portum-sidebar-rail, #mobileDrawer, .overscroll-contain');
+        sidebars.forEach(function (sidebar) {
+            sidebar.addEventListener('wheel', function (e) {
+                const scrollable = sidebar.querySelector('nav') || (sidebar.scrollHeight > sidebar.clientHeight ? sidebar : null);
+                if (!scrollable) {
+                    e.preventDefault();
+                    return;
+                }
+                const atTop = scrollable.scrollTop <= 0;
+                const atBottom = Math.ceil(scrollable.scrollTop + scrollable.clientHeight) >= scrollable.scrollHeight - 1;
+                if ((e.deltaY < 0 && atTop) || (e.deltaY > 0 && atBottom)) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
         });
     })();
 </script>

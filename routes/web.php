@@ -117,6 +117,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('admin/custom-fields')->name('admin.custom-fields.')->group(function () {
         Route::get('/', [CustomFieldController::class, 'index'])->name('index');
         Route::post('/', [CustomFieldController::class, 'store'])->name('store');
+        Route::post('/reorder', [CustomFieldController::class, 'reorder'])->name('reorder');
         Route::put('/{customField}', [CustomFieldController::class, 'update'])->name('update');
         Route::patch('/{customField}/toggle', [CustomFieldController::class, 'toggle'])->name('toggle');
         Route::delete('/{customField}', [CustomFieldController::class, 'destroy'])->name('destroy');

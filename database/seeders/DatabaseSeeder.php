@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             RefAkunSeeder::class,
             DummyDataSeeder::class,
+            CustomFieldSeeder::class,
         ]);
     }
 }

@@ -85,6 +85,24 @@ class User extends Authenticatable
         return $roleName === strtolower($roles);
     }
 
+    /**
+     * Check if user has permission to access a specific feature/module.
+     */
+    public function canAccess(string $permKey): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        if (!$this->role_id) {
+            return false;
+        }
+
+        return RolePermission::where('role_id', $this->role_id)
+            ->where('perm_key', $permKey)
+            ->exists();
+    }
+
     public function isSuperAdmin(): bool
     {
         return $this->hasRole(['superadmin', 'admin']);

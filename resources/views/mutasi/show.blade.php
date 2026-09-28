@@ -321,6 +321,40 @@
                             </div>
                         </div>
                     @endif
+
+                    {{-- Dynamic Custom Fields Tambahan --}}
+                    @if (!empty($mutasi->custom_fields) && is_array($mutasi->custom_fields))
+                        @php
+                            $dynamicFieldDefs = \App\Models\AsCustomField::where('module_key', 'mutasi')->get()->keyBy('field_name');
+                        @endphp
+                        <div class="border-t border-slate-100 pt-4">
+                            <span class="text-slate-400 block font-semibold text-[11px] uppercase tracking-wider mb-2.5">Informasi Tambahan (Dynamic Fields)</span>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                @foreach ($mutasi->custom_fields as $cfKey => $cfVal)
+                                    @php
+                                        $cfDef = $dynamicFieldDefs->get($cfKey);
+                                        $cfLabel = $cfDef?->label ?? ucwords(str_replace('_', ' ', $cfKey));
+                                    @endphp
+                                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                                        <span class="text-[11px] text-slate-400 block mb-0.5">{{ $cfLabel }}</span>
+                                        <p class="font-semibold text-slate-800 text-xs">
+                                            @if (is_bool($cfVal))
+                                                {{ $cfVal ? 'Ya' : 'Tidak' }}
+                                            @elseif (is_array($cfVal))
+                                                {{ implode(', ', $cfVal) }}
+                                            @elseif (!empty($cfVal) && str_starts_with((string)$cfVal, 'mutasi_dokumen/'))
+                                                <a href="{{ \Illuminate\Support\Facades\Storage::url($cfVal) }}" target="_blank" class="text-blue-600 hover:underline flex items-center gap-1 font-mono text-[11px]">
+                                                    Lihat Dokumen
+                                                </a>
+                                            @else
+                                                {{ $cfVal ?? '-' }}
+                                            @endif
+                                        </p>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
 

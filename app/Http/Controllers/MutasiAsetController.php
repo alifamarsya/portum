@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Concerns\LogsAudit;
 use App\Models\AsAset;
 use App\Models\AsAsetHistory;
+use App\Models\AsCustomField;
 use App\Models\AsMutasiAset;
 use App\Models\AuditLog;
 use App\Models\User;
@@ -112,8 +113,9 @@ class MutasiAsetController extends Controller
         }
 
         $asets = AsAset::orderBy('nama_aset')->get();
+        $dynamicFields = AsCustomField::forModule('mutasi')->get();
 
-        return view('mutasi.create', compact('asets'));
+        return view('mutasi.create', compact('asets', 'dynamicFields'));
     }
 
     /**
@@ -131,30 +133,49 @@ class MutasiAsetController extends Controller
             'username_pemohon' => $request->input('username_pemohon') ?: $user->username,
         ]);
 
-        $validated = $request->validate([
-            'nama_pemohon'        => 'required|string|max:255',
-            'jabatan_pemohon'     => 'required|string|max:255',
-            'username_pemohon'    => 'required|string|max:100',
-            'aset_id'             => 'required|exists:as_aset,id',
-            'ke_lokasi'           => 'required|string|max:255',
-            'ke_penanggung_jawab' => 'required|string|max:255',
-            'alasan'              => 'required|string|max:2000',
-            'dokumen'             => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:10240',
-        ], [
-            'nama_pemohon.required'        => 'Nama pemohon (individu) wajib diisi.',
-            'jabatan_pemohon.required'     => 'Jabatan pemohon wajib diisi.',
-            'username_pemohon.required'    => 'Username sistem pemohon wajib diisi.',
-            'aset_id.required'             => 'Pilih aset yang ingin dimutasikan.',
-            'aset_id.exists'               => 'Aset yang dipilih tidak ditemukan.',
-            'ke_lokasi.required'           => 'Lokasi tujuan pemindahan wajib diisi.',
-            'ke_penanggung_jawab.required' => 'Penanggung jawab baru wajib diisi.',
-            'alasan.required'              => 'Alasan pemindahan aset wajib diisi.',
-            'dokumen.max'                  => 'Ukuran file dokumen maksimal 10MB.',
-            'dokumen.mimes'                => 'Format dokumen harus berupa PDF, JPG, PNG, atau Word.',
-        ]);
+        // Ambil dynamic fields aktif untuk konteks Form Mutasi Aset
+        $dynamicFields = AsCustomField::forModule('mutasi')->get();
+
+        // Aturan validasi dasar pemohon & pemilihan aset
+        $rules = [
+            'nama_pemohon'     => 'required|string|max:255',
+            'jabatan_pemohon'  => 'required|string|max:255',
+            'username_pemohon' => 'required|string|max:100',
+            'aset_id'          => 'required|exists:as_aset,id',
+        ];
+        $messages = [
+            'nama_pemohon.required'     => 'Nama pemohon (individu) wajib diisi.',
+            'jabatan_pemohon.required'  => 'Jabatan pemohon wajib diisi.',
+            'username_pemohon.required' => 'Username sistem pemohon wajib diisi.',
+            'aset_id.required'          => 'Pilih aset yang ingin dimutasikan.',
+            'aset_id.exists'            => 'Aset yang dipilih tidak ditemukan.',
+        ];
+
+        // Validasi dinamis mengikuti definisi field aktif
+        foreach ($dynamicFields as $field) {
+            $fn = $field->field_name;
+            $rule = $field->is_required ? 'required' : 'nullable';
+
+            $rule .= match ($field->field_type) {
+                'file' => '|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:10240',
+                'date' => '|date',
+                'number', 'money' => '|numeric',
+                'checkbox' => '|boolean',
+                'select' => !empty($field->options) ? '|string|in:' . implode(',', $field->options) : '|string|max:2000',
+                'textarea' => '|string|max:5000',
+                default => '|string|max:2000',
+            };
+
+            $rules[$fn] = $rule;
+            $messages["{$fn}.required"] = "{$field->label} wajib diisi.";
+            $messages["{$fn}.in"]       = "Pilihan {$field->label} tidak valid.";
+            $messages["{$fn}.mimes"]    = "Format berkas {$field->label} harus berupa PDF, JPG, PNG, atau Word.";
+            $messages["{$fn}.max"]      = "Ukuran berkas {$field->label} maksimal 10MB.";
+        }
+
+        $validated = $request->validate($rules, $messages);
 
         $aset = AsAset::findOrFail($validated['aset_id']);
-
 
         // 1. Generate nomor mutasi otomatis MUT-YYYYMMDD-XXXX
         $datePrefix = 'MUT-' . date('Ymd') . '-';
@@ -168,12 +189,34 @@ class MutasiAsetController extends Controller
         }
         $noMutasi = $datePrefix . str_pad((string) $nextSeq, 4, '0', STR_PAD_LEFT);
 
-        // 2. Upload file dokumen pendukung jika ada
-        $dokumenPath = null;
-        if ($request->hasFile('dokumen')) {
-            $file = $request->file('dokumen');
-            $fileName = 'MUT_' . date('Ymd_His') . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-            $dokumenPath = $file->storeAs('mutasi_dokumen', $fileName, 'public');
+        // 2. Pisahkan kolom fisik tabel as_mutasi_aset dan custom_fields dinamis
+        $tableColumns = \Illuminate\Support\Facades\Schema::getColumnListing('as_mutasi_aset');
+        $physicalData = [];
+        $customData = [];
+
+        foreach ($dynamicFields as $field) {
+            $fn = $field->field_name;
+
+            if ($field->field_type === 'file') {
+                if ($request->hasFile($fn)) {
+                    $file = $request->file($fn);
+                    $fileName = 'MUT_' . $fn . '_' . date('Ymd_His') . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                    $filePath = $file->storeAs('mutasi_dokumen', $fileName, 'public');
+
+                    if (in_array($fn, $tableColumns)) {
+                        $physicalData[$fn] = $filePath;
+                    } else {
+                        $customData[$fn] = $filePath;
+                    }
+                }
+            } else {
+                $val = $validated[$fn] ?? null;
+                if (in_array($fn, $tableColumns)) {
+                    $physicalData[$fn] = $val;
+                } else {
+                    $customData[$fn] = $val;
+                }
+            }
         }
 
         // 3. Simpan data mutasi
@@ -186,12 +229,13 @@ class MutasiAsetController extends Controller
             'jabatan_pemohon'       => $validated['jabatan_pemohon'],
             'username_pemohon'      => $validated['username_pemohon'],
             'dari_lokasi'           => $aset->lokasi ?? 'Belum ditentukan',
-            'ke_lokasi'             => $validated['ke_lokasi'],
+            'ke_lokasi'             => $physicalData['ke_lokasi'] ?? ($customData['ke_lokasi'] ?? 'Belum ditentukan'),
             'dari_penanggung_jawab' => $aset->penanggung_jawab ?? 'Belum ditentukan',
-            'ke_penanggung_jawab'   => $validated['ke_penanggung_jawab'],
-            'alasan'                => $validated['alasan'],
+            'ke_penanggung_jawab'   => $physicalData['ke_penanggung_jawab'] ?? ($customData['ke_penanggung_jawab'] ?? 'Belum ditentukan'),
+            'alasan'                => $physicalData['alasan'] ?? ($customData['alasan'] ?? '-'),
             'status'                => 'Diajukan',
-            'dokumen'               => $dokumenPath,
+            'dokumen'               => $physicalData['dokumen'] ?? ($customData['dokumen'] ?? null),
+            'custom_fields'         => !empty($customData) ? $customData : null,
         ]);
 
         // 4. Catat Audit Log
