@@ -127,12 +127,13 @@
             <table class="w-full text-left border-collapse text-xs">
                 <thead>
                     <tr class="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
-                        <th class="py-3.5 px-4">No. Mutasi &amp; Tgl</th>
+                        <th class="py-3.5 px-4">No. Mutasi</th>
+                        <th class="py-3.5 px-4">Tanggal</th>
+                        <th class="py-3.5 px-4 text-center">Status</th>
                         <th class="py-3.5 px-4">Pemohon</th>
                         <th class="py-3.5 px-4">Aset yang Dimutasi</th>
                         <th class="py-3.5 px-4">Perpindahan Lokasi</th>
                         <th class="py-3.5 px-4">Penanggung Jawab Baru</th>
-                        <th class="py-3.5 px-4 text-center">Status</th>
                         <th class="py-3.5 px-4 text-right">Aksi</th>
                     </tr>
                 </thead>
@@ -147,11 +148,20 @@
                                 <a href="{{ route('mutasi-aset.show', $item) }}" class="font-bold text-[#114E84] hover:underline flex items-center gap-1.5">
                                     <span>{{ $item->no_mutasi }}</span>
                                 </a>
+                            </td>
+                             <td class="py-3 px-4 font-medium text-ink">
                                 <span class="text-[11px] text-slate-400 block mt-0.5">
                                     {{ $item->created_at->translatedFormat('d M Y, H:i') }}
                                 </span>
                             </td>
-
+                            {{-- Status Badge --}}
+                            <td class="py-3 px-4 text-center">
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border {{ $badge['class'] }}">
+                                    <span class="w-1.5 h-1.5 rounded-full {{ $badge['dot'] }}"></span>
+                                    {{ $badge['label'] }}
+                                </span>
+                            </td>
+                            
                             {{-- Pemohon --}}
                             <td class="py-3 px-4">
                                 <p class="font-medium text-ink">{{ $item->nama_pemohon ?: ($item->pengaju?->nama_lengkap ?? '-') }}</p>
@@ -186,13 +196,6 @@
                                 <p class="text-[10.5px] text-slate-400 truncate max-w-[140px]">Semula: {{ $item->dari_penanggung_jawab ?? '-' }}</p>
                             </td>
 
-                            {{-- Status Badge --}}
-                            <td class="py-3 px-4 text-center">
-                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border {{ $badge['class'] }}">
-                                    <span class="w-1.5 h-1.5 rounded-full {{ $badge['dot'] }}"></span>
-                                    {{ $badge['label'] }}
-                                </span>
-                            </td>
 
                             {{-- Aksi --}}
                             <td class="py-3 px-4 text-right">

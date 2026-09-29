@@ -90,11 +90,9 @@
                     <tr class="bg-slate-50 border-b border-slate-200 text-left text-[11.5px] uppercase tracking-wider text-slate-500">
                         <th class="px-5 py-3.5 font-semibold">Nomor Tiket</th>
                         <th class="px-5 py-3.5 font-semibold">Tanggal</th>
-                        <th class="px-5 py-3.5 font-semibold">Kategori</th>
-                        <th class="px-5 py-3.5 font-semibold">Uraian / Masalah</th>
-                        <th class="px-5 py-3.5 font-semibold">Prioritas</th>
-                        <th class="px-5 py-3.5 font-semibold">Bagian Penanganan</th>
                         <th class="px-5 py-3.5 font-semibold">Status</th>
+                        <th class="px-5 py-3.5 font-semibold">Kategori</th>
+                        <th class="px-5 py-3.5 font-semibold">Bagian Penanganan</th>
                         <th class="px-5 py-3.5 font-semibold text-right">Aksi</th>
                     </tr>
                 </thead>
@@ -110,16 +108,14 @@
                                 {{ $t->created_at->format('d M Y, H:i') }}
                             </td>
                             <td class="px-5 py-4 whitespace-nowrap">
-                                <span class="text-xs font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md">
-                                    {{ $t->category?->name ?? 'Umum' }}
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11.5px] font-medium border {{ $t->status_badge }}">
+                                    {{-- Gunakan label ramah pemohon alih-alih istilah internal sistem --}}
+                                    {{ $t->pemohon_status_label }}
                                 </span>
                             </td>
-                            <td class="px-5 py-4 text-slate-700 text-xs min-w-[200px]">
-                                <p class="line-clamp-1">{{ $t->description }}</p>
-                            </td>
                             <td class="px-5 py-4 whitespace-nowrap">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold {{ $t->priority_badge }}">
-                                    {{ $t->priority }}
+                                <span class="text-xs font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md">
+                                    {{ $t->category?->name ?? 'Umum' }}
                                 </span>
                             </td>
                             <td class="px-5 py-4 text-xs text-slate-600 whitespace-nowrap">
@@ -131,12 +127,6 @@
                                 @else
                                     <span class="text-amber-600 font-medium text-xs">Menunggu Penanganan</span>
                                 @endif
-                            </td>
-                            <td class="px-5 py-4 whitespace-nowrap">
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11.5px] font-medium border {{ $t->status_badge }}">
-                                    {{-- Gunakan label ramah pemohon alih-alih istilah internal sistem --}}
-                                    {{ $t->pemohon_status_label }}
-                                </span>
                             </td>
                             <td class="px-5 py-4 text-right whitespace-nowrap">
                                 <a href="{{ route('tickets.show', $t) }}"
