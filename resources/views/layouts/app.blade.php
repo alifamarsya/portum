@@ -76,9 +76,9 @@
                     'perm'     => 'administrasi_aset',
                     'children' => [
                         ['key' => 'aset',               'label' => 'Inventarisasi Aset'],
+                        ['route' => 'disposal-aset.riwayat', 'label' => 'Riwayat Aset Terhapus'],
                         ['key' => 'amortisasi',         'label' => 'Amortisasi Aset'],
                         ['key' => 'aset_history',       'label' => 'Riwayat Pergerakan Aset'],
-                        ['key' => 'disposal_aset',      'label' => 'Penghapusan Aset (Disposal)'],
                         ['key' => 'rekonsiliasi_aset',  'label' => 'Rekonsiliasi & Reklasifikasi'],
                         ['key' => 'temuan',             'label' => 'Tindak Lanjut Temuan'],
                     ],
@@ -275,6 +275,29 @@
                                 @endif
                             </a>
                         @endif
+
+                        @if ($user?->isKepalaDivisi() || $user?->hasRole(['pimpinan', 'kepala_divisi']) || $user?->isSuperAdmin())
+                            @php
+                                $isDisposalKadivActive = request()->routeIs('disposal-aset.approval');
+                                $disposalKadivCount = \App\Models\AsDisposalAset::where('approval_status', 'Diajukan')->count();
+                            @endphp
+                            <a href="{{ route('disposal-aset.approval') }}"
+                               class="flex items-center justify-between gap-3 py-2 px-3 rounded-xl transition {{ $isDisposalKadivActive ? 'bg-canvas text-[#114E84] font-bold shadow-2xs' : 'text-white/90 hover:bg-white/10 hover:text-white' }}">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <div class="w-6 h-6 flex items-center justify-center {{ $isDisposalKadivActive ? 'text-[#114E84]' : 'text-white/80' }} flex-shrink-0">
+                                        @include('partials.icon', ['name' => 'shield', 'class' => 'w-[17px] h-[17px]'])
+                                    </div>
+                                    <span class="text-[12.5px] truncate">Persetujuan Hapus Aset</span>
+                                </div>
+                                @if ($disposalKadivCount > 0)
+                                    <span class="bg-amber-400 text-[#0E1726] text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center" title="{{ $disposalKadivCount }} pengajuan butuh persetujuan">
+                                        {{ $disposalKadivCount }}
+                                    </span>
+                                @else
+                                    <span class="{{ $isDisposalKadivActive ? 'text-[#114E84]' : 'text-white/40' }} text-xs">▸</span>
+                                @endif
+                            </a>
+                        @endif
                     </div>
                 </div>
             @endif
@@ -297,7 +320,7 @@
                     <div class="space-y-0.5 px-3">
                         @foreach ($visibleOpGroups as $group)
                             @php
-                                $groupActive = collect($group['all_children'])->contains(fn ($child) => request()->route('key') === $child['key']);
+                                $groupActive = collect($group['all_children'])->contains(fn ($child) => (isset($child['key']) && request()->route('key') === $child['key']) || (isset($child['route']) && request()->routeIs($child['route'] . '*')));
                             @endphp
                             <details class="portum-nav-details group" {{ $groupActive ? 'open' : '' }}>
                                 <summary class="flex items-center justify-between gap-3 py-2 px-3 rounded-xl cursor-pointer select-none transition text-white/90 hover:bg-white/10 hover:text-white {{ $groupActive ? 'bg-white/15 font-semibold text-white' : '' }}">
@@ -329,8 +352,12 @@
                                             @endif
                                             <div class="space-y-0.5">
                                                 @foreach ($sub['children'] as $child)
-                                                    @php $active = request()->route('key') === $child['key']; @endphp
-                                                    <a href="{{ route('modul.index', $child['key']) }}"
+                                                    @php
+                                                        $isCustomRoute = isset($child['route']);
+                                                        $active = $isCustomRoute ? request()->routeIs($child['route'] . '*') : request()->route('key') === ($child['key'] ?? null);
+                                                        $childUrl = $isCustomRoute ? route($child['route']) : route('modul.index', $child['key']);
+                                                    @endphp
+                                                    <a href="{{ $childUrl }}"
                                                        class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] transition {{ $active ? 'bg-canvas text-[#114E84] font-bold shadow-2xs' : 'text-white/75 hover:bg-white/10 hover:text-white' }}">
                                                         <span class="w-1.5 h-1.5 rounded-full {{ $active ? 'bg-[#114E84]' : 'bg-white/40' }} flex-shrink-0"></span>
                                                         <span class="truncate">{{ $child['label'] }}</span>
@@ -636,7 +663,12 @@
                                 @endif
                                 <div class="space-y-0.5">
                                     @foreach ($sub['children'] as $child)
-                                        <a href="{{ route('modul.index', $child['key']) }}" class="block px-2 py-1.5 rounded-lg text-white/80 hover:text-white {{ request()->route('key') === $child['key'] ? 'text-white font-bold bg-white/20' : '' }}">
+                                        @php
+                                            $isCustomRoute = isset($child['route']);
+                                            $active = $isCustomRoute ? request()->routeIs($child['route'] . '*') : request()->route('key') === ($child['key'] ?? null);
+                                            $childUrl = $isCustomRoute ? route($child['route']) : route('modul.index', $child['key']);
+                                        @endphp
+                                        <a href="{{ $childUrl }}" class="block px-2 py-1.5 rounded-lg text-white/80 hover:text-white {{ $active ? 'text-white font-bold bg-white/20' : '' }}">
                                             • {{ $child['label'] }}
                                         </a>
                                     @endforeach
@@ -748,6 +780,13 @@
             <div class="mb-5 flex items-center gap-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 px-4 py-3 text-sm animate-enter">
                 @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-5 h-5 text-emerald-600 flex-shrink-0', 'stroke' => 2])
                 <span class="font-medium">{{ session('status') }}</span>
+            </div>
+        @endif
+
+        @if (session('error'))
+            <div class="mb-5 flex items-center gap-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 px-4 py-3 text-sm animate-enter">
+                @include('partials.icon', ['name' => 'alert-triangle', 'class' => 'w-5 h-5 text-rose-600 flex-shrink-0', 'stroke' => 2])
+                <span class="font-medium">{{ session('error') }}</span>
             </div>
         @endif
 

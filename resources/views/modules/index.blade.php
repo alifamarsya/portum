@@ -7,6 +7,28 @@
             <h1 class="text-xl font-bold text-ink">{{ $cfg['judul'] }}</h1>
         </div>
         <div class="flex items-center gap-2">
+            @if ($key === 'aset')
+                <a href="{{ route('disposal-aset.riwayat') }}"
+                   class="inline-flex items-center gap-1.5 bg-white border border-slate-300 text-slate-700 text-sm font-medium px-3.5 py-2.5 rounded-lg hover:bg-slate-50 transition shadow-2xs">
+                    @include('partials.icon', ['name' => 'archive', 'class' => 'w-4 h-4 text-[#114E84]'])
+                    Riwayat Aset Terhapus
+                </a>
+                @if (auth()->user()->isKepalaDivisi() || auth()->user()->hasRole(['pimpinan', 'kepala_divisi']) || auth()->user()->isSuperAdmin())
+                    @php
+                        $kadivPendingCount = \App\Models\AsDisposalAset::where('approval_status', 'Diajukan')->count();
+                    @endphp
+                    <a href="{{ route('disposal-aset.approval') }}"
+                       class="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-300 text-amber-800 text-sm font-medium px-3.5 py-2.5 rounded-lg hover:bg-amber-100 transition shadow-2xs">
+                        @include('partials.icon', ['name' => 'shield', 'class' => 'w-4 h-4 text-amber-600'])
+                        Persetujuan Kadiv
+                        @if ($kadivPendingCount > 0)
+                            <span class="bg-amber-400 text-ink text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+                                {{ $kadivPendingCount }}
+                            </span>
+                        @endif
+                    </a>
+                @endif
+            @endif
             @if (in_array($key, ['aset', 'aset_history']))
                 <a href="{{ route('admin.custom-fields.index', ['module' => $key]) }}"
                    class="inline-flex items-center gap-1.5 bg-white border border-slate-300 text-slate-700 text-sm font-medium px-3.5 py-2.5 rounded-lg hover:bg-slate-50 transition shadow-2xs">
@@ -95,11 +117,27 @@
                                         </form>
                                     @endif
                                     <a href="{{ route('modul.edit', [$key, $item->id]) }}" class="text-brand font-medium hover:underline">Ubah</a>
-                                    <form method="POST" action="{{ route('modul.destroy', [$key, $item->id]) }}"
-                                          onsubmit="return confirm('Hapus data ini?')">
-                                        @csrf @method('DELETE')
-                                        <button class="text-slate-400 hover:text-red-600 transition">Hapus</button>
-                                    </form>
+                                    @if ($key === 'aset')
+                                        @if ($item->status_penghapusan === 'menunggu_persetujuan')
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200" title="Menunggu verifikasi dan persetujuan Kepala Divisi">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                                Menunggu Kadiv
+                                            </span>
+                                        @else
+                                            <a href="{{ route('disposal-aset.ajukan', $item->id) }}"
+                                               class="inline-flex items-center gap-1 text-slate-400 hover:text-rose-600 transition font-medium"
+                                               title="Ajukan penghapusan aset ke Kepala Divisi">
+                                                @include('partials.icon', ['name' => 'trash-2', 'class' => 'w-3.5 h-3.5'])
+                                                Hapus
+                                            </a>
+                                        @endif
+                                    @else
+                                        <form method="POST" action="{{ route('modul.destroy', [$key, $item->id]) }}"
+                                              onsubmit="return confirm('Hapus data ini?')">
+                                            @csrf @method('DELETE')
+                                            <button class="text-slate-400 hover:text-red-600 transition">Hapus</button>
+                                        </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>

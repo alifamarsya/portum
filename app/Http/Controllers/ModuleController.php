@@ -161,6 +161,12 @@ class ModuleController extends Controller
     {
         $cfg = $this->authorizeModule($key, 'write');
         $item = $cfg['model']::findOrFail($id);
+
+        if ($key === 'aset') {
+            return redirect()->route('disposal-aset.ajukan', $id)
+                ->with('error', 'Penghapusan inventaris aset wajib melalui pengajuan dan persetujuan Kepala Divisi.');
+        }
+
         $item->delete();
         $this->audit('DELETE', $cfg['modul'], $cfg['judul'], $id, 'Menghapus data');
 

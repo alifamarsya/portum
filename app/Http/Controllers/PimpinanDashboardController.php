@@ -246,9 +246,17 @@ class PimpinanDashboardController extends Controller
             $unitKerjas = Schema::hasTable('unit_kerja')
                 ? UnitKerja::where('department_id', $dept->id)->where('is_active', true)->get()
                 : collect();
+            $hasUkCol = Schema::hasColumn('tickets', 'unit_kerja_id');
+            $hasStaffUkCol = Schema::hasColumn('users', 'unit_kerja_id');
             $ukBreakdown = [];
             foreach ($unitKerjas as $uk) {
-                $ukQ = (clone $base)->where('unit_kerja_id', $uk->id);
+                if ($hasUkCol) {
+                    $ukQ = (clone $base)->where('unit_kerja_id', $uk->id);
+                } elseif ($hasStaffUkCol) {
+                    $ukQ = (clone $base)->whereHas('assignedStaff', fn ($u) => $u->where('unit_kerja_id', $uk->id));
+                } else {
+                    $ukQ = (clone $base)->whereRaw('1 = 0');
+                }
                 $ukTotal   = (clone $ukQ)->count();
                 $ukAktif   = (clone $ukQ)->whereIn('status', self::ACTIVE_STATUSES)->count();
                 $ukSelesai = (clone $ukQ)->whereIn('status', self::DONE_STATUSES)->count();

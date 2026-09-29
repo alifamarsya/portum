@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class AsAset extends Model
 {
+    use SoftDeletes;
+
     protected $table = 'as_aset';
 
     protected $fillable = [
@@ -17,6 +20,7 @@ class AsAset extends Model
         'nilai_perolehan',
         'umur_ekonomis',
         'kondisi',
+        'status_penghapusan',
         'penanggung_jawab',
         'keterangan',
         'custom_fields',
@@ -98,6 +102,11 @@ class AsAset extends Model
     public function disposal()
     {
         return $this->hasMany(AsDisposalAset::class, 'aset_id');
+    }
+
+    public function latestDisposal()
+    {
+        return $this->hasOne(AsDisposalAset::class, 'aset_id')->latestOfMany();
     }
 
     public function rekonsiliasi()

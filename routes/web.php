@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\DisposalAsetController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\MutasiAsetController;
 use App\Http\Controllers\NotificationController;
@@ -110,6 +111,17 @@ Route::middleware('auth')->group(function () {
         Route::post('/{mutasi}/verify-staf', [MutasiAsetController::class, 'verifyStaf'])->name('verify-staf');
         Route::post('/{mutasi}/approve-kabag', [MutasiAsetController::class, 'approveKabag'])->name('approve-kabag');
         Route::post('/{mutasi}/konfirmasi-pengaju', [MutasiAsetController::class, 'konfirmasiPengaju'])->name('konfirmasi-pengaju');
+    });
+
+    // Penghapusan Aset / Disposal (Pengajuan, Approval Kadiv, dan Riwayat Terhapus)
+    Route::prefix('disposal-aset')->name('disposal-aset.')->group(function () {
+        Route::get('/riwayat', [DisposalAsetController::class, 'riwayatTerhapus'])->name('riwayat');
+        Route::get('/approval', [DisposalAsetController::class, 'approvalQueue'])->name('approval');
+        Route::get('/ajukan/{aset}', [DisposalAsetController::class, 'ajukanForm'])->name('ajukan');
+        Route::post('/ajukan/{aset}', [DisposalAsetController::class, 'ajukanSubmit'])->name('ajukan.submit');
+        Route::post('/{disposal}/approve', [DisposalAsetController::class, 'approve'])->name('approve');
+        Route::post('/{disposal}/reject', [DisposalAsetController::class, 'reject'])->name('reject');
+        Route::get('/{disposal}/dokumen/download', [DisposalAsetController::class, 'downloadDokumen'])->name('dokumen.download');
     });
 
     // Manajemen Dynamic Custom Fields (Inventarisasi Aset & Riwayat Pergerakan)

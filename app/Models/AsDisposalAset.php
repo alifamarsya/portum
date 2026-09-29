@@ -24,6 +24,8 @@ class AsDisposalAset extends Model
         'checker_id',
         'approval_status',
         'approved_at',
+        'alasan_penolakan',
+        'catatan_approval',
         'keterangan',
         'dokumen',
     ];
@@ -39,7 +41,7 @@ class AsDisposalAset extends Model
 
     public function aset(): BelongsTo
     {
-        return $this->belongsTo(AsAset::class, 'aset_id');
+        return $this->belongsTo(AsAset::class, 'aset_id')->withTrashed();
     }
 
     public function maker(): BelongsTo
