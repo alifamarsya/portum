@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\CustomFieldController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\TicketConfigController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DisposalAsetController;
@@ -73,14 +74,7 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('risalah', RisalahRapatController::class)->except(['show']);
 
-    // Manajemen Kategori Tiket & SLA (Operator & Admin)
-    Route::prefix('kategori-tiket')->name('ticket-categories.')->group(function () {
-        Route::get('/', [TicketCategoryController::class, 'index'])->name('index');
-        Route::post('/', [TicketCategoryController::class, 'store'])->name('store');
-        Route::put('/{category}', [TicketCategoryController::class, 'update'])->name('update');
-        Route::delete('/{category}', [TicketCategoryController::class, 'destroy'])->name('destroy');
-        Route::patch('/{category}/toggle', [TicketCategoryController::class, 'toggleStatus'])->name('toggle');
-    });
+    // API Kategori Tiket untuk Form Dropdown
     Route::get('/api/ticket-categories', [TicketCategoryController::class, 'getCategoriesByJenis'])->name('api.ticket-categories');
 
     // Sistem Tiket
@@ -124,16 +118,58 @@ Route::middleware('auth')->group(function () {
         Route::get('/{disposal}/dokumen/download', [DisposalAsetController::class, 'downloadDokumen'])->name('dokumen.download');
     });
 
-    // Manajemen Dynamic Custom Fields (Inventarisasi Aset & Riwayat Pergerakan)
-    // Dapat diakses oleh Staf Aset (uk_administrasi_aset) dan Administrator
-    Route::prefix('admin/custom-fields')->name('admin.custom-fields.')->group(function () {
-        Route::get('/', [CustomFieldController::class, 'index'])->name('index');
-        Route::post('/', [CustomFieldController::class, 'store'])->name('store');
-        Route::post('/reorder', [CustomFieldController::class, 'reorder'])->name('reorder');
-        Route::put('/{customField}', [CustomFieldController::class, 'update'])->name('update');
-        Route::patch('/{customField}/toggle', [CustomFieldController::class, 'toggle'])->name('toggle');
-        Route::delete('/{customField}', [CustomFieldController::class, 'destroy'])->name('destroy');
+    // ========================================================
+    // MODUL INDUK: CUSTOMIZED
+    // ========================================================
+    Route::prefix('konfigurasi')->name('konfigurasi.')->group(function () {
+        // Submodul A: Field Mutasi Aset (dipertahankan apa adanya)
+        Route::prefix('field-aset')->name('field-aset.')->group(function () {
+            Route::get('/', [CustomFieldController::class, 'index'])->name('index');
+            Route::post('/', [CustomFieldController::class, 'store'])->name('store');
+            Route::post('/reorder', [CustomFieldController::class, 'reorder'])->name('reorder');
+            Route::put('/{customField}', [CustomFieldController::class, 'update'])->name('update');
+            Route::patch('/{customField}/toggle', [CustomFieldController::class, 'toggle'])->name('toggle');
+            Route::delete('/{customField}', [CustomFieldController::class, 'destroy'])->name('destroy');
+        });
+
+        // Submodul B: Field Sistem Tiket (Kategori + Field Form & Tabel)
+        Route::prefix('tiket')->name('tiket.')->group(function () {
+            Route::get('/', [TicketConfigController::class, 'index'])->name('index');
+
+            // Kategori Tiket Actions
+            Route::post('/categories', [TicketConfigController::class, 'storeCategory'])->name('categories.store');
+            Route::put('/categories/{category}', [TicketConfigController::class, 'updateCategory'])->name('categories.update');
+            Route::delete('/categories/{category}', [TicketConfigController::class, 'destroyCategory'])->name('categories.destroy');
+            Route::patch('/categories/{category}/toggle', [TicketConfigController::class, 'toggleCategory'])->name('categories.toggle');
+
+            // Field Tiket Actions
+            Route::post('/fields', [TicketConfigController::class, 'storeField'])->name('fields.store');
+            Route::put('/fields/{field}', [TicketConfigController::class, 'updateField'])->name('fields.update');
+            Route::delete('/fields/{field}', [TicketConfigController::class, 'destroyField'])->name('fields.destroy');
+            Route::post('/fields/reorder', [TicketConfigController::class, 'reorderFields'])->name('fields.reorder');
+            Route::patch('/fields/{field}/toggle', [TicketConfigController::class, 'toggleField'])->name('fields.toggle');
+            Route::patch('/fields/{field}/toggle-list', [TicketConfigController::class, 'toggleFieldList'])->name('fields.toggle-list');
+            Route::patch('/fields/{field}/toggle-form', [TicketConfigController::class, 'toggleFieldForm'])->name('fields.toggle-form');
+        });
     });
+
+    // Backward-Compatibility Aliases & Redirects (URL lama tetap jalan tanpa merusak link manapun)
+    Route::get('/admin/custom-fields', function (\Illuminate\Http\Request $request) {
+        return redirect()->route('konfigurasi.field-aset.index', $request->query());
+    })->name('admin.custom-fields.index');
+    Route::post('/admin/custom-fields', [CustomFieldController::class, 'store'])->name('admin.custom-fields.store');
+    Route::post('/admin/custom-fields/reorder', [CustomFieldController::class, 'reorder'])->name('admin.custom-fields.reorder');
+    Route::put('/admin/custom-fields/{customField}', [CustomFieldController::class, 'update'])->name('admin.custom-fields.update');
+    Route::patch('/admin/custom-fields/{customField}/toggle', [CustomFieldController::class, 'toggle'])->name('admin.custom-fields.toggle');
+    Route::delete('/admin/custom-fields/{customField}', [CustomFieldController::class, 'destroy'])->name('admin.custom-fields.destroy');
+
+    Route::get('/kategori-tiket', function (\Illuminate\Http\Request $request) {
+        return redirect()->route('konfigurasi.tiket.index', array_merge(['tab' => 'kategori'], $request->query()));
+    })->name('ticket-categories.index');
+    Route::post('/kategori-tiket', [TicketConfigController::class, 'storeCategory'])->name('ticket-categories.store');
+    Route::put('/kategori-tiket/{category}', [TicketConfigController::class, 'updateCategory'])->name('ticket-categories.update');
+    Route::delete('/kategori-tiket/{category}', [TicketConfigController::class, 'destroyCategory'])->name('ticket-categories.destroy');
+    Route::patch('/kategori-tiket/{category}/toggle', [TicketConfigController::class, 'toggleCategory'])->name('ticket-categories.toggle');
 
     Route::prefix('admin')->name('admin.')->middleware('superadmin')->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
