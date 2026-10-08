@@ -1,15 +1,22 @@
 @extends('layouts.app')
-@section('title', 'Manajemen Dynamic Fields — ' . ($modules[$moduleKey] ?? $moduleKey))
+@section('title', 'Field Mutasi Aset — ' . ($modules[$moduleKey] ?? $moduleKey))
 
 @section('content')
 <div class="max-w-6xl mx-auto space-y-6">
     {{-- Header --}}
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <p class="text-[12px] font-semibold uppercase tracking-wider text-gold mb-1">Modul Operasional &amp; Form Dinamis</p>
+            <div class="flex items-center gap-2 mb-1">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#114E84]/10 text-[#114E84] border border-[#114E84]/20">
+                    @include('partials.icon', ['name' => 'sliders', 'class' => 'w-3 h-3 text-[#114E84]'])
+                    Customized
+                </span>
+                <span class="text-slate-400 text-xs">/</span>
+                <span class="text-xs font-semibold text-slate-600">Field Mutasi Aset</span>
+            </div>
             <h1 class="text-2xl font-bold text-ink flex items-center gap-2.5">
                 @include('partials.icon', ['name' => 'sliders', 'class' => 'w-6 h-6 text-[#114E84]'])
-                Dynamic Fields — {{ $modules[$moduleKey] ?? $moduleKey }}
+                Field Mutasi Aset — {{ $modules[$moduleKey] ?? $moduleKey }}
             </h1>
             <p class="text-xs text-slate-500 mt-1">Kelola seluruh field (bawaan &amp; kustom) yang muncul di formulir dan tabel modul Inventarisasi Aset, Riwayat Pergerakan, dan Form Mutasi Aset.</p>
         </div>

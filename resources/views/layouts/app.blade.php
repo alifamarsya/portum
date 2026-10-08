@@ -33,7 +33,7 @@
     $user?->loadMissing('role.permissions');
     $permissions = $user?->role?->permissions?->keyBy('perm_key') ?? collect();
 
-    $canAccess = fn (string $key) => $permissions->has($key);
+    $canAccess = fn (string $key) => $user ? $user->canAccess($key) : false;
     $canWrite  = fn (string $key) => (bool) optional($permissions->get($key))->can_write;
 
     $operationalGroups = [
@@ -172,7 +172,7 @@
         {{-- Navigation Menu --}}
         <nav class="flex-1 overflow-y-auto overscroll-contain pt-4 pb-2 space-y-4 text-[13px]">
             {{-- 1. PENGAJUAN & MONITORING --}}
-            @if ($canAccess('dashboard') || $canAccess('ticketing') || $canAccess('mutasi_aset'))
+            @if ($canAccess('dashboard') || $canAccess('ticketing') || $canAccess('mutasi_aset') || $canAccess('persetujuan_hapus_aset'))
                 <div class="pt-1">
                     <p class="px-5 mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/40">Pengajuan &amp; Monitoring</p>
                     <div class="space-y-0.5 px-3">
@@ -231,18 +231,7 @@
                             </a>
                         @endif
 
-                        @if ($user?->isAdmin() || $user?->isOperator())
-                            <a href="{{ route('ticket-categories.index') }}"
-                               class="flex items-center justify-between gap-3 py-2 px-3 rounded-xl transition {{ request()->routeIs('ticket-categories.*') ? 'bg-canvas text-[#114E84] font-bold shadow-2xs' : 'text-white/90 hover:bg-white/10 hover:text-white' }}">
-                                <div class="flex items-center gap-3 min-w-0">
-                                    <div class="w-6 h-6 flex items-center justify-center {{ request()->routeIs('ticket-categories.*') ? 'text-[#114E84]' : 'text-white/80' }} flex-shrink-0">
-                                        @include('partials.icon', ['name' => 'sliders', 'class' => 'w-[17px] h-[17px]'])
-                                    </div>
-                                    <span class="text-[12.5px] truncate">Kategori Tiket</span>
-                                </div>
-                                <span class="{{ request()->routeIs('ticket-categories.*') ? 'text-[#114E84]' : 'text-white/40' }} text-xs">▸</span>
-                            </a>
-                        @endif
+
 
                         @if ($canAccess('mutasi_aset'))
                             @php
@@ -276,7 +265,7 @@
                             </a>
                         @endif
 
-                        @if ($user?->isKepalaDivisi() || $user?->hasRole(['pimpinan', 'kepala_divisi']) || $user?->isSuperAdmin())
+                        @if ($canAccess('persetujuan_hapus_aset'))
                             @php
                                 $isDisposalKadivActive = request()->routeIs('disposal-aset.approval');
                                 $disposalKadivCount = \App\Models\AsDisposalAset::where('approval_status', 'Diajukan')->count();
@@ -369,19 +358,7 @@
                                 </div>
                             </details>
 
-                            {{-- Dynamic Field Aset: Sejajar dengan Aset & Logistik di Operasional --}}
-                            @if ($group['label'] === 'Aset & Logistik' && $canAccess('administrasi_aset'))
-                                <a href="{{ route('admin.custom-fields.index') }}"
-                                   class="flex items-center justify-between gap-3 py-2 px-3 rounded-xl transition {{ request()->routeIs('admin.custom-fields.*') ? 'bg-canvas text-[#114E84] font-bold shadow-2xs' : 'text-white/90 hover:bg-white/10 hover:text-white' }}">
-                                    <div class="flex items-center gap-3 min-w-0">
-                                        <div class="w-6 h-6 flex items-center justify-center {{ request()->routeIs('admin.custom-fields.*') ? 'text-[#114E84]' : 'text-white/80' }} flex-shrink-0">
-                                            @include('partials.icon', ['name' => 'sliders', 'class' => 'w-[17px] h-[17px]'])
-                                        </div>
-                                        <span class="truncate text-[12.5px]">Dynamic Field Aset</span>
-                                    </div>
-                                    <span class="{{ request()->routeIs('admin.custom-fields.*') ? 'text-[#114E84]' : 'text-white/40' }} text-xs">▸</span>
-                                </a>
-                            @endif
+
                         @endforeach
                     </div>
                 </div>
@@ -408,7 +385,47 @@
                 </div>
             @endif
 
-            {{-- 6. ADMINISTRASI SISTEM --}}
+            {{-- 6. MODUL INDUK: CUSTOMIZED --}}
+            @if ($canAccess('config_field_aset') || $canAccess('config_ticket'))
+                <div class="pt-1">
+                    <p class="px-5 mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/40">Customized</p>
+                    <div class="space-y-0.5 px-3">
+                        @if ($canAccess('config_field_aset'))
+                            @php
+                                $isFieldAsetActive = request()->routeIs('konfigurasi.field-aset.*') || request()->routeIs('admin.custom-fields.*');
+                            @endphp
+                            <a href="{{ route('konfigurasi.field-aset.index') }}"
+                               class="flex items-center justify-between gap-3 py-2 px-3 rounded-xl transition {{ $isFieldAsetActive ? 'bg-canvas text-[#114E84] font-bold shadow-2xs' : 'text-white/90 hover:bg-white/10 hover:text-white' }}">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <div class="w-6 h-6 flex items-center justify-center {{ $isFieldAsetActive ? 'text-[#114E84]' : 'text-white/80' }} flex-shrink-0">
+                                        @include('partials.icon', ['name' => 'sliders', 'class' => 'w-[17px] h-[17px]'])
+                                    </div>
+                                    <span class="truncate text-[12.5px]">Field Mutasi Aset</span>
+                                </div>
+                                <span class="{{ $isFieldAsetActive ? 'text-[#114E84]' : 'text-white/40' }} text-xs">▸</span>
+                            </a>
+                        @endif
+
+                        @if ($canAccess('config_ticket'))
+                            @php
+                                $isTicketConfigActive = request()->routeIs('konfigurasi.tiket.*') || request()->routeIs('ticket-categories.*');
+                            @endphp
+                            <a href="{{ route('konfigurasi.tiket.index') }}"
+                               class="flex items-center justify-between gap-3 py-2 px-3 rounded-xl transition {{ $isTicketConfigActive ? 'bg-canvas text-[#114E84] font-bold shadow-2xs' : 'text-white/90 hover:bg-white/10 hover:text-white' }}">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <div class="w-6 h-6 flex items-center justify-center {{ $isTicketConfigActive ? 'text-[#114E84]' : 'text-white/80' }} flex-shrink-0">
+                                        @include('partials.icon', ['name' => 'sliders', 'class' => 'w-[17px] h-[17px]'])
+                                    </div>
+                                    <span class="truncate text-[12.5px]">Field Sistem Tiket</span>
+                                </div>
+                                <span class="{{ $isTicketConfigActive ? 'text-[#114E84]' : 'text-white/40' }} text-xs">▸</span>
+                            </a>
+                        @endif
+                    </div>
+                </div>
+            @endif
+
+            {{-- 7. ADMINISTRASI SISTEM --}}
             @if ($canAccess('user_mgmt') || $canAccess('role_mgmt') || $canAccess('audit_log'))
                 <div class="pt-1">
                     <p class="px-5 mb-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/40">Administrasi</p>
@@ -594,7 +611,7 @@
         </div>
         <nav class="flex-1 p-3 space-y-3 text-xs">
             {{-- 1. PENGAJUAN & MONITORING --}}
-            @if ($canAccess('dashboard') || $canAccess('ticketing') || $canAccess('mutasi_aset'))
+            @if ($canAccess('dashboard') || $canAccess('ticketing') || $canAccess('mutasi_aset') || $canAccess('persetujuan_hapus_aset'))
                 <div class="space-y-1">
                     <p class="text-[10px] font-bold text-white/50 uppercase px-2 mb-1">Pengajuan &amp; Monitoring</p>
                     @if ($canAccess('dashboard'))
@@ -626,12 +643,7 @@
                                 @endif
                             @endif
                         </a>
-                        @if ($user?->isAdmin() || $user?->isOperator())
-                            <a href="{{ route('ticket-categories.index') }}" class="flex items-center gap-3 p-2 rounded-xl {{ request()->routeIs('ticket-categories.*') ? 'bg-white/20 text-white font-bold' : 'text-white/80 hover:bg-white/10' }}">
-                                @include('partials.icon', ['name' => 'sliders', 'class' => 'w-4 h-4'])
-                                <span>Kategori Tiket</span>
-                            </a>
-                        @endif
+
                     @endif
 
                     @if ($canAccess('mutasi_aset'))
@@ -641,6 +653,24 @@
                         <a href="{{ route('mutasi-aset.index') }}" class="flex items-center gap-3 p-2 rounded-xl {{ $isMobileMutasiActive ? 'bg-white/20 text-white font-bold' : 'text-white/80 hover:bg-white/10' }}">
                             @include('partials.icon', ['name' => 'layers', 'class' => 'w-4 h-4'])
                             <span>Mutasi Aset</span>
+                        </a>
+                    @endif
+
+                    @if ($canAccess('persetujuan_hapus_aset'))
+                        @php
+                            $isMobileDisposalActive = request()->routeIs('disposal-aset.approval');
+                            $disposalKadivCount = \App\Models\AsDisposalAset::where('approval_status', 'Diajukan')->count();
+                        @endphp
+                        <a href="{{ route('disposal-aset.approval') }}" class="flex items-center justify-between gap-3 p-2 rounded-xl {{ $isMobileDisposalActive ? 'bg-white/20 text-white font-bold' : 'text-white/80 hover:bg-white/10' }}">
+                            <div class="flex items-center gap-3 min-w-0">
+                                @include('partials.icon', ['name' => 'shield', 'class' => 'w-4 h-4 text-white/80'])
+                                <span class="truncate">Persetujuan Hapus Aset</span>
+                            </div>
+                            @if ($disposalKadivCount > 0)
+                                <span class="bg-amber-400 text-[#0E1726] text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center">
+                                    {{ $disposalKadivCount }}
+                                </span>
+                            @endif
                         </a>
                     @endif
                 </div>
@@ -676,14 +706,7 @@
                             @endforeach
                         </div>
                     </div>
-                    @if ($group['label'] === 'Aset & Logistik' && $canAccess('administrasi_aset'))
-                        <div class="pt-1">
-                            <a href="{{ route('admin.custom-fields.index') }}" class="flex items-center gap-2.5 p-2 rounded-xl text-white/90 hover:bg-white/10 hover:text-white {{ request()->routeIs('admin.custom-fields.*') ? 'bg-white/20 text-white font-bold' : '' }}">
-                                @include('partials.icon', ['name' => 'sliders', 'class' => 'w-4 h-4 text-white/80'])
-                                <span>Dynamic Field Aset</span>
-                            </a>
-                        </div>
-                    @endif
+
                 @endforeach
             @endif
 
@@ -701,7 +724,26 @@
                 </div>
             @endif
 
-            {{-- 6. ADMINISTRASI SISTEM --}}
+            {{-- 6. MODUL INDUK: CUSTOMIZED --}}
+            @if ($canAccess('config_field_aset') || $canAccess('config_ticket'))
+                <div class="space-y-1 pt-1">
+                    <p class="text-[10px] font-bold text-white/50 uppercase px-2 mb-1">Customized</p>
+                    @if ($canAccess('config_field_aset'))
+                        <a href="{{ route('konfigurasi.field-aset.index') }}" class="flex items-center gap-3 p-2 rounded-xl {{ request()->routeIs('konfigurasi.field-aset.*') || request()->routeIs('admin.custom-fields.*') ? 'bg-white/20 text-white font-bold' : 'text-white/80 hover:bg-white/10' }}">
+                            @include('partials.icon', ['name' => 'sliders', 'class' => 'w-4 h-4 text-white/80'])
+                            <span>Field Mutasi Aset</span>
+                        </a>
+                    @endif
+                    @if ($canAccess('config_ticket'))
+                        <a href="{{ route('konfigurasi.tiket.index') }}" class="flex items-center gap-3 p-2 rounded-xl {{ request()->routeIs('konfigurasi.tiket.*') || request()->routeIs('ticket-categories.*') ? 'bg-white/20 text-white font-bold' : 'text-white/80 hover:bg-white/10' }}">
+                            @include('partials.icon', ['name' => 'sliders', 'class' => 'w-4 h-4 text-white/80'])
+                            <span>Field Sistem Tiket</span>
+                        </a>
+                    @endif
+                </div>
+            @endif
+
+            {{-- 7. ADMINISTRASI SISTEM --}}
             @if ($canAccess('user_mgmt') || $canAccess('role_mgmt') || $canAccess('audit_log'))
                 <div class="space-y-1 pt-1">
                     <p class="text-[10px] font-bold text-white/50 uppercase px-2 mb-1">Administrasi</p>

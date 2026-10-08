@@ -16,7 +16,7 @@ class CustomFieldController extends Controller
         }
 
         if (
-            $user->isSuperAdmin() ||
+            $user->canAccess('config_field_aset') ||
             $user->isUkAdministrasiAset() ||
             $user->hasRole(['aset', 'uk_administrasi_aset', 'kabag_aset']) ||
             $user->canAccess('administrasi_aset')
