@@ -33,39 +33,47 @@ class RoleController extends Controller
 
     const PERMISSIONS = [
         'Pengajuan & Monitoring' => [
-            'dashboard'   => ['label' => 'Dashboard', 'desc' => 'Akses halaman dashboard pemantauan utama sistem'],
-            'ticketing'   => ['label' => 'Sistem Tiket', 'desc' => 'Akses modul tiket pengajuan (pemohon, operator, atau unit kerja)'],
-            'mutasi_aset' => ['label' => 'Mutasi Aset', 'desc' => 'Akses modul pengajuan dan persetujuan mutasi lokasi/penanggung jawab aset'],
+            'icon'  => 'inbox',
+            'items' => [
+                'dashboard'              => ['label' => 'Dashboard', 'unit' => 'Utama'],
+                'ticketing'              => ['label' => 'Sistem Tiket', 'unit' => 'Helpdesk'],
+                'mutasi_aset'            => ['label' => 'Mutasi Aset', 'unit' => 'Pemohon & Approval'],
+                'persetujuan_hapus_aset' => ['label' => 'Persetujuan Hapus Aset', 'unit' => 'Kadiv & Approval'],
+            ],
         ],
         'Modul Operasional' => [
-            'umum_rt' => [
-                'label' => 'Bagian Umum & Rumah Tangga',
-                'desc' => 'Pengelolaan kendaraan dinas, biaya BBM/RT, fasilitas gedung, K3, kearsipan persuratan & dokumen legalitas.',
-                'submodules' => ['Kendaraan & Driver', 'Biaya BBM & RT', 'Fasilitas Kantor', 'Pemeliharaan Gedung', 'Kebersihan & Keamanan', 'Catatan K3', 'Surat Masuk/Keluar', 'Memo Masuk/Keluar', 'Master Arsip Dokumen', 'Dokumen Legalitas'],
-                'linked_keys' => ['umum_rt', 'dokumen_arsip'],
+            'icon'  => 'layers',
+            'items' => [
+                'umum_rt'                 => ['label' => 'UK Umum & Rumah Tangga', 'unit' => 'Bagian Umum'],
+                'dokumen_arsip'           => ['label' => 'UK Dokumen & Kearsipan', 'unit' => 'Bagian Umum'],
+                'administrasi_aset'       => ['label' => 'UK Administrasi Aset', 'unit' => 'Bagian Aset'],
+                'logistik_pelaporan'      => ['label' => 'UK Logistik & Pelaporan', 'unit' => 'Bagian Aset'],
+                'pengadaan'               => ['label' => 'UK Pengadaan', 'unit' => 'Bagian Pengadaan'],
+                'pemeliharaan_pengawasan' => ['label' => 'UK Pemeliharaan', 'unit' => 'Bagian Pengadaan'],
             ],
-            'administrasi_aset' => [
-                'label' => 'Bagian Aset/Inventaris & Logistik',
-                'desc' => 'Inventarisasi aset, amortisasi, riwayat mutasi/disposal, rekonsiliasi temuan, tagihan sewa cabang, PKS, dan distribusi barang.',
-                'submodules' => ['Inventarisasi Aset', 'Amortisasi Aset', 'Riwayat Pergerakan', 'Disposal Aset', 'Rekonsiliasi & Temuan', 'Invoice Sewa', 'PKS & Jatuh Tempo', 'Memo Sewa Cabang', 'Distribusi Barang / Jasa', 'Pembayaran Tagihan'],
-                'linked_keys' => ['administrasi_aset', 'logistik_pelaporan'],
-            ],
-            'pengadaan' => [
-                'label' => 'Bagian Pengadaan & Pemeliharaan',
-                'desc' => 'Pengadaan barang/jasa (memo, vendor, negosiasi, SPK, reminder) dan pemeliharaan aset berkala & monitoring kondisi.',
-                'submodules' => ['Memo Internal', 'Penawaran Vendor', 'Negosiasi Harga', 'Draft Dokumen SPK', 'Surat Perintah Kerja (SPK)', 'Reminder & Monitoring', 'Perencanaan Kebutuhan', 'Jadwal Pemeliharaan', 'Monitoring Kondisi Aset', 'Tindak Lanjut Perbaikan'],
-                'linked_keys' => ['pengadaan', 'pemeliharaan_pengawasan'],
+        ],
+        'Customized' => [
+            'icon'  => 'sliders',
+            'items' => [
+                'config_field_aset' => ['label' => 'Field Mutasi Aset', 'unit' => 'Aset, Mutasi, Riwayat'],
+                'config_ticket'     => ['label' => 'Field Sistem Tiket', 'unit' => 'Kategori & Field Tiket'],
             ],
         ],
         'Dokumentasi & Referensi' => [
-            'risalah' => ['label' => 'Risalah Rapat', 'desc' => 'Notulensi agenda rapat, daftar hadir, dan tindak lanjut keputusan'],
-            'panduan' => ['label' => 'Buku Panduan & SOP', 'desc' => 'Dokumentasi pedoman teknis dan panduan operasional perbankan'],
-            'ref_akun' => ['label' => 'Referensi Akun (COA)', 'desc' => 'Master data rekening debet dan akun beban biaya'],
+            'icon'  => 'book',
+            'items' => [
+                'risalah'  => ['label' => 'Risalah Rapat', 'unit' => 'Notulensi'],
+                'panduan'  => ['label' => 'Buku Panduan & SOP', 'unit' => 'Dokumentasi'],
+                'ref_akun' => ['label' => 'Referensi Akun (COA)', 'unit' => 'Master Keuangan'],
+            ],
         ],
         'Administrasi Sistem' => [
-            'user_mgmt' => ['label' => 'Manajemen User', 'desc' => 'Pengelolaan data pengguna, reset kata sandi, dan status aktif'],
-            'role_mgmt' => ['label' => 'Manajemen Role', 'desc' => 'Konfigurasi matriks izin modul dan peran jabatan (RBAC)'],
-            'audit_log' => ['label' => 'Audit Log & Hash', 'desc' => 'Jejak audit digital seluruh aktivitas dan integritas SHA-256'],
+            'icon'  => 'shield',
+            'items' => [
+                'user_mgmt' => ['label' => 'Manajemen User', 'unit' => 'Akun Pengguna'],
+                'role_mgmt' => ['label' => 'Peran & Hak Akses', 'unit' => 'RBAC Matrix'],
+                'audit_log' => ['label' => 'Audit Log & Hash', 'unit' => 'Integritas SHA-256'],
+            ],
         ],
     ];
 
@@ -73,7 +81,7 @@ class RoleController extends Controller
     {
         $keys = [];
         foreach (self::PERMISSIONS as $group) {
-            foreach (array_keys($group) as $k) {
+            foreach (array_keys($group['items']) as $k) {
                 $keys[] = $k;
             }
         }
@@ -164,8 +172,8 @@ class RoleController extends Controller
 
     public function updatePermissions(Request $request, Role $role)
     {
-        foreach (self::PERMISSIONS as $groupItems) {
-            foreach ($groupItems as $key => $meta) {
+        foreach (self::PERMISSIONS as $group) {
+            foreach ($group['items'] as $key => $meta) {
                 $hasAccess = $request->boolean("access_{$key}");
                 $canWrite = $request->boolean("write_{$key}");
                 $keysToSync = $meta['linked_keys'] ?? [$key];

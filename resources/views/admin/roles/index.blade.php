@@ -111,60 +111,66 @@
                 </div>
             </div>
 
-            {{-- Grouped Permissions Grid Form --}}
-            <form id="permForm_{{ $role->id }}" method="POST" action="{{ route('admin.roles.permissions', $role) }}">
+            {{-- Grouped Permissions: Horizontal Module Cards --}}
+            <form id="permForm_{{ $role->id }}" method="POST" action="{{ route('admin.roles.permissions', $role) }}" class="space-y-3">
                 @csrf
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    @foreach ($groupedPermissions as $groupName => $groupItems)
-                        <div class="p-3.5 rounded-xl border border-slate-100 bg-slate-50/50 flex flex-col justify-between">
-                            <div>
-                                <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2.5 flex items-center gap-1.5">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-[#114E84]"></span>
-                                    {{ $groupName }}
-                                </p>
-                                <div class="space-y-2.5">
-                                    @foreach ($groupItems as $permKey => $permMeta)
+                @foreach ($groupedPermissions as $groupName => $groupData)
+                    <div class="rounded-xl border border-slate-200/90 bg-slate-50/60 overflow-hidden transition-all hover:border-[#114E84]/30 hover:bg-slate-50/80">
+                        {{-- Horizontal Layout: Sisi kiri Modul Induk, Sisi kanan Submodul memanjang ke samping --}}
+                        <div class="flex flex-col lg:flex-row lg:items-stretch">
+                            {{-- Modul Induk Header --}}
+                            <div class="lg:w-56 p-3 lg:p-4 bg-white/70 border-b lg:border-b-0 lg:border-r border-slate-200/80 flex items-center justify-between lg:flex-col lg:items-start lg:justify-center flex-shrink-0">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-7 h-7 rounded-lg bg-[#114E84]/10 text-[#114E84] flex items-center justify-center flex-shrink-0">
+                                        @include('partials.icon', ['name' => $groupData['icon'] ?? 'layers', 'class' => 'w-4 h-4 text-[#114E84]'])
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-bold text-ink leading-tight">{{ $groupName }}</p>
+                                        <p class="text-[10px] text-slate-400 font-medium">{{ count($groupData['items']) }} submodul</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Submodul Cards Memanjang ke Samping --}}
+                            <div class="flex-1 p-2.5 lg:p-3">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
+                                    @foreach ($groupData['items'] as $permKey => $permMeta)
                                         @php
                                             $linkedKeys = $permMeta['linked_keys'] ?? [$permKey];
                                             $hasAccess = $role->permissions->whereIn('perm_key', $linkedKeys)->isNotEmpty();
-                                            $canWrite = (bool) $role->permissions->whereIn('perm_key', $linkedKeys)->contains('can_write', 1);
+                                            $canWrite  = (bool) $role->permissions->whereIn('perm_key', $linkedKeys)->contains('can_write', 1);
                                         @endphp
-                                        <div class="p-2.5 rounded-xl border {{ $hasAccess ? 'border-[#114E84]/30 bg-white shadow-2xs' : 'border-slate-200 bg-slate-100/60 opacity-80' }} transition-all">
-                                            <div class="flex items-start justify-between gap-2">
-                                                <label class="flex items-center gap-2 cursor-pointer select-none">
+                                        <div class="p-2.5 rounded-xl border transition-all {{ $hasAccess ? 'border-[#114E84]/30 bg-white shadow-2xs' : 'border-slate-200/70 bg-white/40 opacity-75' }}">
+                                            <div class="flex items-center justify-between gap-2">
+                                                <label class="flex items-center gap-2 cursor-pointer select-none min-w-0">
                                                     <input type="checkbox"
                                                            name="access_{{ $permKey }}"
                                                            value="1"
                                                            @checked($hasAccess)
-                                                           class="rounded text-[#114E84] focus:ring-[#114E84] w-3.5 h-3.5">
-                                                    <span class="text-xs font-bold text-ink leading-tight">{{ $permMeta['label'] }}</span>
+                                                           class="rounded text-[#114E84] focus:ring-[#114E84] w-3.5 h-3.5 flex-shrink-0">
+                                                    <span class="text-xs font-bold text-ink truncate leading-tight" title="{{ $permMeta['label'] }}">
+                                                        {{ $permMeta['label'] }}
+                                                    </span>
                                                 </label>
-                                                <span class="text-[9.5px] font-mono text-slate-400">{{ $permKey }}</span>
+                                                @if (!empty($permMeta['unit']))
+                                                    <span class="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 whitespace-nowrap flex-shrink-0">
+                                                        {{ $permMeta['unit'] }}
+                                                    </span>
+                                                @endif
                                             </div>
-                                            <p class="text-[10.5px] text-slate-500 mt-1 pl-5.5 leading-snug">{{ $permMeta['desc'] }}</p>
 
-                                            @if (!empty($permMeta['submodules']))
-                                                <div class="flex flex-wrap gap-1 mt-1.5 pl-5.5">
-                                                    @foreach ($permMeta['submodules'] as $subm)
-                                                        <span class="inline-block px-1.5 py-0.5 rounded text-[8.5px] font-medium bg-slate-50 text-slate-600 border border-slate-200/70">
-                                                            {{ $subm }}
-                                                        </span>
-                                                    @endforeach
-                                                </div>
-                                            @endif
-
-                                            {{-- Toggle Izin Tulis / Maker-Checker --}}
-                                            <div class="mt-2 pt-1.5 border-t border-slate-100 pl-5.5 flex items-center justify-between text-[11px]">
+                                            {{-- Toggle Izin Tulis --}}
+                                            <div class="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10.5px]">
                                                 <label class="flex items-center gap-1.5 cursor-pointer text-slate-600 select-none">
                                                     <input type="checkbox"
                                                            name="write_{{ $permKey }}"
                                                            value="1"
                                                            @checked($canWrite)
                                                            class="rounded text-amber-600 focus:ring-amber-500 w-3 h-3">
-                                                    <span class="text-[11px]">Izin Tulis / Ubah</span>
+                                                    <span class="text-[10px]">Izin Tulis</span>
                                                 </label>
-                                                <span class="text-[10px] font-semibold {{ $canWrite ? 'text-amber-600' : ($hasAccess ? 'text-blue-600' : 'text-slate-400') }}">
-                                                    {{ $canWrite ? 'Full Write' : ($hasAccess ? 'Read Only' : 'No Access') }}
+                                                <span class="text-[9.5px] font-bold {{ $canWrite ? 'text-amber-600' : ($hasAccess ? 'text-[#114E84]' : 'text-slate-400') }}">
+                                                    {{ $canWrite ? 'Write' : ($hasAccess ? 'Read' : 'None') }}
                                                 </span>
                                             </div>
                                         </div>
@@ -172,8 +178,8 @@
                                 </div>
                             </div>
                         </div>
-                    @endforeach
-                </div>
+                    </div>
+                @endforeach
             </form>
         </div>
     @endforeach
