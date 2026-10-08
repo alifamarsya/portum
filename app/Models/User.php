@@ -90,17 +90,51 @@ class User extends Authenticatable
      */
     public function canAccess(string $permKey): bool
     {
-        if ($this->isSuperAdmin()) {
-            return true;
-        }
-
         if (!$this->role_id) {
             return false;
         }
 
-        return RolePermission::where('role_id', $this->role_id)
-            ->where('perm_key', $permKey)
-            ->exists();
+        // Proteksi keselamatan: Superadmin selalu memiliki akses ke manajemen peran agar tidak terkunci
+        if ($permKey === 'role_mgmt' && $this->isSuperAdmin()) {
+            return true;
+        }
+
+        if ($this->relationLoaded('role') && $this->role && $this->role->relationLoaded('permissions')) {
+            $hasDirect = $this->role->permissions->contains('perm_key', $permKey);
+        } else {
+            $hasDirect = RolePermission::where('role_id', $this->role_id)
+                ->where('perm_key', $permKey)
+                ->exists();
+        }
+
+        if ($hasDirect) {
+            return true;
+        }
+
+        // Jika user adalah role admin, hak akses murni mengikuti matriks hak akses yang tersimpan
+        if ($this->isSuperAdmin()) {
+            return false;
+        }
+
+        // Fallback backward-compatible untuk modul konfigurasi baru
+        if ($permKey === 'config_field_aset') {
+            if ($this->hasRole(['aset', 'uk_administrasi_aset', 'kabag_aset']) || $this->isUkAdministrasiAset()) {
+                return true;
+            }
+            return RolePermission::where('role_id', $this->role_id)
+                ->where('perm_key', 'administrasi_aset')
+                ->exists();
+        }
+
+        if ($permKey === 'config_ticket') {
+            return $this->isOperator();
+        }
+
+        if ($permKey === 'persetujuan_hapus_aset') {
+            return $this->isKepalaDivisi() || $this->hasRole(['pimpinan', 'kepala_divisi']);
+        }
+
+        return false;
     }
 
     public function isSuperAdmin(): bool

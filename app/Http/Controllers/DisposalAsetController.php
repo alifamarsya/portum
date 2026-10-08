@@ -31,16 +31,18 @@ class DisposalAsetController extends Controller
     }
 
     /**
-     * Memeriksa apakah user adalah Kepala Divisi (Kadiv) atau SuperAdmin.
+     * Memeriksa apakah user berhak menyetujui penghapusan aset (Kadiv / role dengan izin persetujuan_hapus_aset / SuperAdmin).
      */
     private function authorizeKadiv(): void
     {
         $user = auth()->user();
-        $isKadiv = $user->isSuperAdmin()
+        $isAuthorized = $user && (
+            $user->canAccess('persetujuan_hapus_aset')
             || $user->isKepalaDivisi()
-            || $user->hasRole(['pimpinan', 'kepala_divisi']);
+            || $user->hasRole(['pimpinan', 'kepala_divisi'])
+        );
 
-        abort_if(!$isKadiv, 403, 'Akses khusus Kepala Divisi.');
+        abort_if(!$isAuthorized, 403, 'Anda tidak memiliki hak akses untuk persetujuan penghapusan aset.');
     }
 
     /**
