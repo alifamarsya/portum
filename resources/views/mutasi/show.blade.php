@@ -6,12 +6,11 @@
     $badge = $mutasi->status_badge;
     $user = auth()->user();
 
-    // Tentukan state stepper (5 tahapan)
+    // Tentukan state stepper (4 tahapan: Pengajuan, Cek Operator, Bagian Aset, Konfirmasi Ditutup)
     $step1 = true; // Selalu selesai saat dibuat
     $step2 = in_array($mutasi->status, ['Diproses', 'Menunggu Approval', 'Disetujui', 'Ditutup']);
-    $step3 = in_array($mutasi->status, ['Menunggu Approval', 'Disetujui', 'Ditutup']);
-    $step4 = in_array($mutasi->status, ['Disetujui', 'Ditutup']);
-    $step5 = ($mutasi->status === 'Ditutup' && $mutasi->status_hasil === 'Disetujui');
+    $step3 = in_array($mutasi->status, ['Disetujui', 'Ditutup']) || ($mutasi->status === 'Menunggu Approval' && $mutasi->verified_at);
+    $step4 = ($mutasi->status === 'Ditutup' && $mutasi->status_hasil === 'Disetujui');
 
     $isRejected = ($mutasi->status === 'Ditutup' && in_array($mutasi->status_hasil, ['Ditolak', 'Tidak Valid']));
     $isWaitingConfirm = ($mutasi->status === 'Disetujui');
@@ -49,21 +48,12 @@
                 </button>
             @endif
 
-            {{-- Staf Aset Action Button --}}
-            @if (($user->isUkAdministrasiAset() || $user->hasRole('aset') || $user->isSuperAdmin()) && in_array($mutasi->status, ['Diajukan', 'Diproses']))
-                <button type="button" onclick="openModal('verifikasiStafModal')"
+            {{-- Bagian Aset Action Button --}}
+            @if (($user->isBagianAset() || $user->isSuperAdmin()) && in_array($mutasi->status, ['Diproses', 'Menunggu Approval']))
+                <button type="button" onclick="openModal('verifikasiBagianAsetModal')"
                         class="inline-flex items-center gap-2 bg-purple-700 hover:bg-purple-800 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-sm transition">
                     @include('partials.icon', ['name' => 'shield', 'class' => 'w-4 h-4'])
-                    Verifikasi Data Aset
-                </button>
-            @endif
-
-            {{-- Kabag Aset Action Button --}}
-            @if (($user->isKabagAset() || $user->hasRole('kabag_aset') || $user->isSuperAdmin()) && $mutasi->status === 'Menunggu Approval')
-                <button type="button" onclick="openModal('approvalKabagModal')"
-                        class="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-sm transition">
-                    @include('partials.icon', ['name' => 'pencil', 'class' => 'w-4 h-4'])
-                    Persetujuan Kabag Aset
+                    Verifikasi Bagian Aset
                 </button>
             @endif
 
@@ -78,10 +68,10 @@
         </div>
     </div>
 
-    {{-- 5-Stage Visual Workflow Stepper --}}
+    {{-- 4-Stage Visual Workflow Stepper --}}
     <div class="bg-white rounded-2xl border border-slate-200 shadow-card p-6">
-        <p class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-5">Alur Tahapan Mutasi Aset</p>
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 relative">
+        <p class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-5">Alur Tahapan Mutasi Aset (4 Tahap)</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative">
             {{-- Step 1: Diajukan --}}
             <div class="relative p-3.5 rounded-xl border {{ $step1 ? 'bg-blue-50/50 border-blue-200' : 'bg-slate-50 border-slate-200' }}">
                 <div class="flex items-center gap-2 mb-1.5">
@@ -108,49 +98,40 @@
                 @endif
             </div>
 
-            {{-- Step 3: Verifikasi Staf Aset --}}
-            <div class="relative p-3.5 rounded-xl border {{ $step3 || $mutasi->status_hasil === 'Tidak Valid' ? 'bg-purple-50/50 border-purple-200' : 'bg-slate-50 border-slate-200 opacity-60' }}">
+            {{-- Step 3: Verifikasi Bagian Aset --}}
+            @php
+                $step3Completed = $step3 || in_array($mutasi->status_hasil, ['Tidak Valid', 'Ditolak']);
+                $step3Active = in_array($mutasi->status, ['Diproses', 'Menunggu Approval']);
+            @endphp
+            <div class="relative p-3.5 rounded-xl border {{ $step3Completed ? ($mutasi->status_hasil === 'Ditolak' ? 'bg-rose-50/60 border-rose-300' : ($mutasi->status_hasil === 'Tidak Valid' ? 'bg-amber-50/60 border-amber-300' : 'bg-purple-50/60 border-purple-300')) : ($step3Active ? 'bg-purple-50/50 border-purple-300 ring-2 ring-purple-300/60' : 'bg-slate-50 border-slate-200 opacity-60') }}">
                 <div class="flex items-center gap-2 mb-1.5">
-                    <span class="w-5 h-5 rounded-full {{ $step3 || $mutasi->status_hasil === 'Tidak Valid' ? 'bg-purple-700 text-white' : 'bg-slate-300 text-slate-600' }} flex items-center justify-center text-[10px] font-bold">3</span>
-                    <span class="font-bold text-xs {{ $step3 || $mutasi->status_hasil === 'Tidak Valid' ? 'text-purple-800' : 'text-slate-500' }}">Verifikasi Staf</span>
+                    <span class="w-5 h-5 rounded-full {{ $step3Completed ? ($mutasi->status_hasil === 'Ditolak' ? 'bg-rose-600 text-white' : ($mutasi->status_hasil === 'Tidak Valid' ? 'bg-amber-600 text-white' : 'bg-purple-700 text-white')) : ($step3Active ? 'bg-purple-700 text-white' : 'bg-slate-300 text-slate-600') }} flex items-center justify-center text-[10px] font-bold">3</span>
+                    <span class="font-bold text-xs {{ $step3Completed ? ($mutasi->status_hasil === 'Ditolak' ? 'text-rose-800' : ($mutasi->status_hasil === 'Tidak Valid' ? 'text-amber-800' : 'text-purple-900')) : ($step3Active ? 'text-purple-800' : 'text-slate-500') }}">Bagian Aset</span>
                 </div>
-                <p class="text-[11px] font-semibold text-slate-700 truncate">{{ $mutasi->verifikator?->nama_lengkap ?? 'Staf Aset' }}</p>
-                <p class="text-[10px] text-slate-400">{{ $mutasi->verified_at ? $mutasi->verified_at->format('d/m/Y H:i') : 'Menunggu Verifikasi' }}</p>
-                @if ($mutasi->status_hasil === 'Tidak Valid')
-                    <span class="inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800">Tidak Valid</span>
-                @elseif ($mutasi->verified_at)
-                    <span class="inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800">Data Valid</span>
-                @else
-                    <span class="inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-700">Dalam Proses</span>
-                @endif
-            </div>
-
-            {{-- Step 4: Persetujuan Kabag Aset --}}
-            <div class="relative p-3.5 rounded-xl border {{ $step4 ? ($mutasi->approval_status === 'Disetujui' || in_array($mutasi->status, ['Disetujui', 'Ditutup']) && $mutasi->status_hasil === 'Disetujui' ? 'bg-blue-50/60 border-blue-300' : 'bg-rose-50/60 border-rose-300') : 'bg-slate-50 border-slate-200 opacity-60' }}">
-                <div class="flex items-center gap-2 mb-1.5">
-                    <span class="w-5 h-5 rounded-full {{ $step4 ? ($mutasi->status_hasil === 'Ditolak' ? 'bg-rose-600 text-white' : 'bg-blue-600 text-white') : 'bg-slate-300 text-slate-600' }} flex items-center justify-center text-[10px] font-bold">4</span>
-                    <span class="font-bold text-xs {{ $step4 ? ($mutasi->status_hasil === 'Ditolak' ? 'text-rose-800' : 'text-blue-800') : 'text-slate-500' }}">Approval Kabag</span>
-                </div>
-                <p class="text-[11px] font-semibold text-slate-700 truncate">{{ $mutasi->approver?->nama_lengkap ?? 'Kabag Aset' }}</p>
-                <p class="text-[10px] text-slate-400">{{ $mutasi->approved_at ? $mutasi->approved_at->format('d/m/Y H:i') : 'Menunggu Approval' }}</p>
+                <p class="text-[11px] font-semibold text-slate-700 truncate">{{ $mutasi->approver?->nama_lengkap ?? $mutasi->verifikator?->nama_lengkap ?? 'Bagian Aset' }}</p>
+                <p class="text-[10px] text-slate-400">{{ ($mutasi->approved_at ?: $mutasi->verified_at) ? ($mutasi->approved_at ?: $mutasi->verified_at)->format('d/m/Y H:i') : ($step3Active ? 'Menunggu Verifikasi' : 'Antrian') }}</p>
                 @if ($mutasi->status_hasil === 'Ditolak')
                     <span class="inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800">Ditolak</span>
-                @elseif ($mutasi->approved_at)
-                    <span class="inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800">Disetujui Kabag</span>
+                @elseif ($mutasi->status_hasil === 'Tidak Valid')
+                    <span class="inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">Tidak Valid</span>
+                @elseif ($step3)
+                    <span class="inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800">Disetujui</span>
+                @elseif ($step3Active)
+                    <span class="inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 animate-pulse">Perlu Aksi</span>
                 @else
-                    <span class="inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-700">Antrian Kabag</span>
+                    <span class="inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-700">Antrian</span>
                 @endif
             </div>
 
-            {{-- Step 5: Konfirmasi Penutupan (Pengaju) --}}
-            <div class="relative p-3.5 rounded-xl border {{ $step5 ? 'bg-emerald-50/70 border-emerald-300' : ($isWaitingConfirm ? 'bg-amber-50/70 border-amber-300 ring-2 ring-amber-300/60' : 'bg-slate-50 border-slate-200 opacity-60') }}">
+            {{-- Step 4: Konfirmasi Penutupan (Pengaju) --}}
+            <div class="relative p-3.5 rounded-xl border {{ $step4 ? 'bg-emerald-50/70 border-emerald-300' : ($isWaitingConfirm ? 'bg-amber-50/70 border-amber-300 ring-2 ring-amber-300/60' : 'bg-slate-50 border-slate-200 opacity-60') }}">
                 <div class="flex items-center gap-2 mb-1.5">
-                    <span class="w-5 h-5 rounded-full {{ $step5 ? 'bg-emerald-600 text-white' : ($isWaitingConfirm ? 'bg-amber-500 text-white' : 'bg-slate-300 text-slate-600') }} flex items-center justify-center text-[10px] font-bold">5</span>
-                    <span class="font-bold text-xs {{ $step5 ? 'text-emerald-800' : ($isWaitingConfirm ? 'text-amber-800' : 'text-slate-500') }}">Konfirmasi Ditutup</span>
+                    <span class="w-5 h-5 rounded-full {{ $step4 ? 'bg-emerald-600 text-white' : ($isWaitingConfirm ? 'bg-amber-500 text-white' : 'bg-slate-300 text-slate-600') }} flex items-center justify-center text-[10px] font-bold">4</span>
+                    <span class="font-bold text-xs {{ $step4 ? 'text-emerald-800' : ($isWaitingConfirm ? 'text-amber-800' : 'text-slate-500') }}">Konfirmasi Ditutup</span>
                 </div>
                 <p class="text-[11px] font-semibold text-slate-700 truncate" title="{{ $mutasi->nama_pemohon ?: ($mutasi->pengaju?->nama_lengkap ?? 'Pengaju') }}">{{ $mutasi->nama_pemohon ?: ($mutasi->pengaju?->nama_lengkap ?? 'Pengaju') }}</p>
                 <p class="text-[10px] text-slate-400">{{ $mutasi->confirmed_at ? $mutasi->confirmed_at->format('d/m/Y H:i') : ($isWaitingConfirm ? 'Menunggu Konfirmasi' : 'Belum Ditutup') }}</p>
-                @if ($step5)
+                @if ($step4)
                     <span class="inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">Ditutup &amp; Selesai</span>
                 @elseif ($isWaitingConfirm)
                     <span class="inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 animate-pulse">Perlu Konfirmasi</span>
@@ -169,14 +150,17 @@
                     @include('partials.icon', ['name' => 'clock', 'class' => 'w-5 h-5'])
                 </div>
                 <div>
-                    <p class="font-bold text-sm text-amber-900">Persetujuan Kabag Selesai — Menunggu Konfirmasi Penutupan oleh Pengaju</p>
+                    <p class="font-bold text-sm text-amber-900">Verifikasi Bagian Aset Selesai — Menunggu Konfirmasi Penutupan oleh Pengaju</p>
                     <p class="text-xs text-amber-800 mt-0.5 leading-relaxed">
-                        Pengajuan telah <strong>DISETUJUI</strong> oleh Kepala Bagian Aset ({{ $mutasi->approver?->nama_lengkap ?? 'Kabag Aset' }}).
+                        Pengajuan telah <strong>DISETUJUI</strong> oleh Bagian Aset ({{ $mutasi->approver?->nama_lengkap ?? $mutasi->verifikator?->nama_lengkap ?? 'Bagian Aset' }}).
                         Sesuai alur, sistem menunggu konfirmasi akhir dari pemohon (<strong>{{ $mutasi->nama_pemohon ?: ($mutasi->pengaju?->nama_lengkap ?? 'Pengaju') }}</strong>) untuk menutup tiket mutasi dan meresmikan update data master aset.
                     </p>
-                    @if ($mutasi->catatan_approval)
+                    @php
+                        $catatanBanner = $mutasi->catatan_approval ?: $mutasi->catatan_verifikasi;
+                    @endphp
+                    @if ($catatanBanner)
                         <div class="mt-2 text-xs bg-white/80 p-2.5 rounded-lg border border-amber-200">
-                            <strong class="font-semibold text-amber-900">Catatan Kabag:</strong> {{ $mutasi->catatan_approval }}
+                            <strong class="font-semibold text-amber-900">Catatan Bagian Aset:</strong> {{ $catatanBanner }}
                         </div>
                     @endif
                 </div>
@@ -192,12 +176,12 @@
     @elseif ($isClosedApproved)
         <div class="bg-emerald-50 border border-emerald-300 rounded-2xl p-4 text-emerald-900 flex items-start gap-3 shadow-sm">
             <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5">
-                @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-5 h-5'])
+                @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-4 h-4'])
             </div>
             <div>
                 <p class="font-bold text-sm text-emerald-800">Pengajuan Mutasi Aset Telah Ditutup &amp; Selesai</p>
                 <p class="text-xs text-emerald-700 mt-0.5">
-                    Disetujui oleh <strong>{{ $mutasi->approver?->nama_lengkap ?? 'Kepala Bagian Aset' }}</strong> dan telah dikonfirmasi ditutup oleh pemohon (<strong>{{ $mutasi->nama_pemohon ?: ($mutasi->pengaju?->nama_lengkap ?? 'Pengaju') }}</strong>) pada {{ $mutasi->confirmed_at?->translatedFormat('d F Y, H:i') ?? '-' }}.
+                    Disetujui oleh Bagian Aset (<strong>{{ $mutasi->approver?->nama_lengkap ?? $mutasi->verifikator?->nama_lengkap ?? 'Bagian Aset' }}</strong>) dan telah dikonfirmasi ditutup oleh pemohon (<strong>{{ $mutasi->nama_pemohon ?: ($mutasi->pengaju?->nama_lengkap ?? 'Pengaju') }}</strong>) pada {{ $mutasi->confirmed_at?->translatedFormat('d F Y, H:i') ?? '-' }}.
                     Data lokasi dan penanggung jawab aset telah resmi diperbarui di database inventaris.
                 </p>
                 @if ($mutasi->catatan_konfirmasi)
@@ -210,12 +194,12 @@
     @elseif ($mutasi->status_hasil === 'Ditolak')
         <div class="bg-rose-50 border border-rose-300 rounded-2xl p-4 text-rose-900 flex items-start gap-3 shadow-sm">
             <div class="w-8 h-8 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center flex-shrink-0 mt-0.5">
-                @include('partials.icon', ['name' => 'x-circle', 'class' => 'w-5 h-5'])
+                @include('partials.icon', ['name' => 'x-circle', 'class' => 'w-4 h-4'])
             </div>
             <div>
                 <p class="font-bold text-sm text-rose-800">Pengajuan Mutasi Aset Ditolak</p>
                 <p class="text-xs text-rose-700 mt-0.5">
-                    Ditolak oleh <strong>{{ $mutasi->approver?->nama_lengkap ?? 'Kepala Bagian Aset' }}</strong> pada {{ $mutasi->approved_at?->translatedFormat('d F Y, H:i') }}.
+                    Ditolak oleh Bagian Aset (<strong>{{ $mutasi->approver?->nama_lengkap ?? $mutasi->verifikator?->nama_lengkap ?? 'Bagian Aset' }}</strong>) pada {{ ($mutasi->approved_at ?: $mutasi->verified_at)?->translatedFormat('d F Y, H:i') }}.
                 </p>
                 @if ($mutasi->alasan_penolakan)
                     <div class="mt-2 text-xs bg-white/80 p-2.5 rounded-lg border border-rose-200">
@@ -232,7 +216,7 @@
             <div>
                 <p class="font-bold text-sm text-amber-800">Data Aset Dinyatakan Tidak Valid &amp; Ditutup</p>
                 <p class="text-xs text-amber-700 mt-0.5">
-                    Diverifikasi oleh Staf Unit Kerja Administrasi Aset (<strong>{{ $mutasi->verifikator?->nama_lengkap ?? 'Staf Aset' }}</strong>) pada {{ $mutasi->verified_at?->translatedFormat('d F Y, H:i') }}.
+                    Diverifikasi oleh Bagian Aset (<strong>{{ $mutasi->verifikator?->nama_lengkap ?? $mutasi->approver?->nama_lengkap ?? 'Bagian Aset' }}</strong>) pada {{ ($mutasi->verified_at ?: $mutasi->approved_at)?->translatedFormat('d F Y, H:i') }}.
                 </p>
                 @if ($mutasi->catatan_verifikasi)
                     <div class="mt-2 text-xs bg-white/80 p-2.5 rounded-lg border border-amber-200">
@@ -380,35 +364,40 @@
                         <p class="text-slate-600 pl-3.5">{{ $mutasi->catatan_operator ?? 'Belum ada catatan dari operator.' }}</p>
                     </div>
 
-                    {{-- Catatan Verifikasi Staf Aset --}}
+                    {{-- Catatan & Keputusan Bagian Aset --}}
                     <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50">
                         <div class="flex items-center justify-between gap-2 mb-1">
                             <span class="font-bold text-slate-700 flex items-center gap-1.5">
-                                <span class="w-2 h-2 rounded-full bg-purple-500"></span>
-                                Catatan Verifikasi Staf Administrasi Aset
+                                <span class="w-2 h-2 rounded-full bg-purple-600"></span>
+                                Catatan &amp; Keputusan Bagian Aset
+                                @if ($mutasi->approver || $mutasi->verifikator)
+                                    <span class="font-normal text-slate-500">({{ $mutasi->approver?->nama_lengkap ?? $mutasi->verifikator?->nama_lengkap }})</span>
+                                @endif
                             </span>
                             <span class="text-[10px] text-slate-400">
-                                {{ $mutasi->verified_at ? $mutasi->verified_at->format('d M Y, H:i') : 'Belum diverifikasi' }}
-                            </span>
-                        </div>
-                        <p class="text-slate-600 pl-3.5">{{ $mutasi->catatan_verifikasi ?? 'Belum ada catatan verifikasi staf aset.' }}</p>
-                    </div>
-
-                    {{-- Catatan Approval Kabag Aset --}}
-                    <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50">
-                        <div class="flex items-center justify-between gap-2 mb-1">
-                            <span class="font-bold text-slate-700 flex items-center gap-1.5">
-                                <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                                Catatan / Keputusan Kepala Bagian Aset
-                            </span>
-                            <span class="text-[10px] text-slate-400">
-                                {{ $mutasi->approved_at ? $mutasi->approved_at->format('d M Y, H:i') : 'Belum ada keputusan' }}
+                                {{ ($mutasi->approved_at ?: $mutasi->verified_at) ? ($mutasi->approved_at ?: $mutasi->verified_at)->format('d M Y, H:i') : 'Belum ada keputusan' }}
                             </span>
                         </div>
                         @if ($mutasi->alasan_penolakan)
-                            <p class="text-rose-700 pl-3.5 font-medium">Alasan Penolakan: {{ $mutasi->alasan_penolakan }}</p>
+                            <p class="text-rose-700 pl-3.5 font-medium mb-1">Alasan Penolakan: {{ $mutasi->alasan_penolakan }}</p>
                         @endif
-                        <p class="text-slate-600 pl-3.5">{{ $mutasi->catatan_approval ?? 'Belum ada catatan persetujuan.' }}</p>
+                        @php
+                            $catatanBagianAset = $mutasi->catatan_approval ?: $mutasi->catatan_verifikasi;
+                        @endphp
+                        @if ($catatanBagianAset)
+                            <p class="text-slate-600 pl-3.5">{{ $catatanBagianAset }}</p>
+                        @elseif ($mutasi->status_hasil === 'Tidak Valid')
+                            <p class="text-amber-700 pl-3.5 font-medium">Data aset dinyatakan Tidak Valid.</p>
+                        @else
+                            <p class="text-slate-500 pl-3.5 italic">Belum ada catatan verifikasi Bagian Aset.</p>
+                        @endif
+                        {{-- Untuk data historis lama yang memiliki catatan verifikasi dan approval terpisah --}}
+                        @if ($mutasi->catatan_verifikasi && $mutasi->catatan_approval && $mutasi->catatan_verifikasi !== $mutasi->catatan_approval)
+                            <div class="mt-2 pt-2 border-t border-slate-200/80 pl-3.5 space-y-1">
+                                <p class="text-[11px] text-slate-500"><strong class="text-slate-700">Verifikasi Teknis:</strong> {{ $mutasi->catatan_verifikasi }}</p>
+                                <p class="text-[11px] text-slate-500"><strong class="text-slate-700">Catatan Persetujuan:</strong> {{ $mutasi->catatan_approval }}</p>
+                            </div>
+                        @endif
                     </div>
 
                     {{-- Catatan Konfirmasi Pengaju --}}
@@ -551,7 +540,7 @@
         <form method="POST" action="{{ route('mutasi-aset.check-operator', $mutasi) }}" class="space-y-4 text-xs">
             @csrf
             <p class="text-slate-600 leading-relaxed">
-                Pastikan data pengajuan mutasi aset <strong>{{ $mutasi->no_mutasi }}</strong> telah lengkap sebelum diteruskan ke Staf Administrasi Aset untuk verifikasi fisik/sistem.
+                Pastikan data pengajuan mutasi aset <strong>{{ $mutasi->no_mutasi }}</strong> telah lengkap sebelum diteruskan ke Bagian Aset untuk verifikasi fisik/sistem.
             </p>
 
             <div>
@@ -564,132 +553,97 @@
             <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
                 <button type="button" onclick="closeModal('operatorModal')" class="px-3 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium">Batal</button>
                 <button type="submit" class="px-4 py-2 rounded-lg bg-[#114E84] hover:bg-[#0E4272] text-white font-semibold shadow-xs">
-                    Konfirmasi &amp; Teruskan ke Staf Aset
+                    Konfirmasi &amp; Teruskan ke Bagian Aset
                 </button>
             </div>
         </form>
     </div>
 </div>
 
-{{-- 2. Modal Staf Aset (Verifikasi Data Aset) --}}
-<div id="verifikasiStafModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden flex items-center justify-center p-4">
+{{-- 2. Modal Bagian Aset (Verifikasi & Persetujuan) --}}
+<div id="verifikasiBagianAsetModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
             <h3 class="font-bold text-sm text-ink flex items-center gap-2">
                 @include('partials.icon', ['name' => 'shield', 'class' => 'w-5 h-5 text-purple-700'])
-                Verifikasi Data Aset (Staf Administrasi Aset)
+                Verifikasi &amp; Persetujuan Bagian Aset
             </h3>
-            <button type="button" onclick="closeModal('verifikasiStafModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+            <button type="button" onclick="closeModal('verifikasiBagianAsetModal')" class="text-slate-400 hover:text-slate-600">✕</button>
         </div>
 
-        <form method="POST" action="{{ route('mutasi-aset.verify-staf', $mutasi) }}" class="space-y-4 text-xs">
+        <form method="POST" action="{{ route('mutasi-aset.verifikasi-aset', $mutasi) }}" class="space-y-4 text-xs" id="bagianAsetForm">
             @csrf
 
             <div>
-                <label class="block font-semibold text-slate-700 mb-2">Keputusan Verifikasi Data Aset <span class="text-rose-500">*</span></label>
-                <div class="grid grid-cols-2 gap-3">
-                    <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition has-[:checked]:border-purple-600 has-[:checked]:bg-purple-50/60">
-                        <input type="radio" name="keputusan" value="valid" required checked class="text-purple-600 focus:ring-purple-500">
-                        <div>
-                            <p class="font-bold text-purple-900">Data VALID</p>
-                            <p class="text-[10.5px] text-slate-500">Lanjut ke Kabag Aset</p>
+                <label class="block font-semibold text-slate-700 mb-2">Keputusan Bagian Aset <span class="text-rose-500">*</span></label>
+                <div class="grid grid-cols-3 gap-2.5">
+                    <label class="flex flex-col p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-50/60">
+                        <div class="flex items-center gap-2 mb-1">
+                            <input type="radio" name="keputusan" value="setujui" required checked onchange="handleBagianAsetKeputusan('setujui')" class="text-emerald-600 focus:ring-emerald-500">
+                            <span class="font-bold text-xs text-emerald-900">Setujui</span>
                         </div>
+                        <span class="text-[10px] text-slate-500 leading-tight">Lanjut ke konfirmasi pemohon</span>
                     </label>
 
-                    <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition has-[:checked]:border-rose-600 has-[:checked]:bg-rose-50/60">
-                        <input type="radio" name="keputusan" value="tidak_valid" required class="text-rose-600 focus:ring-rose-500">
-                        <div>
-                            <p class="font-bold text-rose-900">TIDAK VALID</p>
-                            <p class="text-[10.5px] text-slate-500">Langsung Tutup &amp; Notifikasi</p>
+                    <label class="flex flex-col p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition has-[:checked]:border-rose-600 has-[:checked]:bg-rose-50/60">
+                        <div class="flex items-center gap-2 mb-1">
+                            <input type="radio" name="keputusan" value="tolak" required onchange="handleBagianAsetKeputusan('tolak')" class="text-rose-600 focus:ring-rose-500">
+                            <span class="font-bold text-xs text-rose-900">Tolak</span>
                         </div>
+                        <span class="text-[10px] text-slate-500 leading-tight">Tolak &amp; tutup pengajuan</span>
+                    </label>
+
+                    <label class="flex flex-col p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition has-[:checked]:border-amber-600 has-[:checked]:bg-amber-50/60">
+                        <div class="flex items-center gap-2 mb-1">
+                            <input type="radio" name="keputusan" value="tidak_valid" required onchange="handleBagianAsetKeputusan('tidak_valid')" class="text-amber-600 focus:ring-amber-500">
+                            <span class="font-bold text-xs text-amber-900">Tidak Valid</span>
+                        </div>
+                        <span class="text-[10px] text-slate-500 leading-tight">Data tidak valid &amp; tutup</span>
                     </label>
                 </div>
             </div>
 
-            <div>
-                <label for="catatan_verifikasi" class="block font-semibold text-slate-700 mb-1">
-                    Catatan Verifikasi <span class="text-rose-500">*</span>
-                </label>
-                <textarea id="catatan_verifikasi" name="catatan_verifikasi" rows="3" required
-                          placeholder="Rincian hasil verifikasi fisik/data aset (contoh: kondisi aset sesuai, tidak sedang disewakan, dll)..."
-                          class="w-full p-2.5 border border-slate-300 rounded-xl focus:ring-1 focus:ring-purple-500 focus:border-purple-500"></textarea>
-            </div>
-
-            <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
-                <button type="button" onclick="closeModal('verifikasiStafModal')" class="px-3 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium">Batal</button>
-                <button type="submit" class="px-4 py-2 rounded-lg bg-purple-700 hover:bg-purple-800 text-white font-semibold shadow-xs">
-                    Simpan Keputusan Verifikasi
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-{{-- 3. Modal Kabag Aset (Approval / Rejection) --}}
-<div id="approvalKabagModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h3 class="font-bold text-sm text-ink flex items-center gap-2">
-                @include('partials.icon', ['name' => 'pencil', 'class' => 'w-5 h-5 text-amber-600'])
-                Keputusan Persetujuan Kepala Bagian Aset
-            </h3>
-            <button type="button" onclick="closeModal('approvalKabagModal')" class="text-slate-400 hover:text-slate-600">✕</button>
-        </div>
-
-        <form method="POST" action="{{ route('mutasi-aset.approve-kabag', $mutasi) }}" class="space-y-4 text-xs" id="kabagApprovalForm">
-            @csrf
-
-            <div>
-                <label class="block font-semibold text-slate-700 mb-2">Keputusan Approval <span class="text-rose-500">*</span></label>
-                <div class="grid grid-cols-2 gap-3">
-                    <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-50/60">
-                        <input type="radio" name="keputusan" value="setujui" required checked onchange="toggleRejectionReason(false)" class="text-emerald-600 focus:ring-emerald-500">
-                        <div>
-                            <p class="font-bold text-emerald-900">DISETUJUI</p>
-                            <p class="text-[10.5px] text-slate-500">Setujui &amp; Teruskan ke Pengaju untuk Konfirmasi Ditutup</p>
-                        </div>
-                    </label>
-
-                    <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition has-[:checked]:border-rose-600 has-[:checked]:bg-rose-50/60">
-                        <input type="radio" name="keputusan" value="tolak" required onchange="toggleRejectionReason(true)" class="text-rose-600 focus:ring-rose-500">
-                        <div>
-                            <p class="font-bold text-rose-900">DITOLAK</p>
-                            <p class="text-[10.5px] text-slate-500">Tolak &amp; Tutup Tiket Mutasi</p>
-                        </div>
-                    </label>
-                </div>
-            </div>
-
-            {{-- Field Alasan Penolakan (Muncul saat Ditolak) --}}
-            <div id="rejectionField" class="hidden">
+            {{-- Field Alasan Penolakan (Muncul saat Tolak) --}}
+            <div id="fieldTolak" class="hidden">
                 <label for="alasan_penolakan" class="block font-semibold text-rose-700 mb-1">
                     Alasan Penolakan <span class="text-rose-500">*</span>
                 </label>
                 <textarea id="alasan_penolakan" name="alasan_penolakan" rows="3"
-                          placeholder="Jelaskan alasan mengapa mutasi aset ini ditolak..."
+                          placeholder="Jelaskan alasan pengajuan mutasi aset ini ditolak..."
                           class="w-full p-2.5 border border-rose-300 rounded-xl focus:ring-1 focus:ring-rose-500 focus:border-rose-500 bg-rose-50/30"></textarea>
             </div>
 
-            <div>
-                <label for="catatan_approval" class="block font-semibold text-slate-700 mb-1">
-                    Catatan Tambahan (Opsional)
+            {{-- Field Catatan Tidak Valid (Muncul saat Tidak Valid) --}}
+            <div id="fieldTidakValid" class="hidden">
+                <label for="catatan_verifikasi" class="block font-semibold text-amber-700 mb-1">
+                    Catatan Ketidakvalidan Data <span class="text-rose-500">*</span>
                 </label>
-                <textarea id="catatan_approval" name="catatan_approval" rows="2"
-                          placeholder="Catatan atau instruksi pelaksanaan mutasi..."
-                          class="w-full p-2.5 border border-slate-300 rounded-xl focus:ring-1 focus:ring-amber-500 focus:border-amber-500"></textarea>
+                <textarea id="catatan_verifikasi" name="catatan_verifikasi" rows="3"
+                          placeholder="Jelaskan bagian data atau fisik aset yang tidak valid..."
+                          class="w-full p-2.5 border border-amber-300 rounded-xl focus:ring-1 focus:ring-amber-500 focus:border-amber-500 bg-amber-50/30"></textarea>
+            </div>
+
+            {{-- Field Catatan Persetujuan (Muncul saat Setujui) --}}
+            <div id="fieldSetujui">
+                <label for="catatan_approval" class="block font-semibold text-slate-700 mb-1">
+                    Catatan Verifikasi / Instruksi (Opsional)
+                </label>
+                <textarea id="catatan_approval" name="catatan_approval" rows="3"
+                          placeholder="Catatan hasil verifikasi aset atau instruksi pelaksanaan mutasi..."
+                          class="w-full p-2.5 border border-slate-300 rounded-xl focus:ring-1 focus:ring-brand focus:border-brand"></textarea>
             </div>
 
             <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
-                <button type="button" onclick="closeModal('approvalKabagModal')" class="px-3 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium">Batal</button>
-                <button type="submit" class="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-xs">
-                    Simpan Keputusan Kabag
+                <button type="button" onclick="closeModal('verifikasiBagianAsetModal')" class="px-3.5 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium">Batal</button>
+                <button type="submit" id="btnSubmitBagianAset" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xs">
+                    Simpan Keputusan Bagian Aset
                 </button>
             </div>
         </form>
     </div>
 </div>
 
-{{-- 4. Modal Pengaju (Konfirmasi Akhir & Tutup Mutasi) --}}
+{{-- 3. Modal Pengaju (Konfirmasi Akhir & Tutup Mutasi) --}}
 <div id="konfirmasiPengajuModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -737,15 +691,31 @@
     function closeModal(id) {
         document.getElementById(id).classList.add('hidden');
     }
-    function toggleRejectionReason(isRejected) {
-        const field = document.getElementById('rejectionField');
-        const textarea = document.getElementById('alasan_penolakan');
-        if (isRejected) {
-            field.classList.remove('hidden');
-            textarea.setAttribute('required', 'required');
+    function handleBagianAsetKeputusan(keputusan) {
+        const fieldSetujui = document.getElementById('fieldSetujui');
+        const fieldTolak = document.getElementById('fieldTolak');
+        const fieldTidakValid = document.getElementById('fieldTidakValid');
+        const inputTolak = document.getElementById('alasan_penolakan');
+        const inputTidakValid = document.getElementById('catatan_verifikasi');
+        const btnSubmit = document.getElementById('btnSubmitBagianAset');
+
+        fieldSetujui.classList.add('hidden');
+        fieldTolak.classList.add('hidden');
+        fieldTidakValid.classList.add('hidden');
+        inputTolak.removeAttribute('required');
+        inputTidakValid.removeAttribute('required');
+
+        if (keputusan === 'tolak') {
+            fieldTolak.classList.remove('hidden');
+            inputTolak.setAttribute('required', 'required');
+            btnSubmit.className = 'px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-semibold shadow-xs';
+        } else if (keputusan === 'tidak_valid') {
+            fieldTidakValid.classList.remove('hidden');
+            inputTidakValid.setAttribute('required', 'required');
+            btnSubmit.className = 'px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-xs';
         } else {
-            field.classList.add('hidden');
-            textarea.removeAttribute('required');
+            fieldSetujui.classList.remove('hidden');
+            btnSubmit.className = 'px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xs';
         }
     }
 </script>

@@ -18,10 +18,16 @@
                 @include('partials.icon', ['name' => 'sliders', 'class' => 'w-6 h-6 text-[#114E84]'])
                 Field Mutasi Aset — {{ $modules[$moduleKey] ?? $moduleKey }}
             </h1>
-            <p class="text-xs text-slate-500 mt-1">Kelola seluruh field (bawaan &amp; kustom) yang muncul di formulir dan tabel modul Inventarisasi Aset, Riwayat Pergerakan, dan Form Mutasi Aset.</p>
+            <p class="text-xs text-slate-500 mt-1">
+                @if ($moduleKey === 'lokasi_personel')
+                    Kelola data master Divisi / Cabang dan Personel / Karyawan untuk dropdown bertingkat form Mutasi Aset tanpa hardcode.
+                @else
+                    Kelola seluruh field (bawaan &amp; kustom) yang muncul di formulir dan tabel modul Inventarisasi Aset, Riwayat Pergerakan, dan Form Mutasi Aset.
+                @endif
+            </p>
         </div>
 
-        @if ($moduleKey === 'mutasi')
+        @if ($moduleKey === 'mutasi' || $moduleKey === 'lokasi_personel')
             <a href="{{ route('mutasi-aset.create') }}" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition shadow-2xs">
                 @include('partials.icon', ['name' => 'layers', 'class' => 'w-4 h-4 text-[#114E84]'])
                 Pratinjau Form Mutasi
@@ -50,6 +56,9 @@
         @endforeach
     </div>
 
+    @if ($moduleKey === 'lokasi_personel')
+        @include('admin.custom-fields.partials.master-lokasi-personel')
+    @else
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {{-- Kolom Kiri: Tabel Field yang Ada --}}
         <div class="lg:col-span-2 space-y-4">
@@ -460,4 +469,5 @@
         }
     }
 </script>
+@endif
 @endsection

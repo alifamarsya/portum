@@ -13,6 +13,11 @@ class AsMutasiAset extends Model
     protected $table = 'as_mutasi_aset';
 
     protected $fillable = [
+        'lokasi_asal_id',
+        'pemohon_personel_id',
+        'lokasi_tujuan_id',
+        'penanggung_jawab_id',
+        'is_pemohon_pindah',
         'no_mutasi',
         'aset_id',
         'pengaju_id',
@@ -54,6 +59,7 @@ class AsMutasiAset extends Model
             'approved_at'         => 'datetime',
             'confirmed_at'        => 'datetime',
             'custom_fields'       => 'array',
+            'is_pemohon_pindah'   => 'boolean',
         ];
     }
 
@@ -107,6 +113,26 @@ class AsMutasiAset extends Model
         return $this->belongsTo(User::class, 'checker_id');
     }
 
+    public function lokasiAsal(): BelongsTo
+    {
+        return $this->belongsTo(AsMasterLokasi::class, 'lokasi_asal_id');
+    }
+
+    public function pemohonPersonel(): BelongsTo
+    {
+        return $this->belongsTo(AsMasterPersonel::class, 'pemohon_personel_id');
+    }
+
+    public function lokasiTujuan(): BelongsTo
+    {
+        return $this->belongsTo(AsMasterLokasi::class, 'lokasi_tujuan_id');
+    }
+
+    public function penanggungJawab(): BelongsTo
+    {
+        return $this->belongsTo(AsMasterPersonel::class, 'penanggung_jawab_id');
+    }
+
     /**
      * Helper status badge styling
      */
@@ -144,12 +170,12 @@ class AsMutasiAset extends Model
                 'dot'   => 'bg-amber-500',
             ],
             'Diproses' => [
-                'label' => 'Diproses (Verifikasi Staf)',
+                'label' => 'Diproses (Bagian Aset)',
                 'class' => 'bg-blue-100 text-blue-800 border-blue-300',
                 'dot'   => 'bg-blue-500',
             ],
             'Menunggu Approval' => [
-                'label' => 'Menunggu Approval Kabag',
+                'label' => 'Diproses (Bagian Aset)',
                 'class' => 'bg-purple-100 text-purple-800 border-purple-300',
                 'dot'   => 'bg-purple-500',
             ],

@@ -161,7 +161,7 @@ class MutasiAsetTest extends TestCase
         $this->assertNotNull($mutasi->operator_checked_at);
     }
 
-    public function test_staf_aset_can_verify_invalid(): void
+    public function test_bagian_aset_can_verify_invalid(): void
     {
         Notification::fake();
 
@@ -177,7 +177,7 @@ class MutasiAsetTest extends TestCase
             'status'                => 'Diproses',
         ]);
 
-        $response = $this->actingAs($this->stafAset)->post(route('mutasi-aset.verify-staf', $mutasi), [
+        $response = $this->actingAs($this->stafAset)->post(route('mutasi-aset.verifikasi-aset', $mutasi), [
             'keputusan'          => 'tidak_valid',
             'catatan_verifikasi' => 'Aset ini masih dalam status sewa aktif dan tidak dapat dimutasikan.',
         ]);
@@ -189,34 +189,7 @@ class MutasiAsetTest extends TestCase
         $this->assertEquals($this->stafAset->id, $mutasi->verifikator_id);
     }
 
-    public function test_staf_aset_can_verify_valid(): void
-    {
-        Notification::fake();
-
-        $mutasi = AsMutasiAset::create([
-            'no_mutasi'             => 'MUT-' . date('Ymd') . '-9993',
-            'aset_id'               => $this->aset->id,
-            'pengaju_id'            => $this->user->id,
-            'dari_lokasi'           => $this->aset->lokasi,
-            'ke_lokasi'             => 'KC Parigi',
-            'dari_penanggung_jawab' => $this->aset->penanggung_jawab,
-            'ke_penanggung_jawab'   => 'Siti Aminah',
-            'alasan'                => 'Kebutuhan operasional KC Parigi',
-            'status'                => 'Diproses',
-        ]);
-
-        $response = $this->actingAs($this->stafAset)->post(route('mutasi-aset.verify-staf', $mutasi), [
-            'keputusan'          => 'valid',
-            'catatan_verifikasi' => 'Fisik dan data aset telah diverifikasi sesuai dan siap dimutasi.',
-        ]);
-
-        $response->assertRedirect();
-        $mutasi->refresh();
-        $this->assertEquals('Menunggu Approval', $mutasi->status);
-        $this->assertEquals($this->stafAset->id, $mutasi->verifikator_id);
-    }
-
-    public function test_kabag_aset_can_reject(): void
+    public function test_bagian_aset_can_reject(): void
     {
         Notification::fake();
 
@@ -229,10 +202,10 @@ class MutasiAsetTest extends TestCase
             'dari_penanggung_jawab' => $this->aset->penanggung_jawab,
             'ke_penanggung_jawab'   => 'Farhan',
             'alasan'                => 'Mutasi aset',
-            'status'                => 'Menunggu Approval',
+            'status'                => 'Diproses',
         ]);
 
-        $response = $this->actingAs($this->kabagAset)->post(route('mutasi-aset.approve-kabag', $mutasi), [
+        $response = $this->actingAs($this->kabagAset)->post(route('mutasi-aset.verifikasi-aset', $mutasi), [
             'keputusan'        => 'tolak',
             'alasan_penolakan' => 'Anggaran relokasi dan logistik belum tersedia untuk semester ini.',
             'catatan_approval' => 'Ditolak sementara.',
@@ -245,7 +218,7 @@ class MutasiAsetTest extends TestCase
         $this->assertEquals($this->kabagAset->id, $mutasi->approver_id);
     }
 
-    public function test_kabag_aset_can_approve_and_update_asset_and_record_history(): void
+    public function test_bagian_aset_can_approve_in_single_step_and_user_can_confirm_close(): void
     {
         Notification::fake();
 
@@ -261,10 +234,11 @@ class MutasiAsetTest extends TestCase
             'dari_penanggung_jawab' => $this->aset->penanggung_jawab,
             'ke_penanggung_jawab'   => $tujuanPj,
             'alasan'                => 'Relokasi server utama ke KC Donggala',
-            'status'                => 'Menunggu Approval',
+            'status'                => 'Diproses',
         ]);
 
-        $response = $this->actingAs($this->kabagAset)->post(route('mutasi-aset.approve-kabag', $mutasi), [
+        // Aksi tunggal Bagian Aset: langsung menyetujui mutasi
+        $response = $this->actingAs($this->stafAset)->post(route('mutasi-aset.verifikasi-aset', $mutasi), [
             'keputusan'        => 'setujui',
             'catatan_approval' => 'Disetujui. Harap koordinasikan pengiriman dengan bagian logistik.',
         ]);
@@ -273,9 +247,9 @@ class MutasiAsetTest extends TestCase
         $mutasi->refresh();
         $this->assertEquals('Disetujui', $mutasi->status);
         $this->assertEquals('Disetujui', $mutasi->status_hasil);
-        $this->assertEquals($this->kabagAset->id, $mutasi->approver_id);
+        $this->assertEquals($this->stafAset->id, $mutasi->approver_id);
 
-        // Tahap konfirmasi akhir & penutupan oleh Pengaju
+        // Tahap 4: konfirmasi akhir & penutupan oleh Pengaju
         $confirmResponse = $this->actingAs($this->user)->post(route('mutasi-aset.konfirmasi-pengaju', $mutasi), [
             'catatan_konfirmasi' => 'Aset telah diterima dengan baik.',
         ]);

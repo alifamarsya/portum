@@ -62,6 +62,7 @@ class RolePermissionSeeder extends Seeder
             [7, 'config_field_aset', 0],
             [7, 'config_ticket', 1],
             [7, 'dashboard', 1],
+            [7, 'mutasi_aset', 1],
             [7, 'ticketing', 1],
             [19, 'dashboard', 1],
             [19, 'dokumen_arsip', 1],

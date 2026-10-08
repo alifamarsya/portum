@@ -2,12 +2,17 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Concerns\LogsAudit;
 use App\Http\Controllers\Controller;
 use App\Models\AsCustomField;
+use App\Models\AsMasterLokasi;
+use App\Models\AsMasterPersonel;
 use Illuminate\Http\Request;
 
 class CustomFieldController extends Controller
 {
+    use LogsAudit;
+
     private function authorizeAccess(): void
     {
         $user = auth()->user();
@@ -36,17 +41,28 @@ class CustomFieldController extends Controller
 
         $moduleKey = $request->get('module', 'aset');
         $modules = [
-            'aset'         => 'Inventarisasi Aset',
-            'aset_history' => 'Riwayat Pergerakan Aset',
-            'mutasi'       => 'Form Mutasi Aset',
+            'aset'            => 'Inventarisasi Aset',
+            'aset_history'    => 'Riwayat Pergerakan Aset',
+            'mutasi'          => 'Form Mutasi Aset',
+            'lokasi_personel' => 'Master Lokasi & Personel',
         ];
 
-        $fields = AsCustomField::where('module_key', $moduleKey)
-            ->orderBy('sort_order')
-            ->orderBy('id')
-            ->get();
+        $fields = collect();
+        $masterLokasi = collect();
 
-        return view('admin.custom-fields.index', compact('fields', 'modules', 'moduleKey'));
+        if ($moduleKey === 'lokasi_personel') {
+            $masterLokasi = AsMasterLokasi::with(['personels' => fn($q) => $q->orderBy('nama_personel')])
+                ->orderBy('sort_order')
+                ->orderBy('nama_lokasi')
+                ->get();
+        } else {
+            $fields = AsCustomField::where('module_key', $moduleKey)
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get();
+        }
+
+        return view('admin.custom-fields.index', compact('fields', 'modules', 'moduleKey', 'masterLokasi'));
     }
 
     /**
@@ -266,5 +282,172 @@ class CustomFieldController extends Controller
 
         $status = $customField->is_active ? 'diaktifkan' : 'dinonaktifkan';
         return back()->with('status', "Field '{$customField->label}' berhasil {$status}.");
+    }
+
+    // ========================================================
+    // CRUD MASTER LOKASI (DIVISI / CABANG)
+    // ========================================================
+
+    public function storeLokasi(Request $request)
+    {
+        $this->authorizeAccess();
+
+        $validated = $request->validate([
+            'nama_lokasi' => 'required|string|max:150|unique:as_master_lokasi,nama_lokasi',
+            'tipe'        => 'nullable|string|in:Divisi,Cabang,Unit Kerja',
+            'kode_lokasi' => 'nullable|string|max:50',
+        ], [
+            'nama_lokasi.required' => 'Nama lokasi / divisi wajib diisi.',
+            'nama_lokasi.unique'   => 'Lokasi / divisi dengan nama ini sudah terdaftar.',
+        ]);
+
+        $maxOrder = AsMasterLokasi::max('sort_order') ?? 0;
+
+        $lokasi = AsMasterLokasi::create([
+            'nama_lokasi' => trim($validated['nama_lokasi']),
+            'tipe'        => $validated['tipe'] ?: 'Divisi',
+            'kode_lokasi' => $validated['kode_lokasi'] ? trim($validated['kode_lokasi']) : null,
+            'is_active'   => true,
+            'sort_order'  => $maxOrder + 1,
+        ]);
+
+        $this->audit('CREATE', 'Master Lokasi & Personel', 'AsMasterLokasi', $lokasi->id, "Menambahkan lokasi/divisi baru: {$lokasi->nama_lokasi}");
+
+        return redirect()->route('konfigurasi.field-aset.index', ['module' => 'lokasi_personel'])
+            ->with('status', "Lokasi/Divisi '{$lokasi->nama_lokasi}' berhasil ditambahkan.");
+    }
+
+    public function updateLokasi(Request $request, AsMasterLokasi $lokasi)
+    {
+        $this->authorizeAccess();
+
+        $validated = $request->validate([
+            'nama_lokasi' => 'required|string|max:150|unique:as_master_lokasi,nama_lokasi,' . $lokasi->id,
+            'tipe'        => 'nullable|string|in:Divisi,Cabang,Unit Kerja',
+            'kode_lokasi' => 'nullable|string|max:50',
+        ], [
+            'nama_lokasi.required' => 'Nama lokasi / divisi wajib diisi.',
+            'nama_lokasi.unique'   => 'Lokasi / divisi dengan nama ini sudah digunakan.',
+        ]);
+
+        $lokasi->update([
+            'nama_lokasi' => trim($validated['nama_lokasi']),
+            'tipe'        => $validated['tipe'] ?: 'Divisi',
+            'kode_lokasi' => $validated['kode_lokasi'] ? trim($validated['kode_lokasi']) : null,
+        ]);
+
+        $this->audit('UPDATE', 'Master Lokasi & Personel', 'AsMasterLokasi', $lokasi->id, "Memperbarui lokasi/divisi: {$lokasi->nama_lokasi}");
+
+        return redirect()->route('konfigurasi.field-aset.index', ['module' => 'lokasi_personel'])
+            ->with('status', "Data lokasi '{$lokasi->nama_lokasi}' berhasil diperbarui.");
+    }
+
+    public function toggleLokasi(AsMasterLokasi $lokasi)
+    {
+        $this->authorizeAccess();
+
+        $lokasi->update(['is_active' => !$lokasi->is_active]);
+
+        $status = $lokasi->is_active ? 'diaktifkan' : 'dinonaktifkan';
+        return redirect()->route('konfigurasi.field-aset.index', ['module' => 'lokasi_personel'])
+            ->with('status', "Status lokasi '{$lokasi->nama_lokasi}' berhasil {$status}.");
+    }
+
+    public function destroyLokasi(AsMasterLokasi $lokasi)
+    {
+        $this->authorizeAccess();
+
+        $nama = $lokasi->nama_lokasi;
+        $lokasi->delete();
+
+        $this->audit('DELETE', 'Master Lokasi & Personel', 'AsMasterLokasi', $lokasi->id, "Menghapus lokasi/divisi: {$nama}");
+
+        return redirect()->route('konfigurasi.field-aset.index', ['module' => 'lokasi_personel'])
+            ->with('status', "Lokasi '{$nama}' beserta personel di dalamnya berhasil dihapus.");
+    }
+
+    // ========================================================
+    // CRUD MASTER PERSONEL
+    // ========================================================
+
+    public function storePersonel(Request $request)
+    {
+        $this->authorizeAccess();
+
+        $validated = $request->validate([
+            'lokasi_id'     => 'required|exists:as_master_lokasi,id',
+            'nama_personel' => 'required|string|max:150',
+            'nip'           => 'nullable|string|max:50',
+            'jabatan'       => 'nullable|string|max:100',
+        ], [
+            'lokasi_id.required'     => 'Pilih lokasi/divisi penempatan personel.',
+            'lokasi_id.exists'       => 'Lokasi/divisi yang dipilih tidak ditemukan.',
+            'nama_personel.required' => 'Nama personel wajib diisi.',
+        ]);
+
+        $personel = AsMasterPersonel::create([
+            'lokasi_id'     => $validated['lokasi_id'],
+            'nama_personel' => trim($validated['nama_personel']),
+            'nip'           => $validated['nip'] ? trim($validated['nip']) : null,
+            'jabatan'       => $validated['jabatan'] ? trim($validated['jabatan']) : null,
+            'is_active'     => true,
+        ]);
+
+        $this->audit('CREATE', 'Master Lokasi & Personel', 'AsMasterPersonel', $personel->id, "Menambahkan personel baru: {$personel->nama_personel}");
+
+        return redirect()->route('konfigurasi.field-aset.index', ['module' => 'lokasi_personel'])
+            ->with('status', "Personel '{$personel->nama_personel}' berhasil ditambahkan.");
+    }
+
+    public function updatePersonel(Request $request, AsMasterPersonel $personel)
+    {
+        $this->authorizeAccess();
+
+        $validated = $request->validate([
+            'lokasi_id'     => 'required|exists:as_master_lokasi,id',
+            'nama_personel' => 'required|string|max:150',
+            'nip'           => 'nullable|string|max:50',
+            'jabatan'       => 'nullable|string|max:100',
+        ], [
+            'lokasi_id.required'     => 'Pilih lokasi/divisi penempatan personel.',
+            'lokasi_id.exists'       => 'Lokasi/divisi yang dipilih tidak ditemukan.',
+            'nama_personel.required' => 'Nama personel wajib diisi.',
+        ]);
+
+        $personel->update([
+            'lokasi_id'     => $validated['lokasi_id'],
+            'nama_personel' => trim($validated['nama_personel']),
+            'nip'           => $validated['nip'] ? trim($validated['nip']) : null,
+            'jabatan'       => $validated['jabatan'] ? trim($validated['jabatan']) : null,
+        ]);
+
+        $this->audit('UPDATE', 'Master Lokasi & Personel', 'AsMasterPersonel', $personel->id, "Memperbarui personel: {$personel->nama_personel}");
+
+        return redirect()->route('konfigurasi.field-aset.index', ['module' => 'lokasi_personel'])
+            ->with('status', "Data personel '{$personel->nama_personel}' berhasil diperbarui.");
+    }
+
+    public function togglePersonel(AsMasterPersonel $personel)
+    {
+        $this->authorizeAccess();
+
+        $personel->update(['is_active' => !$personel->is_active]);
+
+        $status = $personel->is_active ? 'diaktifkan' : 'dinonaktifkan';
+        return redirect()->route('konfigurasi.field-aset.index', ['module' => 'lokasi_personel'])
+            ->with('status', "Status personel '{$personel->nama_personel}' berhasil {$status}.");
+    }
+
+    public function destroyPersonel(AsMasterPersonel $personel)
+    {
+        $this->authorizeAccess();
+
+        $nama = $personel->nama_personel;
+        $personel->delete();
+
+        $this->audit('DELETE', 'Master Lokasi & Personel', 'AsMasterPersonel', $personel->id, "Menghapus personel: {$nama}");
+
+        return redirect()->route('konfigurasi.field-aset.index', ['module' => 'lokasi_personel'])
+            ->with('status', "Personel '{$nama}' berhasil dihapus.");
     }
 }

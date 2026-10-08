@@ -55,7 +55,7 @@
             <p class="text-xl font-bold text-blue-800">{{ $stats['diproses'] }}</p>
         </div>
         <div class="bg-purple-50/50 p-3.5 rounded-xl border border-purple-200 shadow-2xs">
-            <p class="text-[10.5px] font-semibold text-purple-700 uppercase tracking-wider mb-1">Menunggu Kabag</p>
+            <p class="text-[10.5px] font-semibold text-purple-700 uppercase tracking-wider mb-1">Menunggu Approval</p>
             <p class="text-xl font-bold text-purple-800">{{ $stats['menunggu_approval'] }}</p>
         </div>
         <div class="bg-emerald-50/50 p-3.5 rounded-xl border border-emerald-200 shadow-2xs">
@@ -92,8 +92,8 @@
                 <select name="status" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand focus:border-brand">
                     <option value="">-- Semua Status --</option>
                     <option value="Diajukan" {{ request('status') === 'Diajukan' ? 'selected' : '' }}>Diajukan</option>
-                    <option value="Diproses" {{ request('status') === 'Diproses' ? 'selected' : '' }}>Diproses (Verifikasi Staf)</option>
-                    <option value="Menunggu Approval" {{ request('status') === 'Menunggu Approval' ? 'selected' : '' }}>Menunggu Approval Kabag</option>
+                    <option value="Diproses" {{ request('status') === 'Diproses' ? 'selected' : '' }}>Diproses (Bagian Aset)</option>
+                    <option value="Menunggu Approval" {{ request('status') === 'Menunggu Approval' ? 'selected' : '' }}>Menunggu Approval (Arsip)</option>
                     <option value="Disetujui" {{ request('status') === 'Disetujui' ? 'selected' : '' }}>Disetujui (Menunggu Konfirmasi)</option>
                     <option value="Ditutup" {{ request('status') === 'Ditutup' ? 'selected' : '' }}>Ditutup (Selesai)</option>
                     <option value="Ditolak" {{ request('status') === 'Ditolak' ? 'selected' : '' }}>Ditutup (Ditolak)</option>

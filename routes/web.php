@@ -102,6 +102,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/{mutasi}/dokumen', [MutasiAsetController::class, 'viewDokumen'])->name('dokumen');
         Route::get('/{mutasi}/dokumen/download', [MutasiAsetController::class, 'downloadDokumen'])->name('dokumen.download');
         Route::post('/{mutasi}/check-operator', [MutasiAsetController::class, 'checkOperator'])->name('check-operator');
+        Route::post('/{mutasi}/verifikasi-aset', [MutasiAsetController::class, 'verifikasiBagianAset'])->name('verifikasi-aset');
         Route::post('/{mutasi}/verify-staf', [MutasiAsetController::class, 'verifyStaf'])->name('verify-staf');
         Route::post('/{mutasi}/approve-kabag', [MutasiAsetController::class, 'approveKabag'])->name('approve-kabag');
         Route::post('/{mutasi}/konfirmasi-pengaju', [MutasiAsetController::class, 'konfirmasiPengaju'])->name('konfirmasi-pengaju');
@@ -130,6 +131,17 @@ Route::middleware('auth')->group(function () {
             Route::put('/{customField}', [CustomFieldController::class, 'update'])->name('update');
             Route::patch('/{customField}/toggle', [CustomFieldController::class, 'toggle'])->name('toggle');
             Route::delete('/{customField}', [CustomFieldController::class, 'destroy'])->name('destroy');
+
+            // Master Lokasi & Personel (Mutasi Aset)
+            Route::post('/lokasi', [CustomFieldController::class, 'storeLokasi'])->name('lokasi.store');
+            Route::put('/lokasi/{lokasi}', [CustomFieldController::class, 'updateLokasi'])->name('lokasi.update');
+            Route::patch('/lokasi/{lokasi}/toggle', [CustomFieldController::class, 'toggleLokasi'])->name('lokasi.toggle');
+            Route::delete('/lokasi/{lokasi}', [CustomFieldController::class, 'destroyLokasi'])->name('lokasi.destroy');
+
+            Route::post('/personel', [CustomFieldController::class, 'storePersonel'])->name('personel.store');
+            Route::put('/personel/{personel}', [CustomFieldController::class, 'updatePersonel'])->name('personel.update');
+            Route::patch('/personel/{personel}/toggle', [CustomFieldController::class, 'togglePersonel'])->name('personel.toggle');
+            Route::delete('/personel/{personel}', [CustomFieldController::class, 'destroyPersonel'])->name('personel.destroy');
         });
 
         // Submodul B: Field Sistem Tiket (Kategori + Field Form & Tabel)
