@@ -72,8 +72,9 @@ class TicketController extends Controller
         $tickets = $query->paginate(15)->withQueryString();
         $categories = TicketCategory::active()->orderBy('name')->get();
         $departments = InternalDepartment::all();
+        $tableFields = \App\Models\TicketField::forList()->get();
 
-        return view('tickets.index', compact('tickets', 'categories', 'departments', 'stats'));
+        return view('tickets.index', compact('tickets', 'categories', 'departments', 'stats', 'tableFields'));
     }
 
     /**
@@ -86,8 +87,9 @@ class TicketController extends Controller
         }
 
         $categories = TicketCategory::active()->with('department')->orderBy('sort_order')->orderBy('name')->get();
+        $formFields = \App\Models\TicketField::forForm()->get();
 
-        return view('tickets.create', compact('categories'));
+        return view('tickets.create', compact('categories', 'formFields'));
     }
 
     /**
@@ -113,6 +115,18 @@ class TicketController extends Controller
             'attachments.*.max'    => 'Ukuran tiap file lampiran tidak boleh melebihi 100 MB.',
             'category_id.required' => 'Silakan pilih Kategori Tiket yang sesuai.',
         ]);
+
+        // Simpan custom dynamic fields jika ada
+        $customFieldDefs = \App\Models\TicketField::where('is_system', false)->where('is_active', true)->get();
+        $customValues = [];
+        foreach ($customFieldDefs as $cf) {
+            if ($request->has($cf->field_name)) {
+                $customValues[$cf->field_name] = $request->input($cf->field_name);
+            }
+        }
+        if (!empty($customValues)) {
+            $validated['custom_fields'] = $customValues;
+        }
 
         // Cek total ukuran attachment jika diunggah
         $files = $request->file('attachments') ?? [];

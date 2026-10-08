@@ -156,6 +156,66 @@
                 </div>
             </div>
 
+            {{-- Dynamic Custom Fields (Tambahan dari Konfigurasi Sistem Tiket) --}}
+            @php
+                $customFields = isset($formFields) ? $formFields->where('is_system', false) : collect();
+            @endphp
+            @if ($customFields->isNotEmpty())
+                <div class="pt-4 border-t border-slate-100 space-y-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-[#114E84]"></span>
+                        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Informasi Tambahan</h3>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        @foreach ($customFields as $cf)
+                            <div class="{{ in_array($cf->field_type, ['textarea']) ? 'sm:col-span-2' : '' }}">
+                                <label for="cf_{{ $cf->field_name }}" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                                    {{ $cf->label }}
+                                    @if ($cf->is_required)
+                                        <span class="text-rose-500">*</span>
+                                    @endif
+                                </label>
+                                @if ($cf->field_type === 'textarea')
+                                    <textarea name="{{ $cf->field_name }}" id="cf_{{ $cf->field_name }}" rows="3"
+                                              {{ $cf->is_required ? 'required' : '' }}
+                                              placeholder="{{ $cf->help_text ?? 'Isi ' . $cf->label . '...' }}"
+                                              class="w-full border border-slate-300 rounded-xl p-3 text-xs text-ink focus:border-[#114E84] focus:ring-1 focus:ring-[#114E84] transition">{{ old($cf->field_name) }}</textarea>
+                                @elseif ($cf->field_type === 'select')
+                                    <select name="{{ $cf->field_name }}" id="cf_{{ $cf->field_name }}"
+                                            {{ $cf->is_required ? 'required' : '' }}
+                                            class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-ink bg-white focus:border-[#114E84] focus:ring-1 focus:ring-[#114E84] transition">
+                                        <option value="">-- Pilih {{ $cf->label }} --</option>
+                                        @foreach ($cf->options ?? [] as $opt)
+                                            <option value="{{ $opt }}" {{ old($cf->field_name) === $opt ? 'selected' : '' }}>{{ $opt }}</option>
+                                        @endforeach
+                                    </select>
+                                @elseif ($cf->field_type === 'number')
+                                    <input type="number" name="{{ $cf->field_name }}" id="cf_{{ $cf->field_name }}"
+                                           value="{{ old($cf->field_name) }}"
+                                           {{ $cf->is_required ? 'required' : '' }}
+                                           placeholder="{{ $cf->help_text ?? 'Isi angka...' }}"
+                                           class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-ink focus:border-[#114E84] focus:ring-1 focus:ring-[#114E84] transition">
+                                @elseif ($cf->field_type === 'date')
+                                    <input type="date" name="{{ $cf->field_name }}" id="cf_{{ $cf->field_name }}"
+                                           value="{{ old($cf->field_name) }}"
+                                           {{ $cf->is_required ? 'required' : '' }}
+                                           class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-ink focus:border-[#114E84] focus:ring-1 focus:ring-[#114E84] transition">
+                                @else
+                                    <input type="text" name="{{ $cf->field_name }}" id="cf_{{ $cf->field_name }}"
+                                           value="{{ old($cf->field_name) }}"
+                                           {{ $cf->is_required ? 'required' : '' }}
+                                           placeholder="{{ $cf->help_text ?? 'Isi ' . $cf->label . '...' }}"
+                                           class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-ink focus:border-[#114E84] focus:ring-1 focus:ring-[#114E84] transition">
+                                @endif
+                                @if ($cf->help_text)
+                                    <p class="text-[11px] text-slate-400 mt-1">{{ $cf->help_text }}</p>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
             {{-- Submit Buttons --}}
             <div class="pt-4 border-t border-slate-100 flex items-center gap-3">
                 <button type="submit" id="btn-submit"

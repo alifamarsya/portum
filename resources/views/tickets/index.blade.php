@@ -114,46 +114,128 @@
             <table class="w-full text-sm">
                 <thead>
                     <tr class="bg-slate-50 border-b border-slate-200 text-left text-[12px] uppercase tracking-wider text-slate-500">
-                        <th class="px-4 py-3.5 font-semibold whitespace-nowrap">No. Tiket</th>
-                        <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Pemohon</th>
-                        <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Tanggal</th>
-                        <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Status</th>
-                        <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Jenis Pengajuan</th>
-                        <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Tujuan Bagian</th>
-                        <th class="px-4 py-3.5 font-semibold whitespace-nowrap">SLA Respon / Resolusi</th>
-                        <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Aksi</th>
+                        @if (isset($tableFields) && $tableFields->isNotEmpty())
+                            @foreach ($tableFields as $f)
+                                <th class="px-4 py-3.5 font-semibold whitespace-nowrap">{{ $f->label }}</th>
+                            @endforeach
+                        @else
+                            <th class="px-4 py-3.5 font-semibold whitespace-nowrap">No. Tiket</th>
+                            <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Pemohon</th>
+                            <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Tanggal</th>
+                            <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Status</th>
+                            <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Jenis Pengajuan</th>
+                            <th class="px-4 py-3.5 font-semibold whitespace-nowrap">Tujuan Bagian</th>
+                            <th class="px-4 py-3.5 font-semibold whitespace-nowrap">SLA Respon / Resolusi</th>
+                        @endif
+                        <th class="px-4 py-3.5 font-semibold whitespace-nowrap text-right">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse ($tickets as $t)
                     <tr class="hover:bg-slate-50/70 transition">
-                        <td class="px-4 py-3.5 font-mono font-bold text-[#114E84] whitespace-nowrap">
-                            <a href="{{ route('tickets.show', $t) }}" class="hover:underline">
-                                {{ $t->ticket_number }}
-                            </a>
-                        </td>
-                        <td class="px-4 py-3.5 whitespace-nowrap">
-                            <div class="font-medium text-ink">{{ $t->user?->nama_lengkap ?? '-' }}</div>
-                            <div class="text-[11px] text-slate-500">{{ $t->user?->bagian ?? '-' }}</div>
-                        </td>
-                        <td class="px-4 py-3.5 whitespace-nowrap text-xs text-slate-500">
-                            {{ $t->created_at->format('d M Y H:i') }}
-                        </td>
-                        <td class="px-4 py-3.5 whitespace-nowrap">
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11.5px] font-medium border {{ $t->status_badge }}">
-                                {{ auth()->user()->isUser() ? $t->pemohon_status_label : $t->status }}
-                            </span>
-                        </td>
-                            {{-- Jenis Pengajuan badge --}}
+                        @if (isset($tableFields) && $tableFields->isNotEmpty())
+                            @foreach ($tableFields as $f)
+                                @if ($f->field_name === 'ticket_number')
+                                    <td class="px-4 py-3.5 font-mono font-bold text-[#114E84] whitespace-nowrap">
+                                        <a href="{{ route('tickets.show', $t) }}" class="hover:underline">
+                                            {{ $t->ticket_number }}
+                                        </a>
+                                    </td>
+                                @elseif ($f->field_name === 'user_id')
+                                    <td class="px-4 py-3.5 whitespace-nowrap">
+                                        <div class="font-medium text-ink">{{ $t->user?->nama_lengkap ?? '-' }}</div>
+                                        <div class="text-[11px] text-slate-500">{{ $t->user?->bagian ?? '-' }}</div>
+                                    </td>
+                                @elseif ($f->field_name === 'created_at')
+                                    <td class="px-4 py-3.5 whitespace-nowrap text-xs text-slate-500">
+                                        {{ $t->created_at->format('d M Y H:i') }}
+                                    </td>
+                                @elseif ($f->field_name === 'status')
+                                    <td class="px-4 py-3.5 whitespace-nowrap">
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11.5px] font-medium border {{ $t->status_badge }}">
+                                            {{ auth()->user()->isUser() ? $t->pemohon_status_label : $t->status }}
+                                        </span>
+                                    </td>
+                                @elseif ($f->field_name === 'jenis_pengajuan')
+                                    <td class="px-4 py-3.5 whitespace-nowrap">
+                                        @if ($t->jenis_pengajuan)
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border {{ $t->jenis_badge }}">
+                                                {{ $t->jenis_pengajuan }}
+                                            </span>
+                                        @else
+                                            <span class="text-slate-300 text-[11px]">—</span>
+                                        @endif
+                                    </td>
+                                @elseif ($f->field_name === 'category_id')
+                                    <td class="px-4 py-3.5 whitespace-nowrap text-xs text-slate-700">
+                                        {{ $t->category?->name ?? '—' }}
+                                    </td>
+                                @elseif ($f->field_name === 'department_id')
+                                    <td class="px-4 py-3.5 whitespace-nowrap text-xs text-slate-600">
+                                        @if ($t->department)
+                                            <span class="inline-flex items-center gap-1 font-medium text-slate-800">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-brand"></span>
+                                                {{ $t->department->name }}
+                                            </span>
+                                        @else
+                                            <span class="text-slate-400 italic">Belum dialokasikan</span>
+                                        @endif
+                                    </td>
+                                @elseif ($f->field_name === 'sla')
+                                    <td class="px-4 py-3.5 whitespace-nowrap">
+                                        @if ($t->status === 'Menunggu Verifikasi')
+                                            @php $sla = $t->sla_response; @endphp
+                                            <div class="mt-1">
+                                                <span class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded border {{ $sla['badge_class'] }}" title="Batas SLA: {{ $sla['due_at']->format('d M, H:i') }} WITA">
+                                                    <span class="w-1 h-1 rounded-full {{ $sla['is_overdue'] ? 'bg-rose-500 animate-ping' : ($sla['is_warning'] ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500') }}"></span>
+                                                    Respon: {{ $sla['remaining_formatted'] }}
+                                                </span>
+                                            </div>
+                                        @elseif ($t->sla_resolution_start_at || in_array($t->status, ['Didistribusikan', 'Dalam Proses', 'Selesai']))
+                                            @php $slaRes = $t->sla_resolution; @endphp
+                                            <div class="mt-1">
+                                                <span class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded border {{ $slaRes['badge_class'] }}" title="{{ $slaRes['due_at'] ? 'Batas SLA: ' . $slaRes['due_at']->format('d M, H:i') . ' WITA' : 'Menunggu Kabag' }}">
+                                                    <span class="w-1 h-1 rounded-full {{ $slaRes['is_overdue'] ? 'bg-rose-500 animate-ping' : ($slaRes['is_warning'] ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500') }}"></span>
+                                                    Resolusi: {{ $slaRes['remaining_formatted'] }}
+                                                </span>
+                                            </div>
+                                        @else
+                                            <span class="text-slate-300 text-xs">—</span>
+                                        @endif
+                                    </td>
+                                @else
+                                    <td class="px-4 py-3.5 whitespace-nowrap text-xs text-slate-600">
+                                        {{ $t->custom_fields[$f->field_name] ?? '—' }}
+                                    </td>
+                                @endif
+                            @endforeach
+                        @else
+                            <td class="px-4 py-3.5 font-mono font-bold text-[#114E84] whitespace-nowrap">
+                                <a href="{{ route('tickets.show', $t) }}" class="hover:underline">
+                                    {{ $t->ticket_number }}
+                                </a>
+                            </td>
+                            <td class="px-4 py-3.5 whitespace-nowrap">
+                                <div class="font-medium text-ink">{{ $t->user?->nama_lengkap ?? '-' }}</div>
+                                <div class="text-[11px] text-slate-500">{{ $t->user?->bagian ?? '-' }}</div>
+                            </td>
+                            <td class="px-4 py-3.5 whitespace-nowrap text-xs text-slate-500">
+                                {{ $t->created_at->format('d M Y H:i') }}
+                            </td>
+                            <td class="px-4 py-3.5 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11.5px] font-medium border {{ $t->status_badge }}">
+                                    {{ auth()->user()->isUser() ? $t->pemohon_status_label : $t->status }}
+                                </span>
+                            </td>
                             <td class="px-4 py-3.5 whitespace-nowrap">
                                 @if ($t->jenis_pengajuan)
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border {{ $t->jenis_badge }}">
                                         {{ $t->jenis_pengajuan }}
                                     </span>
-                                    @else
+                                @else
                                     <span class="text-slate-300 text-[11px]">—</span>
-                                    @endif
-                                </td>
+                                @endif
+                            </td>
                             <td class="px-4 py-3.5 whitespace-nowrap text-xs text-slate-600">
                                 @if ($t->department)
                                     <span class="inline-flex items-center gap-1 font-medium text-slate-800">
@@ -164,7 +246,7 @@
                                     <span class="text-slate-400 italic">Belum dialokasikan</span>
                                 @endif
                             </td>
-                             <td class="px-4 py-3.5 whitespace-nowrap">
+                            <td class="px-4 py-3.5 whitespace-nowrap">
                                 @if ($t->status === 'Menunggu Verifikasi')
                                     @php $sla = $t->sla_response; @endphp
                                     <div class="mt-1">
@@ -185,6 +267,7 @@
                                     <span class="text-slate-300 text-xs">—</span>
                                 @endif
                             </td>
+                        @endif
                             <td class="px-4 py-3.5 text-right whitespace-nowrap">
                                 <div class="inline-flex items-center gap-2">
                                     {{-- Tombol Disposisi Cepat untuk Kabag --}}

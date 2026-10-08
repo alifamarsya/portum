@@ -48,6 +48,7 @@ class Ticket extends Model
         'closed_at',
         'rating',
         'feedback',
+        'custom_fields',
     ];
 
     protected function casts(): array
@@ -64,6 +65,7 @@ class Ticket extends Model
             'confirmation_deadline' => 'datetime',
             'closed_at' => 'datetime',
             'estimasi_biaya' => 'decimal:2',
+            'custom_fields' => 'array',
         ];
     }
 

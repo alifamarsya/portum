@@ -91,6 +91,7 @@ class TicketService
                 'sla_response_start_at' => $startAt,
                 'sla_response_due_at' => $dueAt,
                 'sla_response_status' => 'Menunggu',
+                'custom_fields' => $data['custom_fields'] ?? null,
             ]);
 
             // Tangani upload lampiran (single atau multiple PDF)
