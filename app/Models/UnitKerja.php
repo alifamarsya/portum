@@ -47,8 +47,19 @@ class UnitKerja extends Model
     /**
      * Tiket yang ditugaskan ke unit kerja ini.
      */
-    public function tickets(): HasMany
+    public function tickets()
     {
-        return $this->hasMany(Ticket::class, 'unit_kerja_id');
+        if (\Illuminate\Support\Facades\Schema::hasColumn('tickets', 'unit_kerja_id')) {
+            return $this->hasMany(Ticket::class, 'unit_kerja_id');
+        }
+
+        return $this->hasManyThrough(
+            Ticket::class,
+            User::class,
+            'unit_kerja_id', // Foreign key on users table
+            'assigned_to',   // Foreign key on tickets table
+            'id',            // Local key on unit_kerja table
+            'id'             // Local key on users table
+        );
     }
 }

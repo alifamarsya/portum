@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\InternalDepartment;
 use App\Models\Role;
 use App\Models\Ticket;
+use App\Models\UnitKerja;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -278,4 +279,47 @@ class PimpinanDashboardTest extends TestCase
         $response->assertStatus(200);
         $this->assertNotEmpty($response->viewData('chartTrenLabels'));
     }
+
+    /** @test */
+    public function test_workload_analysis_handles_unit_kerja_breakdown_correctly(): void
+    {
+        // Buat UnitKerja di Department 1
+        $uk1 = UnitKerja::create([
+            'id'            => 1,
+            'department_id' => 1,
+            'nama'          => 'Unit Kerja Umum & Rumah Tangga',
+            'kode'          => 'UK-URT',
+            'is_active'     => true,
+        ]);
+
+        // Buat staff di UnitKerja 1
+        $staff = User::factory()->create([
+            'nama_lengkap'  => 'Staff URT',
+            'unit_kerja_id' => $uk1->id,
+            'department_id' => 1,
+            'is_active'     => true,
+        ]);
+
+        // Buat tiket yang di-assign ke staff
+        Ticket::factory()->create([
+            'user_id'       => $this->userBiasa->id,
+            'department_id' => 1,
+            'assigned_to'   => $staff->id,
+            'status'        => 'Dalam Proses',
+            'created_at'    => now(),
+        ]);
+
+        $response = $this->actingAs($this->pimpinan)
+            ->get(route('pimpinan.dashboard', ['periode' => 'this_month']));
+
+        $response->assertStatus(200);
+        $workload = $response->viewData('workload');
+        $dept1Workload = collect($workload)->firstWhere('department.id', 1);
+
+        $this->assertNotNull($dept1Workload);
+        $this->assertNotEmpty($dept1Workload['unit_kerja']);
+        $this->assertEquals(1, $dept1Workload['unit_kerja'][0]['total']);
+        $this->assertEquals(1, $dept1Workload['unit_kerja'][0]['aktif']);
+    }
 }
+

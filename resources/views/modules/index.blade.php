@@ -50,7 +50,7 @@
                 @include('partials.icon', ['name' => 'search', 'class' => 'w-4 h-4'])
             </span>
             <input type="text" name="q" value="{{ request('q') }}" placeholder="Cari data..."
-                   class="border border-slate-300 rounded-lg pl-9 pr-3.5 py-2 text-sm w-full bg-white focus:border-brand focus:ring-1 focus:ring-brand transition">
+                   class="border border-slate-300 rounded-lg pl-9 pr-3.5 py-2 text-sm w-full bg-white transition">
         </div>
     </form>
 
@@ -166,7 +166,7 @@
                 <span>Modul <strong>{{ $cfg['judul'] }}</strong> mendukung Dynamic Fields fleksibel. Terdapat <strong>{{ !empty($customFields) ? count($customFields) : 0 }}</strong> custom field terdaftar.</span>
             </div>
             <a href="{{ route('admin.custom-fields.index', ['module' => $key]) }}" class="text-[#114E84] hover:underline font-bold whitespace-nowrap">
-                + Tambah / Kelola Fields &rarr;
+                Kelola Fields &rarr;
             </a>
         </div>
     @endif

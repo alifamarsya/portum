@@ -54,8 +54,26 @@
 
   ::selection { background: #0E1726; color: #D4A038; }
 
-  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
-    outline: 2px solid #D4A038; outline-offset: 2px; border-radius: 8px;
+  /* Clean accessible outline for keyboard navigation (a, button) */
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid #114E84;
+    outline-offset: 2px;
+  }
+
+  /* Form inputs & search boxes: remove harsh outline-offset, use cohesive Bank Sulteng focus ring */
+  input, select, textarea {
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  }
+  input:hover:not(:focus):not(:disabled),
+  select:hover:not(:focus):not(:disabled),
+  textarea:hover:not(:focus):not(:disabled) {
+    border-color: #94A3B8;
+  }
+  input:focus, select:focus, textarea:focus,
+  input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: none !important;
+    border-color: #114E84 !important;
+    box-shadow: 0 0 0 3px rgba(17, 78, 132, 0.18) !important;
   }
 
   input[type="checkbox"], input[type="radio"] { accent-color: #0E1726; }

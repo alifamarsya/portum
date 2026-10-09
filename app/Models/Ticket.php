@@ -141,9 +141,20 @@ class Ticket extends Model
     /**
      * Get the unit kerja assigned to the ticket.
      */
-    public function unitKerja(): BelongsTo
+    public function unitKerja()
     {
-        return $this->belongsTo(UnitKerja::class, 'unit_kerja_id');
+        if (\Illuminate\Support\Facades\Schema::hasColumn('tickets', 'unit_kerja_id')) {
+            return $this->belongsTo(UnitKerja::class, 'unit_kerja_id');
+        }
+
+        return $this->hasOneThrough(
+            UnitKerja::class,
+            User::class,
+            'id',
+            'id',
+            'assigned_to',
+            'unit_kerja_id'
+        );
     }
 
     /**

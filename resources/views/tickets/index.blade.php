@@ -8,17 +8,6 @@
             <p class="text-[12px] font-semibold uppercase tracking-wider text-gold mb-1">Layanan Terpusat &amp; Helpdesk</p>
             <h1 class="text-2xl font-bold text-ink flex items-center gap-2.5">
                 <span>Daftar Tiket Layanan</span>
-                @if (auth()->user()->isKabag())
-                    <span class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800">Kepala Bagian: {{ auth()->user()->department?->name ?? 'Internal' }}</span>
-                @elseif (auth()->user()->isInternalStaff())
-                    <span class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800">Staf Bagian: {{ auth()->user()->department?->name ?? 'Internal' }}</span>
-                @elseif (auth()->user()->isUser())
-                    <span class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800">Tiket Saya</span>
-                @elseif (auth()->user()->isOperator())
-                    <span class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Operator Helpdesk</span>
-                @elseif (auth()->user()->isKepalaDivisi())
-                    <span class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800">Monitoring Eksekutif</span>
-                @endif
             </h1>
         </div>
 
@@ -60,7 +49,7 @@
                 <div class="relative">
                     <input type="text" name="search" value="{{ request('search') }}"
                            placeholder="No. tiket / kata kunci..."
-                           class="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand focus:border-brand">
+                           class="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg transition">
                     <div class="absolute left-3 top-2.5 text-slate-400">
                         @include('partials.icon', ['name' => 'search', 'class' => 'w-4 h-4'])
                     </div>
@@ -69,7 +58,7 @@
 
             <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Status</label>
-                <select name="status" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand focus:border-brand">
+                <select name="status" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg transition">
                     <option value="">-- Semua Status --</option>
                     @foreach (['Menunggu Verifikasi', 'Diverifikasi', 'Dalam Proses', 'Selesai', 'Ditutup Pemohon', 'Ditolak'] as $st)
                         <option value="{{ $st }}" {{ request('status') === $st ? 'selected' : '' }}>
@@ -88,7 +77,7 @@
             {{-- Filter Jenis Pengajuan (Fase 1) --}}
             <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Pengajuan</label>
-                <select name="jenis_pengajuan" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand focus:border-brand">
+                <select name="jenis_pengajuan" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg transition">
                     <option value="">-- Semua Jenis --</option>
                     <option value="Permintaan" {{ request('jenis_pengajuan') === 'Permintaan' ? 'selected' : '' }}>Permintaan</option>
                     <option value="Permasalahan" {{ request('jenis_pengajuan') === 'Permasalahan' ? 'selected' : '' }}>Permasalahan</option>

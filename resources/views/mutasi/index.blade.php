@@ -8,15 +8,6 @@
             <p class="text-[12px] font-semibold uppercase tracking-wider text-gold mb-1">Pengajuan &amp; Monitoring</p>
             <h1 class="text-2xl font-bold text-ink flex items-center gap-2.5">
                 <span>Daftar Mutasi Aset</span>
-                @if (auth()->user()->isKabag())
-                    <span class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800">Kepala Bagian: {{ auth()->user()->department?->name ?? 'Aset & Logistik' }}</span>
-                @elseif (auth()->user()->isUkAdministrasiAset() || auth()->user()->hasRole('aset'))
-                    <span class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800">Staf Administrasi Aset</span>
-                @elseif (auth()->user()->isOperator())
-                    <span class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Operator Helpdesk</span>
-                @elseif (auth()->user()->isUser())
-                    <span class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800">Pengajuan Saya</span>
-                @endif
             </h1>
         </div>
 
@@ -80,7 +71,7 @@
                 <div class="relative">
                     <input type="text" name="search" value="{{ request('search') }}"
                            placeholder="No. mutasi, kode/nama aset, nama pemohon..."
-                           class="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand focus:border-brand">
+                           class="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg transition">
                     <div class="absolute left-3 top-2.5 text-slate-400">
                         @include('partials.icon', ['name' => 'search', 'class' => 'w-4 h-4'])
                     </div>
@@ -89,7 +80,7 @@
 
             <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Status Pengajuan</label>
-                <select name="status" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand focus:border-brand">
+                <select name="status" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg transition">
                     <option value="">-- Semua Status --</option>
                     <option value="Diajukan" {{ request('status') === 'Diajukan' ? 'selected' : '' }}>Diajukan</option>
                     <option value="Diproses" {{ request('status') === 'Diproses' ? 'selected' : '' }}>Diproses (Bagian Aset)</option>
@@ -104,7 +95,7 @@
             <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1">Dari Tanggal</label>
                 <input type="date" name="tanggal_mulai" value="{{ request('tanggal_mulai') }}"
-                       class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand focus:border-brand">
+                       class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg transition">
             </div>
 
             <div class="flex items-end gap-2">
