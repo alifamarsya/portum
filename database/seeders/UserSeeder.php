@@ -19,12 +19,12 @@ class UserSeeder extends Seeder
             ['username' => 'staf 1', 'nama_lengkap' => 'Dirli', 'email' => 'dirli@banksulteng.co.id', 'jabatan' => 'Staf Unit Kerja Umum & RT', 'bagian' => 'Bagian Umum & Rumah Tangga', 'role_id' => 19, 'department_id' => 1],
             ['username' => 'staf 2', 'nama_lengkap' => 'Marsya', 'email' => 'umum@banksulteng.co.id', 'jabatan' => 'Staf Pengelolaan Dokumen & Kearsipan', 'bagian' => 'Bagian Umum & Rumah Tangga', 'role_id' => 19, 'department_id' => 1],
             ['username' => 'kabag umum', 'nama_lengkap' => 'Kepala Bagian Umum & Rumah Tangga', 'email' => 'kabagumum@banksulteng.co.id', 'jabatan' => 'Kepala Bagian', 'bagian' => 'Kantor Pusat', 'role_id' => 19, 'department_id' => 1],
+            ['username' => 'kabag aset', 'nama_lengkap' => 'Kepala Bagian Aset/Inventaris & Logistik', 'email' => 'kabagaset@banksulteng.co.id', 'jabatan' => 'Kepala Bagian', 'bagian' => 'Kantor Pusat', 'role_id' => 20, 'department_id' => 2],
             ['username' => 'staf 3', 'nama_lengkap' => 'Dirli', 'email' => 'aset@banksulteng.co.id', 'jabatan' => 'Staf Administrasi Aset & Inventaris', 'bagian' => 'Bagian Aset/Inventaris & Logistik', 'role_id' => 20, 'department_id' => 2],
             ['username' => 'staf 4', 'nama_lengkap' => 'Zahra', 'email' => 'aset@banksulteng.co.id', 'jabatan' => 'Staf Logistik & Pelaporan', 'bagian' => 'Bagian Aset/Inventaris & Logistik', 'role_id' => 20, 'department_id' => 2],
-            ['username' => 'kabag aset', 'nama_lengkap' => 'Kepala Bagian Aset/Inventaris & Logistik', 'email' => 'kabagaset@banksulteng.co.id', 'jabatan' => 'Kepala Bagian', 'bagian' => 'Kantor Pusat', 'role_id' => 20, 'department_id' => 2],
+            ['username' => 'kabag pengadaan', 'nama_lengkap' => 'Kepala Bagian Pengadaan serta Pemeliharaan Aset dan Inventaris', 'email' => 'kabagpengadaan@banksulteng.co.id', 'jabatan' => 'Kepala Bagian', 'bagian' => 'Kantor Pusat', 'role_id' => 21, 'department_id' => 3],
             ['username' => 'staf 5', 'nama_lengkap' => 'Marsya', 'email' => 'pengadaan@banksulteng.co.id', 'jabatan' => 'Staf Unit Kerja Pengadaan', 'bagian' => 'Bagian Pengadaan & Pemeliharaan Aset & Inventaris', 'role_id' => 21, 'department_id' => 3],
             ['username' => 'staf 6', 'nama_lengkap' => 'Zahra', 'email' => 'pengadaan@banksulteng.co.id', 'jabatan' => 'Staf Unit Kerja Pemeliharaan & Pengawasan', 'bagian' => 'Bagian Pengadaan & Pemeliharaan Aset & Inventaris', 'role_id' => 21, 'department_id' => 3],
-            ['username' => 'kabag pengadaan', 'nama_lengkap' => 'Kepala Bagian Pengadaan serta Pemeliharaan Aset dan Inventaris', 'email' => 'kabagpengadaan@banksulteng.co.id', 'jabatan' => 'Kepala Bagian', 'bagian' => 'Kantor Pusat', 'role_id' => 21, 'department_id' => 3],
         ];
 
         // Role Multi-User (Pemohon Cabang & Divisi)

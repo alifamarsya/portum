@@ -46,6 +46,28 @@
         </div>
     </div>
 
+    {{-- Alert Notifikasi Status & Error Validasi --}}
+    @if (session('status'))
+        <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2.5 shadow-2xs">
+            @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-4 h-4 text-emerald-600 shrink-0'])
+            <span class="font-medium">{{ session('status') }}</span>
+        </div>
+    @endif
+
+    @if ($errors->any())
+        <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs space-y-1.5 shadow-2xs">
+            <div class="flex items-center gap-2 font-bold text-rose-900">
+                @include('partials.icon', ['name' => 'alert-triangle', 'class' => 'w-4 h-4 text-rose-600 shrink-0'])
+                <span>Terdapat kesalahan pada formulir:</span>
+            </div>
+            <ul class="list-disc list-inside space-y-0.5 text-rose-700 pl-2">
+                @foreach ($errors->all() as $err)
+                    <li>{{ $err }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     {{-- Tab Switcher --}}
     <div class="flex items-center gap-2 border-b border-slate-200 pb-3">
         <a href="{{ route('konfigurasi.tiket.index', ['tab' => 'kategori']) }}"
@@ -71,27 +93,7 @@
         {{-- ======================================================== --}}
         {{-- TAB 1: KATEGORI TIKET & SLA                              --}}
         {{-- ======================================================== --}}
-        
-        {{-- Stats Cards --}}
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div class="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-card">
-                <span class="text-xs text-slate-400 block font-medium">Total Kategori</span>
-                <span class="text-2xl font-bold text-ink font-mono mt-1 block">{{ $categoryStats['total'] }}</span>
-            </div>
-            <div class="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-card">
-                <span class="text-xs text-slate-400 block font-medium">Kategori Permintaan</span>
-                <span class="text-2xl font-bold text-sky-700 font-mono mt-1 block">{{ $categoryStats['permintaan'] }}</span>
-            </div>
-            <div class="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-card">
-                <span class="text-xs text-slate-400 block font-medium">Kategori Permasalahan</span>
-                <span class="text-2xl font-bold text-orange-600 font-mono mt-1 block">{{ $categoryStats['permasalahan'] }}</span>
-            </div>
-            <div class="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-card">
-                <span class="text-xs text-slate-400 block font-medium">Kategori Aktif</span>
-                <span class="text-2xl font-bold text-emerald-600 font-mono mt-1 block">{{ $categoryStats['aktif'] }}</span>
-            </div>
-        </div>
-
+    
         {{-- Filter Bar --}}
         <div class="bg-white rounded-2xl border border-slate-200 shadow-card p-4">
             <form method="GET" action="{{ route('konfigurasi.tiket.index') }}" class="grid grid-cols-1 sm:grid-cols-4 gap-3">
@@ -188,15 +190,16 @@
                                 <td class="py-3.5 px-4 text-right">
                                     <div class="inline-flex items-center gap-2">
                                         <button type="button"
-                                                onclick="openEditCategoryModal({{ json_encode([
+                                                data-cat="{{ htmlspecialchars(json_encode([
                                                     'id' => $cat->id,
                                                     'name' => $cat->name,
                                                     'jenis_pengajuan' => $cat->jenis_pengajuan,
                                                     'sla_resolution_hours' => $cat->sla_resolution_hours,
                                                     'department_id' => $cat->department_id,
                                                     'sort_order' => $cat->sort_order,
-                                                    'is_active' => $cat->is_active,
-                                                ]) }})"
+                                                    'is_active' => (bool)$cat->is_active,
+                                                ]), ENT_QUOTES, 'UTF-8') }}"
+                                                onclick="openEditCategoryModal(JSON.parse(this.dataset.cat))"
                                                 class="text-xs text-amber-700 hover:text-amber-800 font-semibold px-2 py-1 rounded bg-amber-50 hover:bg-amber-100 border border-amber-200 transition">
                                             Edit
                                         </button>
@@ -235,175 +238,158 @@
         {{-- TAB 2: FIELD FORMULIR & TABEL TIKET                      --}}
         {{-- ======================================================== --}}
 
-        {{-- Stats Cards Fields --}}
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div class="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-card">
-                <span class="text-xs text-slate-400 block font-medium">Total Field Tiket</span>
-                <span class="text-2xl font-bold text-ink font-mono mt-1 block">{{ $fieldStats['total'] }}</span>
-            </div>
-            <div class="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-card">
-                <span class="text-xs text-slate-400 block font-medium">Tampil di Tabel List</span>
-                <span class="text-2xl font-bold text-sky-700 font-mono mt-1 block">{{ $fieldStats['di_tabel'] }}</span>
-            </div>
-            <div class="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-card">
-                <span class="text-xs text-slate-400 block font-medium">Tampil di Form Input</span>
-                <span class="text-2xl font-bold text-indigo-700 font-mono mt-1 block">{{ $fieldStats['di_form'] }}</span>
-            </div>
-            <div class="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-card">
-                <span class="text-xs text-slate-400 block font-medium">Field Kustom</span>
-                <span class="text-2xl font-bold text-emerald-600 font-mono mt-1 block">{{ $fieldStats['kustom'] }}</span>
-            </div>
-        </div>
-
+       
         {{-- Tabel Pengaturan Field Tiket --}}
         <div class="bg-white rounded-2xl border border-slate-200 shadow-card overflow-hidden">
-            <form id="reorderTicketFieldsForm" method="POST" action="{{ route('konfigurasi.tiket.fields.reorder') }}">
+            <form id="reorderTicketFieldsForm" method="POST" action="{{ route('konfigurasi.tiket.fields.reorder') }}" class="hidden">
                 @csrf
-                <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                        <h2 class="font-bold text-sm text-ink flex items-center gap-2">
-                            @include('partials.icon', ['name' => 'layers', 'class' => 'w-4 h-4 text-[#114E84]'])
-                            Daftar Field Sistem Tiket ({{ $fields->count() }} field)
-                        </h2>
-                        <p class="text-[11px] text-slate-400 mt-0.5">
-                            Atur urutan nomor, ubah label tampilan, serta aktifkan/nonaktifkan visibilitas field pada tabel list &amp; formulir pemohon.
-                        </p>
-                    </div>
-
-                    @if ($fields->isNotEmpty())
-                        <button type="submit"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition border border-slate-200">
-                            @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-3.5 h-3.5 text-emerald-600'])
-                            Simpan Urutan
-                        </button>
-                    @endif
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full text-xs text-left border-collapse">
-                        <thead>
-                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase tracking-wider text-[11px] font-bold">
-                                <th class="py-3 px-3 text-center w-16">Urutan</th>
-                                <th class="py-3 px-4">Label / Field Name</th>
-                                <th class="py-3 px-4">Tipe Data</th>
-                                <th class="py-3 px-3 text-center">Wajib Form</th>
-                                <th class="py-3 px-3 text-center">Di Form</th>
-                                <th class="py-3 px-3 text-center">Di Tabel</th>
-                                <th class="py-3 px-3 text-center">Status</th>
-                                <th class="py-3 px-4 text-right">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            @foreach ($fields as $field)
-                                <tr class="hover:bg-slate-50/60 transition {{ !$field->is_active ? 'opacity-50' : '' }}">
-                                    <td class="py-3 px-3 text-center">
-                                        <input type="number" name="orders[{{ $field->id }}]"
-                                               value="{{ $field->sort_order }}" min="0"
-                                               class="w-14 text-center font-mono py-1 px-1.5 border border-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-brand focus:border-brand">
-                                    </td>
-                                    <td class="py-3 px-4">
-                                        <div class="flex items-center gap-2">
-                                            <p class="font-bold text-ink">{{ $field->label }}</p>
-                                            @if ($field->is_system)
-                                                <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">Bawaan</span>
-                                            @else
-                                                <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">Kustom</span>
-                                            @endif
-                                        </div>
-                                        <p class="text-[10.5px] font-mono text-slate-400">{{ $field->field_name }}</p>
-                                        @if ($field->help_text)
-                                            <p class="text-[10.5px] text-slate-400 italic mt-0.5">{{ $field->help_text }}</p>
-                                        @endif
-                                    </td>
-                                    <td class="py-3 px-4">
-                                        @php
-                                            $typeColor = match($field->field_type) {
-                                                'text' => 'bg-blue-50 text-blue-700 border-blue-200',
-                                                'number' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                                                'date' => 'bg-amber-50 text-amber-700 border-amber-200',
-                                                'select' => 'bg-purple-50 text-purple-700 border-purple-200',
-                                                'textarea' => 'bg-teal-50 text-teal-700 border-teal-200',
-                                                'file' => 'bg-rose-50 text-rose-700 border-rose-200',
-                                                default => 'bg-slate-100 text-slate-600 border-slate-200',
-                                            };
-                                        @endphp
-                                        <span class="inline-block px-2 py-0.5 rounded text-[10px] font-mono font-semibold border {{ $typeColor }}">
-                                            {{ strtoupper($field->field_type) }}
-                                        </span>
-                                    </td>
-                                    <td class="py-3 px-3 text-center">
-                                        @if ($field->is_required)
-                                            <span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">Wajib</span>
-                                        @else
-                                            <span class="text-slate-400 text-[11px]">Opsional</span>
-                                        @endif
-                                    </td>
-                                    <td class="py-3 px-3 text-center">
-                                        <form method="POST" action="{{ route('konfigurasi.tiket.fields.toggle-form', $field) }}" class="inline">
-                                            @csrf
-                                            @method('PATCH')
-                                            <button type="submit" class="px-2 py-0.5 rounded text-[10.5px] font-semibold transition {{ $field->show_in_form ? 'bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100' : 'bg-slate-100 text-slate-400 border border-slate-200 hover:bg-slate-200' }}" title="Klik untuk toggle tampilan di formulir">
-                                                {{ $field->show_in_form ? 'Tampil' : 'Sembunyi' }}
-                                            </button>
-                                        </form>
-                                    </td>
-                                    <td class="py-3 px-3 text-center">
-                                        <form method="POST" action="{{ route('konfigurasi.tiket.fields.toggle-list', $field) }}" class="inline">
-                                            @csrf
-                                            @method('PATCH')
-                                            <button type="submit" class="px-2 py-0.5 rounded text-[10.5px] font-semibold transition {{ $field->show_in_list ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' : 'bg-slate-100 text-slate-400 border border-slate-200 hover:bg-slate-200' }}" title="Klik untuk toggle tampilan di tabel list">
-                                                {{ $field->show_in_list ? 'Tampil' : 'Sembunyi' }}
-                                            </button>
-                                        </form>
-                                    </td>
-                                    <td class="py-3 px-3 text-center">
-                                        <form method="POST" action="{{ route('konfigurasi.tiket.fields.toggle', $field) }}" class="inline">
-                                            @csrf
-                                            @method('PATCH')
-                                            <button type="submit" class="px-2 py-0.5 rounded text-[10.5px] font-semibold transition {{ $field->is_active ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' : 'bg-slate-100 text-slate-400 border border-slate-200 hover:bg-slate-200' }}" title="Klik untuk toggle aktif">
-                                                {{ $field->is_active ? 'Aktif' : 'Nonaktif' }}
-                                            </button>
-                                        </form>
-                                    </td>
-                                    <td class="py-3 px-4 text-right">
-                                        <div class="inline-flex items-center gap-1.5">
-                                            <button type="button"
-                                                    onclick="openEditFieldModal({{ json_encode([
-                                                        'id' => $field->id,
-                                                        'field_name' => $field->field_name,
-                                                        'label' => $field->label,
-                                                        'field_type' => $field->field_type,
-                                                        'options' => $field->options ? implode("\n", $field->options) : '',
-                                                        'is_required' => $field->is_required,
-                                                        'show_in_form' => $field->show_in_form,
-                                                        'show_in_list' => $field->show_in_list,
-                                                        'sort_order' => $field->sort_order,
-                                                        'help_text' => $field->help_text,
-                                                        'is_active' => $field->is_active,
-                                                        'is_system' => $field->is_system,
-                                                    ]) }})"
-                                                    class="text-xs text-amber-700 hover:text-amber-800 font-semibold px-2 py-1 rounded bg-amber-50 hover:bg-amber-100 border border-amber-200 transition">
-                                                Edit
-                                            </button>
-
-                                            @if (!$field->is_system)
-                                                <form method="POST" action="{{ route('konfigurasi.tiket.fields.destroy', $field) }}"
-                                                      onsubmit="return confirm('Hapus field kustom \'{{ $field->label }}\'?')" class="inline">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="text-xs text-rose-600 hover:text-rose-700 font-semibold px-2 py-1 rounded bg-rose-50 hover:bg-rose-100 border border-rose-200 transition">
-                                                        Hapus
-                                                    </button>
-                                                </form>
-                                            @endif
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
             </form>
+
+            <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h2 class="font-bold text-sm text-ink flex items-center gap-2">
+                        @include('partials.icon', ['name' => 'layers', 'class' => 'w-4 h-4 text-[#114E84]'])
+                        Daftar Field Sistem Tiket ({{ $fields->count() }} field)
+                    </h2>
+                    <p class="text-[11px] text-slate-400 mt-0.5">
+                        Atur urutan nomor, ubah label tampilan, serta aktifkan/nonaktifkan visibilitas field pada tabel list &amp; formulir pemohon.
+                    </p>
+                </div>
+
+                @if ($fields->isNotEmpty())
+                    <button type="submit" form="reorderTicketFieldsForm"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition border border-slate-200 cursor-pointer">
+                        @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-3.5 h-3.5 text-emerald-600'])
+                        Simpan Urutan
+                    </button>
+                @endif
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase tracking-wider text-[11px] font-bold">
+                            <th class="py-3 px-3 text-center w-16">Urutan</th>
+                            <th class="py-3 px-4">Label / Field Name</th>
+                            <th class="py-3 px-4">Tipe Data</th>
+                            <th class="py-3 px-3 text-center">Wajib Form</th>
+                            <th class="py-3 px-3 text-center">Di Form</th>
+                            <th class="py-3 px-3 text-center">Di Tabel</th>
+                            <th class="py-3 px-3 text-center">Status</th>
+                            <th class="py-3 px-4 text-right">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @foreach ($fields as $field)
+                            <tr class="hover:bg-slate-50/60 transition {{ !$field->is_active ? 'opacity-50' : '' }}">
+                                <td class="py-3 px-3 text-center">
+                                    <input type="number" form="reorderTicketFieldsForm" name="orders[{{ $field->id }}]"
+                                           value="{{ $field->sort_order }}" min="0"
+                                           class="w-14 text-center font-mono py-1 px-1.5 border border-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-brand focus:border-brand">
+                                </td>
+                                <td class="py-3 px-4">
+                                    <div class="flex items-center gap-2">
+                                        <p class="font-bold text-ink">{{ $field->label }}</p>
+                                        @if ($field->is_system)
+                                            <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">Bawaan</span>
+                                        @else
+                                            <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">Kustom</span>
+                                        @endif
+                                    </div>
+                                    <p class="text-[10.5px] font-mono text-slate-400">{{ $field->field_name }}</p>
+                                    @if ($field->help_text)
+                                        <p class="text-[10.5px] text-slate-400 italic mt-0.5">{{ $field->help_text }}</p>
+                                    @endif
+                                </td>
+                                <td class="py-3 px-4">
+                                    @php
+                                        $typeColor = match($field->field_type) {
+                                            'text' => 'bg-blue-50 text-blue-700 border-blue-200',
+                                            'number' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                                            'date' => 'bg-amber-50 text-amber-700 border-amber-200',
+                                            'select' => 'bg-purple-50 text-purple-700 border-purple-200',
+                                            'textarea' => 'bg-teal-50 text-teal-700 border-teal-200',
+                                            'file' => 'bg-rose-50 text-rose-700 border-rose-200',
+                                            default => 'bg-slate-100 text-slate-600 border-slate-200',
+                                        };
+                                    @endphp
+                                    <span class="inline-block px-2 py-0.5 rounded text-[10px] font-mono font-semibold border {{ $typeColor }}">
+                                        {{ strtoupper($field->field_type) }}
+                                    </span>
+                                </td>
+                                <td class="py-3 px-3 text-center">
+                                    @if ($field->is_required)
+                                        <span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">Wajib</span>
+                                    @else
+                                        <span class="text-slate-400 text-[11px]">Opsional</span>
+                                    @endif
+                                </td>
+                                <td class="py-3 px-3 text-center">
+                                    <form method="POST" action="{{ route('konfigurasi.tiket.fields.toggle-form', $field) }}" class="inline">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="px-2 py-0.5 rounded text-[10.5px] font-semibold transition {{ $field->show_in_form ? 'bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100' : 'bg-slate-100 text-slate-400 border border-slate-200 hover:bg-slate-200' }}" title="Klik untuk toggle tampilan di formulir">
+                                            {{ $field->show_in_form ? 'Tampil' : 'Sembunyi' }}
+                                        </button>
+                                    </form>
+                                </td>
+                                <td class="py-3 px-3 text-center">
+                                    <form method="POST" action="{{ route('konfigurasi.tiket.fields.toggle-list', $field) }}" class="inline">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="px-2 py-0.5 rounded text-[10.5px] font-semibold transition {{ $field->show_in_list ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' : 'bg-slate-100 text-slate-400 border border-slate-200 hover:bg-slate-200' }}" title="Klik untuk toggle tampilan di tabel list">
+                                            {{ $field->show_in_list ? 'Tampil' : 'Sembunyi' }}
+                                        </button>
+                                    </form>
+                                </td>
+                                <td class="py-3 px-3 text-center">
+                                    <form method="POST" action="{{ route('konfigurasi.tiket.fields.toggle', $field) }}" class="inline">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="px-2 py-0.5 rounded text-[10.5px] font-semibold transition {{ $field->is_active ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' : 'bg-slate-100 text-slate-400 border border-slate-200 hover:bg-slate-200' }}" title="Klik untuk toggle aktif">
+                                            {{ $field->is_active ? 'Aktif' : 'Nonaktif' }}
+                                        </button>
+                                    </form>
+                                </td>
+                                <td class="py-3 px-4 text-right">
+                                    <div class="inline-flex items-center gap-1.5">
+                                        <button type="button"
+                                                data-field="{{ htmlspecialchars(json_encode([
+                                                    'id' => $field->id,
+                                                    'field_name' => $field->field_name,
+                                                    'label' => $field->label,
+                                                    'field_type' => $field->field_type,
+                                                    'options' => $field->options ? implode("\n", $field->options) : '',
+                                                    'is_required' => (bool)$field->is_required,
+                                                    'show_in_form' => (bool)$field->show_in_form,
+                                                    'show_in_list' => (bool)$field->show_in_list,
+                                                    'sort_order' => $field->sort_order,
+                                                    'help_text' => $field->help_text ?? '',
+                                                    'is_active' => (bool)$field->is_active,
+                                                    'is_system' => (bool)$field->is_system,
+                                                ]), ENT_QUOTES, 'UTF-8') }}"
+                                                onclick="openEditFieldModal(JSON.parse(this.dataset.field))"
+                                                class="text-xs text-amber-700 hover:text-amber-800 font-semibold px-2 py-1 rounded bg-amber-50 hover:bg-amber-100 border border-amber-200 transition">
+                                            Edit
+                                        </button>
+
+                                        @if (!$field->is_system)
+                                            <form method="POST" action="{{ route('konfigurasi.tiket.fields.destroy', $field) }}"
+                                                  onsubmit="return confirm('Hapus field kustom \'{{ $field->label }}\'?')" class="inline">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="text-xs text-rose-600 hover:text-rose-700 font-semibold px-2 py-1 rounded bg-rose-50 hover:bg-rose-100 border border-rose-200 transition">
+                                                    Hapus
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
         </div>
     @endif
 </div>
@@ -532,14 +518,14 @@
             @csrf
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Label Field <span class="text-rose-500">*</span></label>
-                <input type="text" name="label" required placeholder="Contoh: Lokasi / Gedung Lantai"
+                <input type="text" name="label" required placeholder="Contoh: Lokasi Kerusakan atau Nomor Inventaris"
                        class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:border-[#114E84]"
                        oninput="autoSlugTicketField(this.value, 'create_field_name')">
             </div>
 
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Kolom (Slug unik) <span class="text-rose-500">*</span></label>
-                <input type="text" name="field_name" id="create_field_name" required placeholder="lokasi_lantai"
+                <input type="text" name="field_name" id="create_field_name" required placeholder="lokasi_kerusakan atau nomor_inventaris"
                        class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:border-[#114E84] font-mono text-slate-600">
             </div>
 
@@ -565,13 +551,13 @@
 
             <div id="create_options_wrapper" class="hidden">
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Pilihan Opsi (Satu baris satu pilihan)</label>
-                <textarea name="options" rows="3" placeholder="Lantai 1&#10;Lantai 2&#10;Lantai 3"
+                <textarea name="options" rows="3" placeholder="Hardware&#10;Software&#10;Jaringan &amp; Internet&#10;Lainnya"
                           class="w-full border border-slate-200 rounded-xl p-2.5 text-xs focus:border-[#114E84] font-mono"></textarea>
             </div>
 
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Petunjuk Pengisian (Help text)</label>
-                <input type="text" name="help_text" placeholder="Tuliskan petunjuk untuk pemohon jika diperlukan..."
+                <input type="text" name="help_text" placeholder="Contoh: Masukkan nomor barcode aset atau spesifikasi perangkat yang bermasalah..."
                        class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:border-[#114E84]">
             </div>
 
@@ -612,6 +598,7 @@
         <form id="editFieldForm" method="POST" action="" class="space-y-4">
             @csrf
             @method('PUT')
+            <input type="hidden" name="field_type" id="edit_field_type_hidden" disabled>
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Label Field <span class="text-rose-500">*</span></label>
                 <input type="text" name="label" id="edit_field_label" required
@@ -727,10 +714,17 @@
         document.getElementById('edit_field_show_list').checked = !!f.show_in_list;
         document.getElementById('edit_field_active').checked = !!f.is_active;
 
+        const hiddenType = document.getElementById('edit_field_type_hidden');
+        if (hiddenType) {
+            hiddenType.value = f.field_type;
+        }
+
         if (f.is_system) {
             document.getElementById('edit_field_type').disabled = true;
+            if (hiddenType) hiddenType.disabled = false;
         } else {
             document.getElementById('edit_field_type').disabled = false;
+            if (hiddenType) hiddenType.disabled = true;
         }
 
         toggleFieldOptions('edit');
@@ -759,7 +753,8 @@
         target.value = value.toLowerCase()
             .trim()
             .replace(/[^a-z0-9_]/g, '_')
-            .replace(/_+/g, '_');
+            .replace(/_+/g, '_')
+            .replace(/^_+|_+$/g, '');
     }
 </script>
 @endpush

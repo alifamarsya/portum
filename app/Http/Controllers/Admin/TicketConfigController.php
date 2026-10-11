@@ -211,7 +211,14 @@ class TicketConfigController extends Controller
             $options = array_values(array_filter(array_map('trim', explode("\n", $validated['options']))));
         }
 
-        $finalOrder = $validated['sort_order'] ?? ((TicketField::max('sort_order') ?? 0) + 1);
+        $hasManualOrder = isset($validated['sort_order']) && $validated['sort_order'] !== null && $validated['sort_order'] !== '';
+        if ($hasManualOrder) {
+            $finalOrder = max(1, (int) $validated['sort_order']);
+            // Geser field yang sudah ada dengan urutan >= finalOrder agar slot nomor urut tersedia
+            TicketField::where('sort_order', '>=', $finalOrder)->increment('sort_order');
+        } else {
+            $finalOrder = ((TicketField::max('sort_order') ?? 0) + 1);
+        }
 
         $field = TicketField::create([
             'field_name'   => $validated['field_name'],
@@ -219,8 +226,8 @@ class TicketConfigController extends Controller
             'field_type'   => $validated['field_type'],
             'options'      => $options,
             'is_required'  => $request->boolean('is_required'),
-            'show_in_form' => $request->boolean('show_in_form', true),
-            'show_in_list' => $request->boolean('show_in_list', true),
+            'show_in_form' => $request->has('show_in_form'),
+            'show_in_list' => $request->has('show_in_list'),
             'sort_order'   => $finalOrder,
             'help_text'    => $validated['help_text'] ?? null,
             'is_active'    => true,
@@ -239,9 +246,8 @@ class TicketConfigController extends Controller
     {
         $this->authorizeAccess();
 
-        $validated = $request->validate([
+        $rules = [
             'label'        => 'required|string|max:100',
-            'field_type'   => 'required|in:text,number,select,textarea,file,date',
             'options'      => 'nullable|string',
             'is_required'  => 'nullable|boolean',
             'show_in_form' => 'nullable|boolean',
@@ -249,10 +255,23 @@ class TicketConfigController extends Controller
             'sort_order'   => 'nullable|integer|min:0',
             'help_text'    => 'nullable|string|max:255',
             'is_active'    => 'nullable|boolean',
-        ]);
+        ];
+
+        // Jika field bawaan sistem (is_system), field_type tidak wajib di-submit dari browser
+        if (!$field->is_system) {
+            $rules['field_type'] = 'required|in:text,number,select,textarea,file,date';
+        } else {
+            $rules['field_type'] = 'nullable|in:text,number,select,textarea,file,date';
+        }
+
+        $validated = $request->validate($rules);
+
+        $fieldType = $field->is_system
+            ? $field->field_type
+            : ($validated['field_type'] ?? $field->field_type);
 
         $options = null;
-        if ($validated['field_type'] === 'select') {
+        if ($fieldType === 'select') {
             if (!empty($validated['options'])) {
                 $options = array_values(array_filter(array_map('trim', explode("\n", $validated['options']))));
             } else {
@@ -261,7 +280,8 @@ class TicketConfigController extends Controller
         }
 
         $oldOrder = (int) $field->sort_order;
-        $newOrder = max(1, (int) ($validated['sort_order'] ?? $oldOrder));
+        $hasManualOrder = isset($validated['sort_order']) && $validated['sort_order'] !== null && $validated['sort_order'] !== '';
+        $newOrder = $hasManualOrder ? max(1, (int) $validated['sort_order']) : $oldOrder;
 
         if ($newOrder !== $oldOrder) {
             if ($newOrder < $oldOrder) {
@@ -279,14 +299,14 @@ class TicketConfigController extends Controller
 
         $field->update([
             'label'        => $validated['label'],
-            'field_type'   => $field->is_system ? $field->field_type : $validated['field_type'],
+            'field_type'   => $fieldType,
             'options'      => $field->is_system ? $field->options : $options,
             'is_required'  => $request->boolean('is_required'),
-            'show_in_form' => $request->boolean('show_in_form'),
-            'show_in_list' => $request->boolean('show_in_list'),
+            'show_in_form' => $request->has('show_in_form'),
+            'show_in_list' => $request->has('show_in_list'),
             'sort_order'   => $newOrder,
             'help_text'    => $validated['help_text'] ?? null,
-            'is_active'    => $request->boolean('is_active'),
+            'is_active'    => $request->has('is_active'),
         ]);
 
         $this->resequenceFields();

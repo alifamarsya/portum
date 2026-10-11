@@ -158,7 +158,7 @@
 
             {{-- Dynamic Custom Fields (Tambahan dari Konfigurasi Sistem Tiket) --}}
             @php
-                $customFields = isset($formFields) ? $formFields->where('is_system', false) : collect();
+                $customFields = isset($formFields) ? $formFields->where('is_system', false)->sortBy('sort_order') : collect();
             @endphp
             @if ($customFields->isNotEmpty())
                 <div class="pt-4 border-t border-slate-100 space-y-4">

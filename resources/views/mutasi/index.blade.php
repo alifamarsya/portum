@@ -83,12 +83,12 @@
                 <select name="status" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg transition">
                     <option value="">-- Semua Status --</option>
                     <option value="Diajukan" {{ request('status') === 'Diajukan' ? 'selected' : '' }}>Diajukan</option>
-                    <option value="Diproses" {{ request('status') === 'Diproses' ? 'selected' : '' }}>Diproses (Bagian Aset)</option>
-                    <option value="Menunggu Approval" {{ request('status') === 'Menunggu Approval' ? 'selected' : '' }}>Menunggu Approval (Arsip)</option>
-                    <option value="Disetujui" {{ request('status') === 'Disetujui' ? 'selected' : '' }}>Disetujui (Menunggu Konfirmasi)</option>
-                    <option value="Ditutup" {{ request('status') === 'Ditutup' ? 'selected' : '' }}>Ditutup (Selesai)</option>
-                    <option value="Ditolak" {{ request('status') === 'Ditolak' ? 'selected' : '' }}>Ditutup (Ditolak)</option>
-                    <option value="Tidak Valid" {{ request('status') === 'Tidak Valid' ? 'selected' : '' }}>Ditutup (Data Tidak Valid)</option>
+                    <option value="Diproses" {{ request('status') === 'Diproses' ? 'selected' : '' }}>Diproses</option>
+                    <option value="Menunggu Approval" {{ request('status') === 'Menunggu Approval' ? 'selected' : '' }}>Menunggu Approval</option>
+                    <option value="Disetujui" {{ request('status') === 'Disetujui' ? 'selected' : '' }}>Disetujui</option>
+                    <option value="Ditutup" {{ request('status') === 'Ditutup' ? 'selected' : '' }}>Selesai</option>
+                    <option value="Ditolak" {{ request('status') === 'Ditolak' ? 'selected' : '' }}>Ditolak</option>
+                    <option value="Tidak Valid" {{ request('status') === 'Tidak Valid' ? 'selected' : '' }}>Tidak Valid</option>
                 </select>
             </div>
 

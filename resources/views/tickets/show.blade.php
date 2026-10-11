@@ -425,6 +425,30 @@
                     @endif
                 </div>
 
+                {{-- Dynamic Custom Fields (Informasi Tambahan Tiket) --}}
+                @if (!empty($ticket->custom_fields) && is_array($ticket->custom_fields))
+                    @php
+                        $fieldDefs = \App\Models\TicketField::whereIn('field_name', array_keys($ticket->custom_fields))
+                            ->orderBy('sort_order')
+                            ->get()
+                            ->keyBy('field_name');
+                    @endphp
+                    <div class="mb-6 pt-4 border-t border-slate-100">
+                        <span class="text-xs text-slate-400 block font-medium mb-2">Informasi Tambahan:</span>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            @foreach ($ticket->custom_fields as $cfKey => $cfVal)
+                                @php
+                                    $label = $fieldDefs[$cfKey]->label ?? ucwords(str_replace('_', ' ', $cfKey));
+                                @endphp
+                                <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                                    <span class="text-[11px] text-slate-400 block font-medium">{{ $label }}</span>
+                                    <span class="text-xs font-semibold text-slate-800">{{ is_array($cfVal) ? implode(', ', $cfVal) : ($cfVal ?: '—') }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
                 {{-- Deskripsi Masalah --}}
                 <div class="mb-6">
                     <span class="text-xs text-slate-400 block font-medium mb-1.5">Deskripsi Lengkap / Uraian Masalah:</span>
