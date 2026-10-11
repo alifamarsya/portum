@@ -11,18 +11,38 @@ class RisalahRapatController extends Controller
     use LogsAudit;
 
     private array $rules = [
-        'nomor' => 'nullable|string|max:100',
+        'nomor' => 'required|string|max:100',
         'judul' => 'required|string|max:255',
         'tanggal' => 'required|date',
-        'waktu' => 'nullable|string|max:50',
-        'tempat' => 'nullable|string|max:255',
-        'pemimpin' => 'nullable|string|max:255',
-        'peserta' => 'nullable|string',
-        'agenda' => 'nullable|string',
-        'pembahasan' => 'nullable|string',
-        'keputusan' => 'nullable|string',
-        'tindak_lanjut' => 'nullable|string',
-        'lampiran' => 'nullable|string|max:255',
+        'waktu' => 'required|string|max:50',
+        'tempat' => 'required|string|max:255',
+        'pemimpin' => 'required|string|max:255',
+        'peserta' => 'required|string',
+        'agenda' => 'required|string',
+        'pembahasan' => 'required|string',
+        'keputusan' => 'required|string',
+        'tindak_lanjut' => 'required|string',
+    ];
+
+    private array $messages = [
+        'required' => ':attribute wajib diisi.',
+        'date' => ':attribute harus berupa tanggal yang valid.',
+        'string' => ':attribute harus berupa teks.',
+        'max' => ':attribute maksimal :max karakter.',
+    ];
+
+    private array $attributes = [
+        'nomor' => 'Nomor Risalah',
+        'judul' => 'Judul Rapat',
+        'tanggal' => 'Tanggal Rapat',
+        'waktu' => 'Waktu Rapat',
+        'tempat' => 'Tempat Rapat',
+        'pemimpin' => 'Pemimpin Rapat',
+        'peserta' => 'Peserta Rapat',
+        'agenda' => 'Agenda Rapat',
+        'pembahasan' => 'Pembahasan',
+        'keputusan' => 'Keputusan',
+        'tindak_lanjut' => 'Tindak Lanjut',
     ];
 
     private function authorizeRisalah(string $mode = 'read'): void
@@ -52,7 +72,7 @@ class RisalahRapatController extends Controller
     public function store(Request $request)
     {
         $this->authorizeRisalah('write');
-        $data = $request->validate($this->rules);
+        $data = $request->validate($this->rules, $this->messages, $this->attributes);
         $data['dibuat_oleh'] = auth()->user()->nama_lengkap;
         $item = RisalahRapat::create($data);
         $this->audit('CREATE', 'Risalah Rapat', 'Risalah Rapat', $item->id, 'Menambah risalah rapat');
@@ -68,7 +88,7 @@ class RisalahRapatController extends Controller
     public function update(Request $request, RisalahRapat $risalah)
     {
         $this->authorizeRisalah('write');
-        $data = $request->validate($this->rules);
+        $data = $request->validate($this->rules, $this->messages, $this->attributes);
         $risalah->update($data);
         $this->audit('UPDATE', 'Risalah Rapat', 'Risalah Rapat', $risalah->id, 'Mengubah risalah rapat');
         return redirect()->route('risalah.index')->with('status', 'Risalah rapat diperbarui.');
