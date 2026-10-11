@@ -13,109 +13,139 @@ class MakerCheckerTest extends TestCase
 {
     use RefreshDatabase;
 
-    // Helper: setup role + permission + 2 user (maker & checker) sekali pakai
     private function setupUsers(): array
     {
         $role = Role::create([
-            'nama'  => 'pimpinan',
-            'label' => 'Pimpinan Divisi',
+            'nama'  => 'umum_rt',
+            'label' => 'Staf Umum & Rumah Tangga',
         ]);
 
-        // Checker PERLU permission can_write agar lolos authorizeModule()
         RolePermission::create([
-            'role_id'  => $role->id,
-            'perm_key' => 'umum_rt',
+            'role_id'   => $role->id,
+            'perm_key'  => 'umum_rt',
             'can_write' => true,
         ]);
 
-        $maker = User::factory()->create([
-            'username' => 'adol',
+        $staf = User::factory()->create([
+            'username' => 'staf_urt',
             'role_id'  => $role->id,
         ]);
 
-        $checker = User::factory()->create([
-            'username' => 'pimpinan',
+        $pimpinan = User::factory()->create([
+            'username' => 'pimpinan_urt',
             'role_id'  => $role->id,
         ]);
 
-        return [$maker, $checker];
+        return [$staf, $pimpinan];
     }
 
-    /** Test 1: Maker TIDAK BISA self-approve */
-    public function test_maker_cannot_approve_own_transaction(): void
+    /** Test 1: Endpoint maker-checker approve pada modul operasional mengembalikan 404 karena maker-checker dinonaktifkan */
+    public function test_operasional_module_endpoint_setujui_returns_404(): void
     {
-        [$maker] = $this->setupUsers();
+        [$staf, $pimpinan] = $this->setupUsers();
 
         $transaksi = UmBiayaHarian::create([
             'tanggal'         => now()->toDateString(),
             'jumlah'          => 50000,
             'kategori'        => 'BBM',
-            'uraian'          => 'Test self-approve',
-            'maker_id'        => $maker->id,
-            'approval_status' => 'Diajukan',
+            'uraian'          => 'Beli bensin dinas',
+            'kendaraan'       => 'DN 1001 SB',
+            'nama_beban'      => 'Beban BBM Operasional',
+            'rekening_debet'  => '5.1.01.01',
+            'rekening_kredit' => '1.1.01.01',
+            'no_nota'         => 'NOTA-001',
+            'status'          => 'Dibukukan',
+            'keterangan'      => 'Operasional',
+            'approval_status' => 'Disetujui',
         ]);
 
-        // Maker mencoba approve transaksinya sendiri → harus 403
-        $response = $this->actingAs($maker)
+        $response = $this->actingAs($pimpinan)
             ->post("/modul/biaya_harian/{$transaksi->id}/setujui");
 
-        $response->assertStatus(403);
-
-        // Status di database harus tetap 'Diajukan'
-        $this->assertDatabaseHas('um_biaya_harian', [
-            'id'              => $transaksi->id,
-            'approval_status' => 'Diajukan',
-        ]);
+        // Karena maker-checker sudah dimatikan, endpoint harus 404
+        $response->assertStatus(404);
     }
 
-    /** Test 2: Checker YANG BERBEDA bisa approve */
-    public function test_different_checker_can_approve(): void
+    /** Test 2: Endpoint maker-checker reject pada modul operasional mengembalikan 404 */
+    public function test_operasional_module_endpoint_tolak_returns_404(): void
     {
-        [$maker, $checker] = $this->setupUsers();
+        [$staf, $pimpinan] = $this->setupUsers();
 
         $transaksi = UmBiayaHarian::create([
             'tanggal'         => now()->toDateString(),
             'jumlah'          => 75000,
             'kategori'        => 'Perawatan',
-            'uraian'          => 'Test normal approve',
-            'maker_id'        => $maker->id,
-            'approval_status' => 'Diajukan',
+            'uraian'          => 'Servis mobil',
+            'kendaraan'       => 'DN 1001 SB',
+            'nama_beban'      => 'Beban Perawatan',
+            'rekening_debet'  => '5.1.01.01',
+            'rekening_kredit' => '1.1.01.01',
+            'no_nota'         => 'NOTA-002',
+            'status'          => 'Dibukukan',
+            'keterangan'      => 'Servis',
+            'approval_status' => 'Disetujui',
         ]);
 
-        $response = $this->actingAs($checker)
-            ->post("/modul/biaya_harian/{$transaksi->id}/setujui");
+        $response = $this->actingAs($pimpinan)
+            ->post("/modul/biaya_harian/{$transaksi->id}/tolak");
 
-        // Harus redirect (berhasil)
-        $response->assertRedirect();
+        $response->assertStatus(404);
+    }
 
-        // Status di database harus berubah ke Disetujui
+    /** Test 3: Data yang disimpan langsung aktif (Disetujui) dan tidak tertahan status Diajukan */
+    public function test_transaksi_operasional_langsung_aktif_tanpa_tertahan_approval(): void
+    {
+        [$staf] = $this->setupUsers();
+
+        $response = $this->actingAs($staf)->post('/modul/biaya_harian', [
+            'tanggal'         => now()->toDateString(),
+            'kategori'        => 'BBM',
+            'kendaraan'       => 'DN 1001 SB',
+            'nama_beban'      => 'Beban BBM Operasional',
+            'rekening_debet'  => '5.1.01.01',
+            'rekening_kredit' => '1.1.01.01',
+            'uraian'          => 'Isi BBM tanpa maker checker',
+            'jumlah'          => 120000,
+            'no_nota'         => 'NOTA-099',
+            'status'          => 'Dibukukan',
+            'keterangan'      => 'Perjalanan dinas',
+        ]);
+
+        $response->assertRedirect('/modul/biaya_harian');
         $this->assertDatabaseHas('um_biaya_harian', [
-            'id'              => $transaksi->id,
+            'uraian'          => 'Isi BBM tanpa maker checker',
             'approval_status' => 'Disetujui',
-            'checker_id'      => $checker->id,
+        ]);
+        $this->assertDatabaseMissing('um_biaya_harian', [
+            'uraian'          => 'Isi BBM tanpa maker checker',
+            'approval_status' => 'Diajukan',
         ]);
     }
 
-    /** Test 3: Transaksi yang sudah disetujui tidak bisa disetujui lagi */
-    public function test_already_approved_cannot_be_approved_again(): void
+    /** Test 4: Halaman index modul operasional tidak menampilkan tombol Setujui dan Tolak */
+    public function test_halaman_index_operasional_tidak_menampilkan_tombol_approval(): void
     {
-        [$maker, $checker] = $this->setupUsers();
+        [$staf] = $this->setupUsers();
 
-        // Langsung buat transaksi dengan status sudah 'Disetujui'
-        $transaksi = UmBiayaHarian::create([
+        UmBiayaHarian::create([
             'tanggal'         => now()->toDateString(),
-            'jumlah'          => 200000,
-            'kategori'        => 'Rumah Tangga',
-            'uraian'          => 'Sudah disetujui',
-            'maker_id'        => $maker->id,
+            'jumlah'          => 50000,
+            'kategori'        => 'BBM',
+            'uraian'          => 'Bensin kantor',
+            'kendaraan'       => 'DN 1001 SB',
+            'nama_beban'      => 'Beban BBM Operasional',
+            'rekening_debet'  => '5.1.01.01',
+            'rekening_kredit' => '1.1.01.01',
+            'no_nota'         => 'NOTA-100',
+            'status'          => 'Dibukukan',
+            'keterangan'      => 'Operasional',
             'approval_status' => 'Disetujui',
-            'checker_id'      => $checker->id,
         ]);
 
-        // Checker coba approve lagi → harus 403
-        $response = $this->actingAs($checker)
-            ->post("/modul/biaya_harian/{$transaksi->id}/setujui");
+        $response = $this->actingAs($staf)->get('/modul/biaya_harian');
 
-        $response->assertStatus(403);
+        $response->assertStatus(200);
+        $response->assertDontSee('Setujui');
+        $response->assertDontSee('Tolak');
     }
 }

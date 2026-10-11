@@ -77,17 +77,42 @@ protected function setUp(): void
         $response->assertSessionHasErrors('tanggal');
     }
 
+    public function test_biaya_harian_dengan_hanya_spasi_ditolak(): void
+    {
+        $response = $this->actingAs($this->user)->post('/modul/biaya_harian', [
+            'tanggal'         => now()->toDateString(),
+            'kategori'        => 'BBM',
+            'kendaraan'       => '   ',
+            'nama_beban'      => '   ',
+            'rekening_debet'  => '   ',
+            'rekening_kredit' => '   ',
+            'uraian'          => '   ',
+            'jumlah'          => 75000,
+            'no_nota'         => '   ',
+            'status'          => 'Lunas',
+            'keterangan'      => '   ',
+        ]);
+
+        $response->assertSessionHasErrors(['kendaraan', 'uraian', 'rekening_debet']);
+    }
+
     public function test_biaya_harian_dengan_input_valid_berhasil_tersimpan(): void
     {
         $response = $this->actingAs($this->user)->post('/modul/biaya_harian', [
-            'tanggal' => now()->toDateString(),
-            'kategori' => 'BBM',
-            'nama_beban' => 'Isi bensin dinas',
-            'jumlah' => 75000,
-            'uraian' => 'Perjalanan dinas ke cabang',
+            'tanggal'         => now()->toDateString(),
+            'kategori'        => 'BBM',
+            'kendaraan'       => 'DN 1001 SB',
+            'nama_beban'      => 'Beban BBM Operasional',
+            'rekening_debet'  => '5.1.01.01',
+            'rekening_kredit' => '1.1.01.01',
+            'uraian'          => 'Perjalanan dinas ke cabang',
+            'jumlah'          => 75000,
+            'no_nota'         => 'NOTA-001',
+            'status'          => 'Dibukukan',
+            'keterangan'      => 'Pengisian bensin operasional',
         ]);
 
         $response->assertSessionHasNoErrors();
-        $this->assertDatabaseHas('um_biaya_harian', ['jumlah' => 75000, 'kategori' => 'BBM']);
+        $this->assertDatabaseHas('um_biaya_harian', ['jumlah' => 75000, 'kategori' => 'BBM', 'approval_status' => 'Disetujui']);
     }
 }
