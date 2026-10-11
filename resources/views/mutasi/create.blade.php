@@ -24,7 +24,7 @@
             <div>
                 <p class="font-bold text-sm text-[#114E84] mb-0.5">Alur Proses Mutasi Aset</p>
                 <p class="text-blue-800 leading-relaxed">
-                    Pengajuan: <strong>Diajukan</strong> &rarr; <strong>Pengecekan Operator</strong> &rarr; <strong>Verifikasi Staf Aset</strong> &rarr; <strong>Approval Kabag Aset</strong> &rarr; <strong>Disetujui</strong> &rarr; <strong>Konfirmasi Ditutup oleh Pengaju</strong>. Setelah dikonfirmasi oleh pengaju, data aset resmi diperbarui.
+                    Alur 5 Tahap: <strong>Pengajuan</strong> &rarr; <strong>Cek Operator</strong> &rarr; <strong>Verifikasi Bagian Aset</strong> &rarr; <strong>Approval Pimpinan/Kadiv</strong> &rarr; <strong>Konfirmasi Ditutup oleh Pengaju</strong>. Setelah dikonfirmasi oleh pengaju, data lokasi &amp; penanggung jawab aset resmi diperbarui.
                 </p>
             </div>
         </div>

@@ -21,6 +21,7 @@ class MutasiAsetTest extends TestCase
     protected User $operator;
     protected User $stafAset;
     protected User $kabagAset;
+    protected User $kadiv;
     protected AsAset $aset;
     protected InternalDepartment $dept;
 
@@ -36,8 +37,9 @@ class MutasiAsetTest extends TestCase
         $roleOperator = Role::create(['nama' => 'operator', 'label' => 'Operator']);
         $roleKabagAset = Role::create(['nama' => 'kabag_aset', 'label' => 'Kepala Bagian Aset/Inventaris & Logistik']);
         $roleStafAset = Role::create(['nama' => 'uk_administrasi_aset', 'label' => 'Staf Administrasi Aset']);
+        $roleKadiv = Role::create(['nama' => 'pimpinan', 'label' => 'Pimpinan Divisi']);
 
-        foreach ([$roleUser, $roleOperator, $roleKabagAset, $roleStafAset] as $r) {
+        foreach ([$roleUser, $roleOperator, $roleKabagAset, $roleStafAset, $roleKadiv] as $r) {
             RolePermission::create([
                 'role_id'   => $r->id,
                 'perm_key'  => 'mutasi_aset',
@@ -93,6 +95,18 @@ class MutasiAsetTest extends TestCase
             'bagian'       => 'Bagian Aset/Inventaris & Logistik',
             'role_id'      => $roleKabagAset->id,
             'department_id'=> $this->dept->id,
+            'is_active'    => true,
+        ]);
+
+        $this->kadiv = User::create([
+            'username'     => 'pimpinan_divisi',
+            'password'     => bcrypt('secret'),
+            'nama_lengkap' => 'Pimpinan Divisi Umum',
+            'email'        => 'pimpinan@banksulteng.co.id',
+            'jabatan'      => 'Kepala Divisi',
+            'bagian'       => 'Divisi Umum',
+            'role_id'      => $roleKadiv->id,
+            'department_id'=> null,
             'is_active'    => true,
         ]);
 
@@ -215,16 +229,17 @@ class MutasiAsetTest extends TestCase
         $mutasi->refresh();
         $this->assertEquals('Ditutup', $mutasi->status);
         $this->assertEquals('Ditolak', $mutasi->status_hasil);
-        $this->assertEquals($this->kabagAset->id, $mutasi->approver_id);
+        $this->assertEquals($this->kabagAset->id, $mutasi->verifikator_id);
     }
 
-    public function test_bagian_aset_can_approve_in_single_step_and_user_can_confirm_close(): void
+    public function test_5_stage_mutation_flow_from_submission_to_confirmation(): void
     {
         Notification::fake();
 
         $tujuanLokasi = 'KC Donggala Lt. 1';
         $tujuanPj = 'Agus Setiawan (Pimpinan Cabang)';
 
+        // 1. Pengajuan
         $mutasi = AsMutasiAset::create([
             'no_mutasi'             => 'MUT-' . date('Ymd') . '-9995',
             'aset_id'               => $this->aset->id,
@@ -234,22 +249,51 @@ class MutasiAsetTest extends TestCase
             'dari_penanggung_jawab' => $this->aset->penanggung_jawab,
             'ke_penanggung_jawab'   => $tujuanPj,
             'alasan'                => 'Relokasi server utama ke KC Donggala',
-            'status'                => 'Diproses',
+            'status'                => 'Diajukan',
         ]);
 
-        // Aksi tunggal Bagian Aset: langsung menyetujui mutasi
-        $response = $this->actingAs($this->stafAset)->post(route('mutasi-aset.verifikasi-aset', $mutasi), [
+        // 2. Cek Operator -> status Diproses
+        $opResponse = $this->actingAs($this->operator)->post(route('mutasi-aset.check-operator', $mutasi), [
+            'catatan_operator' => 'Data lengkap.',
+        ]);
+        $opResponse->assertRedirect();
+        $this->assertEquals('Diproses', $mutasi->fresh()->status);
+
+        // 3. Verifikasi Bagian Aset -> status Menunggu Approval (antrian Kadiv)
+        $verifyResponse = $this->actingAs($this->stafAset)->post(route('mutasi-aset.verifikasi-aset', $mutasi), [
+            'keputusan'          => 'setujui',
+            'catatan_verifikasi' => 'Fisik aset layak dan siap dimutasikan.',
+        ]);
+        $verifyResponse->assertRedirect();
+        $mutasi->refresh();
+        $this->assertEquals('Menunggu Approval', $mutasi->status);
+        $this->assertEquals($this->stafAset->id, $mutasi->verifikator_id);
+
+        // Pengaju belum bisa menutup pengajuan sebelum approval Kadiv
+        $earlyConfirmResponse = $this->actingAs($this->user)->post(route('mutasi-aset.konfirmasi-pengaju', $mutasi), [
+            'catatan_konfirmasi' => 'Aset diterima lebih awal.',
+        ]);
+        $earlyConfirmResponse->assertSessionHasErrors('status');
+        $this->assertEquals('Menunggu Approval', $mutasi->fresh()->status);
+
+        // Non-kadiv / staf tidak boleh mengeksekusi approval tahap 4
+        $unauthKadivResponse = $this->actingAs($this->stafAset)->post(route('mutasi-aset.approval-kadiv', $mutasi), [
+            'keputusan' => 'setujui',
+        ]);
+        $unauthKadivResponse->assertStatus(403);
+
+        // 4. Approval Pimpinan / Kadiv -> status Disetujui
+        $kadivResponse = $this->actingAs($this->kadiv)->post(route('mutasi-aset.approval-kadiv', $mutasi), [
             'keputusan'        => 'setujui',
-            'catatan_approval' => 'Disetujui. Harap koordinasikan pengiriman dengan bagian logistik.',
+            'catatan_approval' => 'Disetujui untuk peningkatan operasional KC Donggala.',
         ]);
-
-        $response->assertRedirect();
+        $kadivResponse->assertRedirect();
         $mutasi->refresh();
         $this->assertEquals('Disetujui', $mutasi->status);
         $this->assertEquals('Disetujui', $mutasi->status_hasil);
-        $this->assertEquals($this->stafAset->id, $mutasi->approver_id);
+        $this->assertEquals($this->kadiv->id, $mutasi->approver_id);
 
-        // Tahap 4: konfirmasi akhir & penutupan oleh Pengaju
+        // 5. Konfirmasi Ditutup oleh Pengaju -> status Ditutup & master aset terupdate
         $confirmResponse = $this->actingAs($this->user)->post(route('mutasi-aset.konfirmasi-pengaju', $mutasi), [
             'catatan_konfirmasi' => 'Aset telah diterima dengan baik.',
         ]);
@@ -273,5 +317,44 @@ class MutasiAsetTest extends TestCase
         $this->assertNotNull($history);
         $this->assertStringContainsString($tujuanLokasi, $history->new_value);
         $this->assertStringContainsString($mutasi->no_mutasi, $history->keterangan);
+    }
+
+    public function test_kadiv_can_reject_mutation_in_stage_4(): void
+    {
+        Notification::fake();
+
+        $mutasi = AsMutasiAset::create([
+            'no_mutasi'             => 'MUT-' . date('Ymd') . '-9996',
+            'aset_id'               => $this->aset->id,
+            'pengaju_id'            => $this->user->id,
+            'dari_lokasi'           => $this->aset->lokasi,
+            'ke_lokasi'             => 'KC Buol',
+            'dari_penanggung_jawab' => $this->aset->penanggung_jawab,
+            'ke_penanggung_jawab'   => 'Farhan',
+            'alasan'                => 'Pemindahan server ke Buol',
+            'status'                => 'Menunggu Approval',
+            'verifikator_id'        => $this->stafAset->id,
+            'verified_at'           => now(),
+        ]);
+
+        $oldLokasi = $this->aset->lokasi;
+        $oldPj = $this->aset->penanggung_jawab;
+
+        $response = $this->actingAs($this->kadiv)->post(route('mutasi-aset.approval-kadiv', $mutasi), [
+            'keputusan'        => 'tolak',
+            'alasan_penolakan' => 'Ditolak Pimpinan: Unit ini masih krusial di Kantor Pusat.',
+        ]);
+
+        $response->assertRedirect();
+        $mutasi->refresh();
+        $this->assertEquals('Ditutup', $mutasi->status);
+        $this->assertEquals('Ditolak', $mutasi->status_hasil);
+        $this->assertEquals($this->kadiv->id, $mutasi->approver_id);
+        $this->assertEquals('Ditolak Pimpinan: Unit ini masih krusial di Kantor Pusat.', $mutasi->alasan_penolakan);
+
+        // Master aset TIDAK berubah
+        $this->aset->refresh();
+        $this->assertEquals($oldLokasi, $this->aset->lokasi);
+        $this->assertEquals($oldPj, $this->aset->penanggung_jawab);
     }
 }

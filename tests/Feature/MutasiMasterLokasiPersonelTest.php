@@ -23,6 +23,7 @@ class MutasiMasterLokasiPersonelTest extends TestCase
     protected User $operator;
     protected User $stafAset;
     protected User $kabagAset;
+    protected User $kadiv;
     protected AsAset $aset;
 
     protected function setUp(): void
@@ -33,8 +34,9 @@ class MutasiMasterLokasiPersonelTest extends TestCase
         $roleOperator = Role::create(['nama' => 'operator', 'label' => 'Operator']);
         $roleStaf = Role::create(['nama' => 'uk_administrasi_aset', 'label' => 'Staf Administrasi Aset']);
         $roleKabag = Role::create(['nama' => 'kabag_aset', 'label' => 'Kepala Bagian Aset']);
+        $roleKadiv = Role::create(['nama' => 'pimpinan', 'label' => 'Pimpinan Divisi']);
 
-        foreach ([$roleUser, $roleOperator, $roleStaf, $roleKabag] as $r) {
+        foreach ([$roleUser, $roleOperator, $roleStaf, $roleKabag, $roleKadiv] as $r) {
             RolePermission::create([
                 'role_id'   => $r->id,
                 'perm_key'  => 'mutasi_aset',
@@ -82,6 +84,16 @@ class MutasiMasterLokasiPersonelTest extends TestCase
             'nama_lengkap' => 'Kepala Bagian Aset',
             'email'        => 'kabag@example.com',
             'role_id'      => $roleKabag->id,
+            'status_aktif' => 'aktif',
+        ]);
+
+        $this->kadiv = User::create([
+            'username'     => 'kadiv_user',
+            'password'     => bcrypt('secret'),
+            'nama_lengkap' => 'Pimpinan Kadiv',
+            'email'        => 'kadiv@example.com',
+            'role_id'      => $roleKadiv->id,
+            'department_id'=> null,
             'status_aktif' => 'aktif',
         ]);
 
@@ -186,7 +198,7 @@ class MutasiMasterLokasiPersonelTest extends TestCase
         $this->assertEquals($lokasiAsal->id, $pemohon->fresh()->lokasi_id, 'Personel tidak boleh pindah saat baru diajukan.');
     }
 
-    public function test_personnel_is_relocated_only_after_kabag_approves_mutasi(): void
+    public function test_personnel_is_relocated_only_after_kadiv_approves_mutasi(): void
     {
         Notification::fake();
 
@@ -213,8 +225,18 @@ class MutasiMasterLokasiPersonelTest extends TestCase
         $this->assertEquals('Diproses', $mutasi->fresh()->status);
         $this->assertEquals($lokasiAsal->id, $pemohon->fresh()->lokasi_id, 'Personel masih di lokasi asal saat Diproses.');
 
-        // 3. Bagian Aset menyetujui mutasi (satu langkah verifikasi & approval) -> status Disetujui
+        // 3. Bagian Aset verifikasi -> status Menunggu Approval (antrian Kadiv)
         $this->actingAs($this->kabagAset)->post(route('mutasi-aset.verifikasi-aset', $mutasi), [
+            'keputusan'          => 'setujui',
+            'catatan_verifikasi' => 'Data mutasi valid dan lengkap.',
+        ]);
+
+        $this->assertEquals('Menunggu Approval', $mutasi->fresh()->status);
+        // Personel BELUM boleh pindah saat baru diverifikasi Bagian Aset (harus tunggu Kadiv!)
+        $this->assertEquals($lokasiAsal->id, $pemohon->fresh()->lokasi_id, 'Personel belum boleh pindah sebelum Kadiv menyetujui.');
+
+        // 4. Kadiv Approval -> status Disetujui
+        $this->actingAs($this->kadiv)->post(route('mutasi-aset.approval-kadiv', $mutasi), [
             'keputusan'        => 'setujui',
             'catatan_approval' => 'Disetujui untuk mutasi unit dan personel.',
         ]);
@@ -222,10 +244,10 @@ class MutasiMasterLokasiPersonelTest extends TestCase
         $this->assertEquals('Disetujui', $mutasi->fresh()->status);
 
         // KRITIS: Sekarang personel di master HARUS sudah pindah ke Lokasi Tujuan!
-        $this->assertEquals($lokasiTujuan->id, $pemohon->fresh()->lokasi_id, 'Personel harus pindah ke lokasi tujuan setelah Disetujui oleh Bagian Aset.');
+        $this->assertEquals($lokasiTujuan->id, $pemohon->fresh()->lokasi_id, 'Personel harus pindah ke lokasi tujuan setelah Disetujui oleh Pimpinan/Kadiv.');
     }
 
-    public function test_personnel_remains_in_origin_if_mutasi_is_rejected_by_kabag(): void
+    public function test_personnel_remains_in_origin_if_mutasi_is_rejected_by_kadiv(): void
     {
         Notification::fake();
 
@@ -250,7 +272,52 @@ class MutasiMasterLokasiPersonelTest extends TestCase
             'catatan_operator' => 'OK.',
         ]);
 
-        // 3. Bagian Aset rejects (satu langkah)
+        // 3. Bagian Aset verifikasi
+        $this->actingAs($this->kabagAset)->post(route('mutasi-aset.verifikasi-aset', $mutasi), [
+            'keputusan'          => 'setujui',
+            'catatan_verifikasi' => 'OK.',
+        ]);
+
+        // 4. Kadiv rejects
+        $response = $this->actingAs($this->kadiv)->post(route('mutasi-aset.approval-kadiv', $mutasi), [
+            'keputusan'        => 'tolak',
+            'alasan_penolakan' => 'Formasi di SKAI sudah penuh.',
+        ]);
+        $response->assertSessionHasNoErrors();
+
+        $this->assertEquals('Ditutup', $mutasi->fresh()->status);
+        $this->assertEquals('Ditolak', $mutasi->fresh()->status_hasil);
+
+        // KRITIS: Karena ditolak oleh Kadiv, personel di master TETAP di lokasi asal!
+        $this->assertEquals($lokasiAsal->id, $pemohon->fresh()->lokasi_id, 'Personel harus tetap di lokasi asal jika pengajuan ditolak Kadiv.');
+    }
+
+    public function test_personnel_remains_in_origin_if_mutasi_is_rejected_by_bag_aset(): void
+    {
+        Notification::fake();
+
+        $lokasiAsal = AsMasterLokasi::where('nama_lokasi', 'Divisi Cyber')->first();
+        $pemohon = AsMasterPersonel::where('nama_personel', 'Marsya')->first();
+        $lokasiTujuan = AsMasterLokasi::where('nama_lokasi', 'Divisi SKAI')->first();
+
+        // 1. Submit pengajuan
+        $this->actingAs($this->userPemohon)->post(route('mutasi-aset.store'), [
+            'aset_id'             => $this->aset->id,
+            'lokasi_asal_id'      => $lokasiAsal->id,
+            'pemohon_personel_id' => $pemohon->id,
+            'lokasi_tujuan_id'    => $lokasiTujuan->id,
+            'penanggung_jawab_id' => '__pemohon_pindah__',
+            'alasan'              => 'Mutasi personel ke SKAI.',
+        ]);
+
+        $mutasi = AsMutasiAset::where('aset_id', $this->aset->id)->latest('id')->first();
+
+        // 2. Operator check
+        $this->actingAs($this->operator)->post(route('mutasi-aset.check-operator', $mutasi), [
+            'catatan_operator' => 'OK.',
+        ]);
+
+        // 3. Bagian Aset rejects
         $response = $this->actingAs($this->kabagAset)->post(route('mutasi-aset.verifikasi-aset', $mutasi), [
             'keputusan'        => 'tolak',
             'alasan_penolakan' => 'Formasi di SKAI sudah penuh.',

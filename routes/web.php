@@ -103,6 +103,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/{mutasi}/dokumen/download', [MutasiAsetController::class, 'downloadDokumen'])->name('dokumen.download');
         Route::post('/{mutasi}/check-operator', [MutasiAsetController::class, 'checkOperator'])->name('check-operator');
         Route::post('/{mutasi}/verifikasi-aset', [MutasiAsetController::class, 'verifikasiBagianAset'])->name('verifikasi-aset');
+        Route::post('/{mutasi}/approval-kadiv', [MutasiAsetController::class, 'approvalKadiv'])->name('approval-kadiv');
         Route::post('/{mutasi}/verify-staf', [MutasiAsetController::class, 'verifyStaf'])->name('verify-staf');
         Route::post('/{mutasi}/approve-kabag', [MutasiAsetController::class, 'approveKabag'])->name('approve-kabag');
         Route::post('/{mutasi}/konfirmasi-pengaju', [MutasiAsetController::class, 'konfirmasiPengaju'])->name('konfirmasi-pengaju');

@@ -512,8 +512,6 @@ class MutasiAsetController extends Controller
             $mutasi->update([
                 'verifikator_id'     => $user->id,
                 'verified_at'        => now(),
-                'approver_id'        => $user->id,
-                'approved_at'        => now(),
                 'catatan_verifikasi' => $catatan,
                 'status'             => 'Ditutup',
                 'status_hasil'       => 'Tidak Valid',
@@ -541,8 +539,6 @@ class MutasiAsetController extends Controller
             $mutasi->update([
                 'verifikator_id'     => $user->id,
                 'verified_at'        => now(),
-                'approver_id'        => $user->id,
-                'approved_at'        => now(),
                 'alasan_penolakan'   => $alasan,
                 'catatan_approval'   => $catatanAppr,
                 'catatan_verifikasi' => $alasan,
@@ -564,25 +560,116 @@ class MutasiAsetController extends Controller
             return back()->with('status', "Pengajuan mutasi {$mutasi->no_mutasi} berhasil ditolak dan status ditutup.");
         }
 
-        // Jika opsi 'setujui' (atau 'valid') dipilih:
-        $catatan = $validated['catatan_approval']
-            ?? ($validated['catatan_verifikasi']
-            ?? ($validated['catatan'] ?? 'Pengajuan mutasi aset disetujui oleh Bagian Aset.'));
+        // Jika opsi 'setujui' (atau 'valid') dipilih oleh Bagian Aset:
+        // Pada alur 5 tahap, verifikasi Bagian Aset meneruskan pengajuan ke antrian Approval Pimpinan / Kadiv
+        $catatan = $validated['catatan_verifikasi']
+            ?? ($validated['catatan_approval']
+            ?? ($validated['catatan'] ?? 'Pengajuan mutasi aset telah diverifikasi dan dinyatakan valid oleh Bagian Aset.'));
 
         $mutasi->update([
             'verifikator_id'     => $user->id,
             'verified_at'        => now(),
             'catatan_verifikasi' => $catatan,
-            'approver_id'        => $user->id,
-            'approved_at'        => now(),
-            'catatan_approval'   => $catatan,
-            'status'             => 'Disetujui',
-            'status_hasil'       => 'Disetujui',
-            'approval_status'    => 'Disetujui',
+            'status'             => 'Menunggu Approval',
+            'approval_status'    => 'Menunggu Approval',
+        ]);
+
+        // Audit Log
+        $this->audit('VERIFY', 'Mutasi Aset', 'AsMutasiAset', $mutasi->id, "Bagian Aset {$user->nama_lengkap} telah MEMVERIFIKASI mutasi {$mutasi->no_mutasi}. Menunggu approval Kepala Divisi / Pimpinan.");
+
+        // Notifikasi ke Pimpinan / Kadiv
+        $kadivUsers = User::whereHas('role', fn ($q) => $q->whereIn('nama', ['pimpinan', 'kepala_divisi']))->get();
+        foreach ($kadivUsers as $kd) {
+            $kd->notify(new MutasiStatusNotification(
+                $mutasi,
+                'Pengajuan Mutasi Aset Menunggu Approval Pimpinan / Kadiv',
+                "Pengajuan mutasi {$mutasi->no_mutasi} ({$mutasi->aset?->nama_aset}) telah diverifikasi oleh Bagian Aset ({$user->nama_lengkap}) dan siap untuk diproses approval oleh Pimpinan / Kadiv.",
+                'info'
+            ));
+        }
+
+        // Notifikasi ke pemohon
+        $mutasi->pengaju?->notify(new MutasiStatusNotification(
+            $mutasi,
+            'Pengajuan Mutasi Aset Telah Diverifikasi Bagian Aset',
+            "Pengajuan mutasi aset {$mutasi->no_mutasi} untuk {$mutasi->aset?->nama_aset} telah lolos verifikasi Bagian Aset dan saat ini sedang menunggu approval Kepala Divisi / Pimpinan.",
+            'info'
+        ));
+
+        return back()->with('status', "Pengajuan mutasi {$mutasi->no_mutasi} berhasil diverifikasi oleh Bagian Aset! Status mutasi saat ini 'Menunggu Approval' dari Pimpinan / Kadiv.");
+    }
+
+    /**
+     * Aksi Pimpinan / Kadiv: Approval persetujuan mutasi aset (Setujui / Tolak).
+     * Tahap 4 pada alur 5 tahap: Pemohon -> Operator -> Bagian Aset -> Pimpinan/Kadiv -> Pemohon.
+     */
+    public function approvalKadiv(Request $request, AsMutasiAset $mutasi)
+    {
+        $user = auth()->user();
+
+        // Hak akses: hanya Pimpinan / Kadiv (dan SuperAdmin)
+        $isAuthorizedKadiv = $user->isSuperAdmin() || $user->isKepalaDivisi() || $user->hasRole(['pimpinan', 'kepala_divisi']);
+        if (!$isAuthorizedKadiv) {
+            abort(403, 'Aksi approval pengajuan mutasi aset khusus untuk Pimpinan / Kepala Divisi.');
+        }
+
+        if ($mutasi->status !== 'Menunggu Approval') {
+            return back()->withErrors(['status' => 'Pengajuan mutasi ini tidak dalam status Menunggu Approval oleh Pimpinan / Kadiv.']);
+        }
+
+        $validated = $request->validate([
+            'keputusan'        => 'required|in:setujui,tolak',
+            'alasan_penolakan' => 'required_if:keputusan,tolak|nullable|string|max:1000',
+            'catatan_approval' => 'nullable|string|max:1000',
+        ], [
+            'keputusan.required'           => 'Pilih keputusan approval (Setujui atau Tolak).',
+            'alasan_penolakan.required_if' => 'Alasan penolakan mutasi wajib diisi apabila pengajuan ditolak.',
+        ]);
+
+        $keputusan = $validated['keputusan'];
+
+        // Jika opsi 'tolak' dipilih oleh Kadiv
+        if ($keputusan === 'tolak') {
+            $alasan = $validated['alasan_penolakan'] ?? 'Pengajuan mutasi aset ditolak oleh Pimpinan / Kadiv.';
+            $catatanAppr = $validated['catatan_approval'] ?? null;
+
+            $mutasi->update([
+                'approver_id'      => $user->id,
+                'approved_at'      => now(),
+                'alasan_penolakan' => $alasan,
+                'catatan_approval' => $catatanAppr,
+                'status'           => 'Ditutup',
+                'status_hasil'     => 'Ditolak',
+                'approval_status'  => 'Ditolak',
+            ]);
+
+            $this->audit('REJECT', 'Mutasi Aset', 'AsMutasiAset', $mutasi->id, "Pimpinan/Kadiv {$user->nama_lengkap} MENOLAK mutasi {$mutasi->no_mutasi}. Alasan: {$alasan}");
+
+            // Notifikasi ke pemohon
+            $mutasi->pengaju?->notify(new MutasiStatusNotification(
+                $mutasi,
+                'Pengajuan Mutasi Aset Ditolak oleh Pimpinan / Kadiv',
+                "Pengajuan mutasi aset {$mutasi->no_mutasi} untuk {$mutasi->aset?->nama_aset} DITOLAK oleh Pimpinan / Kadiv ({$user->nama_lengkap}). Alasan: {$alasan}",
+                'danger'
+            ));
+
+            return back()->with('status', "Pengajuan mutasi {$mutasi->no_mutasi} berhasil ditolak oleh Pimpinan / Kadiv dan status ditutup.");
+        }
+
+        // Jika opsi 'setujui' dipilih oleh Kadiv
+        $catatan = $validated['catatan_approval'] ?? 'Pengajuan mutasi aset disetujui oleh Pimpinan / Kadiv.';
+
+        $mutasi->update([
+            'approver_id'      => $user->id,
+            'approved_at'      => now(),
+            'catatan_approval' => $catatan,
+            'status'           => 'Disetujui',
+            'status_hasil'     => 'Disetujui',
+            'approval_status'  => 'Disetujui',
         ]);
 
         // EKSEKUSI RELOKASI MASTER PERSONEL:
-        // Pindahkan personel di master lokasi/personel HANYA setelah mutasi disetujui
+        // Pindahkan personel di master lokasi/personel HANYA setelah mutasi disetujui oleh Kadiv
         if ($mutasi->is_pemohon_pindah && $mutasi->pemohon_personel_id && $mutasi->lokasi_tujuan_id) {
             $pemohonPersonel = AsMasterPersonel::find($mutasi->pemohon_personel_id);
             if ($pemohonPersonel) {
@@ -592,18 +679,17 @@ class MutasiAsetController extends Controller
             }
         }
 
-        // Audit Log
-        $this->audit('APPROVE', 'Mutasi Aset', 'AsMutasiAset', $mutasi->id, "Bagian Aset {$user->nama_lengkap} MENYETUJUI mutasi {$mutasi->no_mutasi}. Menunggu konfirmasi penutupan dari Pengaju.");
+        $this->audit('APPROVE', 'Mutasi Aset', 'AsMutasiAset', $mutasi->id, "Pimpinan/Kadiv {$user->nama_lengkap} MENYETUJUI mutasi {$mutasi->no_mutasi}. Menunggu konfirmasi penutupan dari Pengaju.");
 
         // Notifikasi ke pemohon untuk melakukan konfirmasi penutupan
         $mutasi->pengaju?->notify(new MutasiStatusNotification(
             $mutasi,
-            'Pengajuan Mutasi Aset Disetujui Bagian Aset — Menunggu Konfirmasi Anda',
-            "Pengajuan mutasi aset {$mutasi->no_mutasi} untuk {$mutasi->aset?->nama_aset} telah DISETUJUI oleh Bagian Aset. Silakan periksa penerimaan fisik aset di lokasi baru dan klik tombol Konfirmasi Ditutup untuk menyelesaikan proses mutasi.",
+            'Pengajuan Mutasi Aset Disetujui Pimpinan / Kadiv — Menunggu Konfirmasi Anda',
+            "Pengajuan mutasi aset {$mutasi->no_mutasi} untuk {$mutasi->aset?->nama_aset} telah DISETUJUI oleh Pimpinan / Kadiv ({$user->nama_lengkap}). Silakan periksa penerimaan fisik aset di lokasi baru dan klik tombol Konfirmasi Ditutup untuk menyelesaikan proses mutasi.",
             'warning'
         ));
 
-        return back()->with('status', "Pengajuan mutasi {$mutasi->no_mutasi} berhasil Disetujui oleh Bagian Aset! Status mutasi saat ini 'Disetujui' dan menunggu konfirmasi penutupan oleh Pengaju.");
+        return back()->with('status', "Pengajuan mutasi {$mutasi->no_mutasi} berhasil Disetujui oleh Pimpinan / Kadiv! Status mutasi saat ini 'Disetujui' dan menunggu konfirmasi penutupan oleh Pengaju.");
     }
 
     /**
@@ -690,9 +776,9 @@ class MutasiAsetController extends Controller
             $this->audit('APPROVE', 'Mutasi Aset', 'AsMutasiAset', $mutasi->id, "Pengaju {$user->nama_lengkap} telah mengonfirmasi dan MENUTUP mutasi {$mutasi->no_mutasi}. Lokasi aset {$aset->nama_aset} resmi diperbarui ke {$mutasi->ke_lokasi}");
         });
 
-        // 5. Notifikasi ke Bagian Aset
-        $bagianAsetUsers = User::whereHas('role', fn ($q) => $q->whereIn('nama', ['bagian_aset', 'kabag_aset', 'uk_administrasi_aset', 'uk_logistik', 'aset']))->get();
-        foreach ($bagianAsetUsers as $penerima) {
+        // 5. Notifikasi ke Bagian Aset dan Pimpinan / Kadiv
+        $recipients = User::whereHas('role', fn ($q) => $q->whereIn('nama', ['bagian_aset', 'kabag_aset', 'uk_administrasi_aset', 'uk_logistik', 'aset', 'pimpinan', 'kepala_divisi']))->get();
+        foreach ($recipients as $penerima) {
             $penerima->notify(new MutasiStatusNotification(
                 $mutasi,
                 'Pengajuan Mutasi Aset Telah Ditutup oleh Pengaju',
