@@ -848,6 +848,7 @@
 </div>
 
 @stack('modals')
+@stack('scripts')
 
 <script>
     const mobileMenuBtn = document.getElementById('mobileMenuBtn');
