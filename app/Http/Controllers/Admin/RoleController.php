@@ -63,7 +63,6 @@ class RoleController extends Controller
             'icon'  => 'book',
             'items' => [
                 'risalah'  => ['label' => 'Risalah Rapat', 'unit' => 'Notulensi'],
-                'panduan'  => ['label' => 'Buku Panduan & SOP', 'unit' => 'Dokumentasi'],
                 'ref_akun' => ['label' => 'Referensi Akun (COA)', 'unit' => 'Master Keuangan'],
             ],
         ],

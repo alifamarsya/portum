@@ -12,7 +12,6 @@ use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\MutasiAsetController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OperatorDashboardController;
-use App\Http\Controllers\PanduanController;
 use App\Http\Controllers\PimpinanDashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RisalahRapatController;
@@ -66,11 +65,6 @@ Route::middleware('auth')->group(function () {
         Route::post('/{id}/setujui', [ModuleController::class, 'approve'])->name('approve');
         Route::post('/{id}/tolak', [ModuleController::class, 'reject'])->name('reject');
     });
-
-    Route::get('/panduan', [PanduanController::class, 'index'])->name('panduan.index');
-    Route::post('/panduan', [PanduanController::class, 'store'])->name('panduan.store');
-    Route::put('/panduan/{panduan}', [PanduanController::class, 'update'])->name('panduan.update');
-    Route::delete('/panduan/{panduan}', [PanduanController::class, 'destroy'])->name('panduan.destroy');
 
     Route::resource('risalah', RisalahRapatController::class)->except(['show']);
 

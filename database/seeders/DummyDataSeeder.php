@@ -16,7 +16,6 @@ use App\Models\DimWaktu;
 use App\Models\FactAmortisasiAset;
 use App\Models\FactBiayaBulanan;
 use App\Models\FactPengadaan;
-use App\Models\Panduan;
 use App\Models\PgDraftDokumen;
 use App\Models\PgMemoInternal;
 use App\Models\PgNegosiasi;

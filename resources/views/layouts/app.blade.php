@@ -130,7 +130,6 @@
 
     $referenceItems = [
         ['perm' => 'risalah', 'label' => 'Risalah Rapat', 'route' => 'risalah.index', 'active' => request()->routeIs('risalah.*'), 'icon' => 'file-text'],
-        ['perm' => 'panduan', 'label' => 'Buku Panduan', 'route' => 'panduan.index', 'active' => request()->routeIs('panduan.*'), 'icon' => 'book'],
         ['perm' => 'ref_akun', 'label' => 'Referensi Akun (COA)', 'route' => 'modul.index', 'parameter' => 'ref_akun', 'active' => request()->route('key') === 'ref_akun', 'icon' => 'sliders'],
     ];
     $visibleReferences = collect($referenceItems)->filter(fn ($item) => $canAccess($item['perm']));
