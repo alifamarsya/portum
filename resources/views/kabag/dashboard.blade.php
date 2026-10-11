@@ -220,10 +220,10 @@
                             </div>
                         @endif
 
-                        @if (isset($deptMetrics['menunggu_approval']))
-                            <div class="p-3 rounded-xl bg-amber-50/60 border border-amber-100 flex items-center justify-between">
-                                <span class="text-xs text-slate-600 font-medium">Pengajuan Biaya Menunggu:</span>
-                                <span class="text-xs font-bold text-amber-800">{{ $deptMetrics['menunggu_approval'] }} Transaksi</span>
+                        @if (isset($deptMetrics['total_transaksi']))
+                            <div class="p-3 rounded-xl bg-slate-50/80 border border-slate-200 flex items-center justify-between">
+                                <span class="text-xs text-slate-600 font-medium">Total Transaksi Biaya Bulan Ini:</span>
+                                <span class="text-xs font-bold text-slate-800">{{ $deptMetrics['total_transaksi'] }} Transaksi</span>
                             </div>
                         @endif
 

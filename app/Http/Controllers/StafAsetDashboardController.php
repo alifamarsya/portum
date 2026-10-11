@@ -67,7 +67,8 @@ class StafAsetDashboardController extends Controller
             ->get();
 
         // C. Memo Sewa Cabang
-        $memoSewaPending = AsMemoSewaCabang::whereIn('status_persetujuan', ['Diajukan', 'Persetujuan Prinsip'])->count();
+        $totalMemoSewa = AsMemoSewaCabang::count();
+        $memoSewaPending = $totalMemoSewa;
         $memoSewaTerbaru = AsMemoSewaCabang::latest('tanggal')->latest('id')->take(4)->get();
 
         return view('staf.aset.dashboard', compact(

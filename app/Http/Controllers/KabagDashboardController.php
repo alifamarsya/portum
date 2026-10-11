@@ -75,9 +75,10 @@ class KabagDashboardController extends Controller
             $deptMetrics['label'] = 'Ringkasan Bagian Umum';
             $deptMetrics['biaya_bulan_ini'] = UmBiayaHarian::whereYear('tanggal', now()->year)
                 ->whereMonth('tanggal', now()->month)
-                ->where('approval_status', 'Disetujui')
                 ->sum('jumlah');
-            $deptMetrics['menunggu_approval'] = UmBiayaHarian::where('approval_status', 'Diajukan')->count();
+            $deptMetrics['total_transaksi'] = UmBiayaHarian::whereYear('tanggal', now()->year)
+                ->whereMonth('tanggal', now()->month)
+                ->count();
         } elseif (in_array($roleNama, ['bagian_aset', 'kabag_aset']) || $deptId === 2) {
             $deptMetrics['label'] = 'Ringkasan Bagian Aset';
             $deptMetrics['total_aset'] = AsAset::count();

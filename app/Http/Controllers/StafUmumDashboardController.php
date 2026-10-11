@@ -55,14 +55,15 @@ class StafUmumDashboardController extends Controller
         // 4. Metrik Operasional — Biaya Harian
         $totalBiayaBulanIni = (float) UmBiayaHarian::whereYear('tanggal', now()->year)
             ->whereMonth('tanggal', now()->month)
-            ->where('approval_status', 'Disetujui')
             ->sum('jumlah');
 
-        $biayaMenungguApproval = UmBiayaHarian::where('approval_status', 'Diajukan')->count();
+        $biayaTotalTransaksi = UmBiayaHarian::whereYear('tanggal', now()->year)
+            ->whereMonth('tanggal', now()->month)
+            ->count();
+        $biayaMenungguApproval = 0;
 
         $biayaPerKategori = UmBiayaHarian::whereYear('tanggal', now()->year)
             ->whereMonth('tanggal', now()->month)
-            ->where('approval_status', 'Disetujui')
             ->selectRaw('kategori, sum(jumlah) as total')
             ->groupBy('kategori')
             ->pluck('total', 'kategori')
@@ -94,6 +95,7 @@ class StafUmumDashboardController extends Controller
             'antreanTiket',
             'tiketSelesai',
             'totalBiayaBulanIni',
+            'biayaTotalTransaksi',
             'biayaMenungguApproval',
             'biayaPerKategori',
             'transaksiBiayaTerbaru',

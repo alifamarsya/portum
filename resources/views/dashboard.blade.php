@@ -42,18 +42,20 @@
 
 {{-- ================= KPI METRIC CARDS (4 cards, responsive) ================= --}}
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-    {{-- Card: Approval Tertunda --}}
+    {{-- Card: Biaya Operasional Bulan Ini --}}
     <a href="{{ route('modul.index', 'biaya_harian') }}"
        class="group bg-white rounded-xl p-4 border border-slate-200/80 shadow-2xs hover:border-amber-300 hover:shadow-sm transition-all">
         <div class="flex items-start justify-between mb-3">
-            <p class="text-[11px] font-medium text-slate-500 leading-tight">Approval<br>Tertunda</p>
+            <p class="text-[11px] font-medium text-slate-500 leading-tight">Biaya<br>Operasional</p>
             <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center flex-shrink-0">
                 @include('partials.icon', ['name' => 'clock', 'class' => 'w-4 h-4'])
             </div>
         </div>
-        <p class="text-2xl font-bold text-ink tracking-tight">{{ $menunggu }}</p>
+        <p class="text-base sm:text-xl font-bold text-ink tracking-tight leading-tight">
+            Rp {{ number_format($totalBiayaBulanIni / 1000000, 1, ',', '.') }} Jt
+        </p>
         <p class="text-[10px] text-amber-600 font-medium mt-1 flex items-center gap-0.5">
-            <span>Perlu persetujuan</span>
+            <span>Bulan {{ now()->translatedFormat('M Y') }}</span>
             @include('partials.icon', ['name' => 'chevron-right', 'class' => 'w-2.5 h-2.5 group-hover:translate-x-0.5 transition-transform'])
         </p>
     </a>

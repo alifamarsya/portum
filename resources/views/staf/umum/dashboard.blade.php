@@ -116,18 +116,18 @@
                 <p class="text-[11px] text-slate-400 mt-1 font-medium">Disetujui per {{ now()->translatedFormat('F Y') }}</p>
             </div>
 
-            {{-- Card 2: Menunggu Approval Kabag --}}
+            {{-- Card 2: Total Transaksi Biaya Bulan Ini --}}
             <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs group hover:border-amber-300 transition-all">
                 <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Menunggu Approval</span>
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Transaksi Bulan Ini</span>
                     <span class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
                         @include('partials.icon', ['name' => 'clock', 'class' => 'w-4 h-4'])
                     </span>
                 </div>
                 <p class="text-xl sm:text-2xl font-black text-amber-800 tracking-tight">
-                    {{ $biayaMenungguApproval }} <span class="text-xs font-normal text-slate-500">Pengajuan</span>
+                    {{ $biayaTotalTransaksi ?? count($transaksiBiayaTerbaru) }} <span class="text-xs font-normal text-slate-500">Transaksi</span>
                 </p>
-                <p class="text-[11px] text-slate-400 mt-1 font-medium">Biaya harian diverifikasi Kabag</p>
+                <p class="text-[11px] text-slate-400 mt-1 font-medium">Biaya operasional tercatat</p>
             </div>
 
             {{-- Card 3: Kendaraan Dinas --}}
@@ -329,50 +329,34 @@
                                 <th class="px-5 py-3">Kategori</th>
                                 <th class="px-5 py-3">Kendaraan / Uraian</th>
                                 <th class="px-5 py-3 text-right">Jumlah (Rp)</th>
-                                <th class="px-5 py-3 text-center">Status</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             @forelse ($transaksiBiayaTerbaru as $b)
                                 <tr class="hover:bg-slate-50/70 transition">
-                                    <td class="px-5 py-3.5 font-mono text-slate-600">
-                                        {{ $b->tanggal ? $b->tanggal->format('d/m/Y') : '-' }}
-                                    </td>
-                                    <td class="px-5 py-3.5">
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold
-                                            {{ $b->kategori === 'BBM' ? 'bg-amber-50 text-amber-700 border border-amber-200' : ($b->kategori === 'Perawatan' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-purple-50 text-purple-700 border border-purple-200') }}">
-                                            {{ $b->kategori }}
-                                        </span>
-                                    </td>
-                                    <td class="px-5 py-3.5 text-slate-700 font-medium">
-                                        <div>{{ $b->kendaraan ?? $b->nama_beban ?? '-' }}</div>
-                                        <div class="text-[11px] text-slate-400 truncate max-w-xs">{{ $b->uraian }}</div>
-                                    </td>
-                                    <td class="px-5 py-3.5 text-right font-mono font-bold text-slate-800">
-                                        {{ number_format((float)$b->jumlah, 0, ',', '.') }}
-                                    </td>
-                                    <td class="px-5 py-3.5 text-center">
-                                        @if ($b->approval_status === 'Disetujui')
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                Disetujui
-                                            </span>
-                                        @elseif ($b->approval_status === 'Ditolak')
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
-                                                Ditolak
-                                            </span>
-                                        @else
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                                                Diajukan
-                                            </span>
-                                        @endif
-                                    </td>
-                                </tr>
+                                     <td class="px-5 py-3.5 font-mono text-slate-600">
+                                         {{ $b->tanggal ? $b->tanggal->format('d/m/Y') : '-' }}
+                                     </td>
+                                     <td class="px-5 py-3.5">
+                                         <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold
+                                             {{ $b->kategori === 'BBM' ? 'bg-amber-50 text-amber-700 border border-amber-200' : ($b->kategori === 'Perawatan' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-purple-50 text-purple-700 border border-purple-200') }}">
+                                             {{ $b->kategori }}
+                                         </span>
+                                     </td>
+                                     <td class="px-5 py-3.5 text-slate-700 font-medium">
+                                         <div>{{ $b->kendaraan ?? $b->nama_beban ?? '-' }}</div>
+                                         <div class="text-[11px] text-slate-400 truncate max-w-xs">{{ $b->uraian }}</div>
+                                     </td>
+                                     <td class="px-5 py-3.5 text-right font-mono font-bold text-slate-800">
+                                         {{ number_format((float)$b->jumlah, 0, ',', '.') }}
+                                     </td>
+                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="px-5 py-6 text-center text-slate-400">
-                                        Belum ada data biaya harian yang dicatat.
-                                    </td>
-                                </tr>
+                                     <td colspan="4" class="px-5 py-6 text-center text-slate-400">
+                                         Belum ada data biaya harian yang dicatat.
+                                     </td>
+                                 </tr>
                             @endforelse
                         </tbody>
                     </table>

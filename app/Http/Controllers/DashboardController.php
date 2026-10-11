@@ -47,7 +47,10 @@ class DashboardController extends Controller
             return redirect()->route('staf-pengadaan.dashboard');
         }
 
-        $menunggu = UmBiayaHarian::where('approval_status', 'Diajukan')->count();
+        $totalBiayaBulanIni = (float) UmBiayaHarian::whereYear('tanggal', now()->year)
+            ->whereMonth('tanggal', now()->month)
+            ->sum('jumlah');
+        $menunggu = 0;
         $reminderAktif = PgReminder::where('status', 'Aktif')
             ->whereDate('tanggal_jatuh_tempo', '<=', now()->addDays(90))
             ->count();
@@ -58,9 +61,8 @@ class DashboardController extends Controller
         $totalAset = AsAset::count();
         $totalPengadaan = (float) FactPengadaan::sum('total_nilai');
 
-        // Total biaya operational 6 bulan (dari fact table via UmBiayaHarian)
-        $totalBiaya6Bln = (float) UmBiayaHarian::where('approval_status', 'Disetujui')
-            ->whereDate('tanggal', '>=', now()->subMonths(6)->startOfMonth())
+        // Total biaya operational 6 bulan
+        $totalBiaya6Bln = (float) UmBiayaHarian::whereDate('tanggal', '>=', now()->subMonths(6)->startOfMonth())
             ->sum('jumlah');
 
         $activities = AuditLog::latest('id')->take(6)->get();
@@ -86,7 +88,6 @@ class DashboardController extends Controller
 
             $monthData = UmBiayaHarian::whereYear('tanggal', $month->year)
                 ->whereMonth('tanggal', $month->month)
-                ->where('approval_status', 'Disetujui')
                 ->selectRaw('kategori, sum(jumlah) as total')
                 ->groupBy('kategori')
                 ->pluck('total', 'kategori');
@@ -98,6 +99,7 @@ class DashboardController extends Controller
         }
 
         return view('dashboard', compact(
+            'totalBiayaBulanIni',
             'menunggu',
             'reminderAktif',
             'pksJatuhTempo',

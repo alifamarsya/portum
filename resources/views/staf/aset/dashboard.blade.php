@@ -140,7 +140,7 @@
                     </span>
                 </div>
                 <p class="text-xl sm:text-2xl font-black text-purple-900 tracking-tight">
-                    {{ $memoSewaPending }} <span class="text-xs font-normal text-slate-500">Pending</span>
+                    {{ $memoSewaPending }} <span class="text-xs font-normal text-slate-500">Pengajuan</span>
                 </p>
                 <p class="text-[11px] text-slate-400 mt-1 font-medium">Pengajuan sewa kantor / ATM</p>
             </div>
@@ -485,9 +485,8 @@
                             <p class="text-[11px] text-slate-600 truncate">{{ $m->jenis ?? 'Sewa Gedung / ATM' }}</p>
                             <div class="flex items-center justify-between mt-1.5">
                                 <span class="font-mono font-semibold text-slate-700">Rp {{ number_format((float)$m->nilai, 0, ',', '.') }}</span>
-                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold
-                                    {{ $m->status_persetujuan === 'Disetujui' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">
-                                    {{ $m->status_persetujuan ?? 'Diajukan' }}
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700">
+                                    {{ $m->status_persetujuan ?? 'Disetujui' }}
                                 </span>
                             </div>
                         </div>
