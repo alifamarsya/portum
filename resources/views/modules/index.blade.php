@@ -55,7 +55,26 @@
     </form>
 
     @php
-        $listFields = collect($cfg['fields'])->filter(fn ($f) => $f['list'] ?? false);
+        $opPerms = [
+            'umum_rt', 'dokumen_arsip', 'administrasi_aset',
+            'logistik_pelaporan', 'pengadaan', 'pemeliharaan_pengawasan'
+        ];
+        $isOperational = in_array($cfg['perm'] ?? '', $opPerms);
+
+        $listFields = collect($cfg['fields'])->filter(function ($f, $fieldName) use ($isOperational) {
+            if (!($f['list'] ?? false)) {
+                return false;
+            }
+            if ($isOperational) {
+                $isStatusField = in_array($fieldName, ['status', 'status_persetujuan', 'status_arsip', 'status_pembayaran'])
+                    || stripos($fieldName, 'status') !== false
+                    || stripos($f['label'] ?? '', 'status') !== false;
+                if ($isStatusField) {
+                    return false;
+                }
+            }
+            return true;
+        });
     @endphp
 
     <div class="bg-white rounded-xl border border-slate-200 shadow-card overflow-hidden">

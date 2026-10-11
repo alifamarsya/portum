@@ -34,11 +34,14 @@ class ModuleController extends Controller
             if ($dbFields->isNotEmpty()) {
                 $fields = [];
                 foreach ($dbFields as $df) {
+                    if ($df->field_type === 'file') {
+                        continue;
+                    }
                     $fieldConf = [
                         'label' => $df->label,
                         'type'  => $df->field_type,
                         'list'  => (bool) $df->show_in_list,
-                        'req'   => (bool) $df->is_required,
+                        'req'   => true,
                         'opts'  => $df->options ?? [],
                         'help'  => $df->help_text,
                     ];
@@ -120,6 +123,56 @@ class ModuleController extends Controller
         if ($cfg['maker_checker']) {
             $data['maker_id'] = auth()->id();
             $data['approval_status'] = 'Diajukan';
+        } else {
+            $statusDefaults = [
+                'kendaraan'               => ['status' => 'Aktif'],
+                'biaya_harian'            => ['status' => 'Dibukukan'],
+                'pemeliharaan_gedung'     => ['status' => 'Dijadwalkan'],
+                'checklist_kebersihan'    => ['status' => 'Belum Dilakukan'],
+                'k3_insiden'              => ['status' => 'Open'],
+                'invoice_sewa'            => ['status' => 'Belum Bayar'],
+                'pks'                     => ['status' => 'Aktif'],
+                'memo_sewa_cabang'        => ['status_persetujuan' => 'Disetujui'],
+                'temuan'                  => ['status' => 'Open'],
+                'mutasi_aset'             => ['status' => 'Disetujui'],
+                'disposal_aset'           => ['status' => 'Disetujui'],
+                'rekonsiliasi_aset'       => ['status' => 'Proses'],
+                'penerimaan_barang'       => ['status' => 'Diterima'],
+                'distribusi_barang'       => ['status' => 'Disiapkan'],
+                'pembayaran_tagihan'      => ['status' => 'Belum Bayar'],
+                'memo_internal'           => ['status' => 'Masuk'],
+                'penawaran'               => ['status' => 'Diterima'],
+                'draft_dokumen'           => ['status' => 'Draft'],
+                'spk'                     => ['status' => 'Berjalan'],
+                'reminder'                => ['status' => 'Aktif'],
+                'surat_masuk'             => ['status_arsip' => 'Aktif'],
+                'surat_keluar'            => ['status_arsip' => 'Aktif'],
+                'memo_masuk'              => ['status_arsip' => 'Aktif'],
+                'memo_keluar'             => ['status_arsip' => 'Aktif'],
+                'arsip_dokumen'           => ['status_arsip' => 'Aktif'],
+                'dokumen_legalitas'       => ['status' => 'Aktif'],
+                'perencanaan_kebutuhan'   => ['status' => 'Disetujui'],
+                'jadwal_pemeliharaan'     => ['status' => 'Direncanakan'],
+                'monitoring_kondisi'      => ['status' => 'Selesai'],
+                'tindak_lanjut_perbaikan' => ['status' => 'Dilaporkan'],
+            ];
+
+            if (isset($statusDefaults[$key])) {
+                foreach ($statusDefaults[$key] as $stCol => $stVal) {
+                    if (!isset($data[$stCol])) {
+                        $data[$stCol] = $stVal;
+                    }
+                }
+            }
+
+            $modelInstance = new $cfg['model'];
+            $tableColumns = \Illuminate\Support\Facades\Schema::getColumnListing($modelInstance->getTable());
+            if (in_array('approval_status', $tableColumns) && !isset($data['approval_status'])) {
+                $data['approval_status'] = 'Disetujui';
+            }
+            if (in_array('status_persetujuan', $tableColumns) && !isset($data['status_persetujuan'])) {
+                $data['status_persetujuan'] = 'Disetujui';
+            }
         }
         if (array_key_exists('dibuat_oleh', $cfg['fields'])) {
             $data['dibuat_oleh'] = auth()->user()->nama_lengkap;
@@ -215,20 +268,45 @@ class ModuleController extends Controller
     private function validated(Request $request, array $cfg): array
     {
         $rules = [];
+        $attributes = [];
+        $techFields = ['maker_id', 'checker_id', 'approval_status', 'approved_at', 'catatan_approval', 'dibuat_oleh'];
+        $opPerms = ['umum_rt', 'dokumen_arsip', 'administrasi_aset', 'logistik_pelaporan', 'pengadaan', 'pemeliharaan_pengawasan'];
+        $isOperational = in_array($cfg['perm'] ?? '', $opPerms);
+
         foreach ($cfg['fields'] as $field => $meta) {
+            $isStatusField = $isOperational && (
+                in_array($field, ['status', 'status_persetujuan', 'status_arsip', 'status_pembayaran'])
+                || stripos($field, 'status') !== false
+                || stripos($meta['label'] ?? '', 'status') !== false
+            );
+
+            if ($isStatusField || in_array($field, $techFields) || ($meta['type'] ?? '') === 'auto_user' || ($meta['type'] ?? '') === 'file') {
+                continue;
+            }
             $type = $meta['type'] ?? 'text';
-            $rule = ($meta['req'] ?? false) ? 'required' : 'nullable';
+            $isRequired = (bool) ($meta['req'] ?? false);
+            $rule = $isRequired ? 'required' : 'nullable';
             $rule .= match ($type) {
                 'date' => '|date',
                 'number', 'money' => '|numeric|min:0',
                 'checkbox' => '|boolean',
-                'file' => '|string',
-                'select' => isset($meta['opts']) ? '|string|in:' . implode(',', $meta['opts']) : '|string|max:2000',
+                'select' => !empty($meta['opts']) ? '|string|in:' . implode(',', $meta['opts']) : '|string|max:2000',
                 default => '|string|max:2000',
             };
             $rules[$field] = $rule;
+            $attributes[$field] = $meta['label'] ?? $field;
         }
-        return $request->validate($rules);
+
+        $messages = [
+            'required' => ':attribute wajib diisi.',
+            'date' => ':attribute harus berupa tanggal yang valid.',
+            'numeric' => ':attribute harus berupa angka.',
+            'min' => ':attribute minimal bernilai :min.',
+            'in' => 'Pilihan :attribute tidak valid.',
+            'boolean' => ':attribute harus bernilai valid.',
+        ];
+
+        return $request->validate($rules, $messages, $attributes);
     }
 
     private function hitungAmortisasiJikaPerlu(string $key, array $data): array

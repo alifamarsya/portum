@@ -12,18 +12,35 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
             @foreach ($cfg['fields'] as $field => $meta)
-                @continue(in_array($field, ['maker_id', 'checker_id', 'approval_status', 'approved_at', 'catatan_approval', 'dibuat_oleh']))
-                @php $isWide = in_array($meta['type'] ?? '', ['textarea']); @endphp
+                @php
+                    $opPerms = [
+                        'umum_rt', 'dokumen_arsip', 'administrasi_aset',
+                        'logistik_pelaporan', 'pengadaan', 'pemeliharaan_pengawasan'
+                    ];
+                    $isOperational = in_array($cfg['perm'] ?? '', $opPerms);
+                    $isStatusField = $isOperational && (
+                        in_array($field, ['status', 'status_persetujuan', 'status_arsip', 'status_pembayaran'])
+                        || stripos($field, 'status') !== false
+                        || stripos($meta['label'] ?? '', 'status') !== false
+                    );
+                    $techFields = ['maker_id', 'checker_id', 'approval_status', 'approved_at', 'catatan_approval', 'dibuat_oleh'];
+                @endphp
+                @continue($isStatusField || in_array($field, $techFields) || ($meta['type'] ?? '') === 'auto_user' || ($meta['type'] ?? '') === 'file')
+                @php
+                    $isWide = in_array($meta['type'] ?? '', ['textarea']);
+                    $isReq = (bool) ($meta['req'] ?? false);
+                @endphp
                 <div class="{{ $isWide ? 'md:col-span-2' : '' }}">
                     <label class="block text-[13px] font-medium mb-1.5 text-slate-700">
-                        {{ $meta['label'] }} @if($meta['req'] ?? false)<span class="text-red-500">*</span>@endif
+                        {{ $meta['label'] }} @if($isReq)<span class="text-red-500 font-bold">*</span>@endif
                     </label>
 
                     @if (($meta['type'] ?? '') === 'textarea')
-                        <textarea name="{{ $field }}" rows="3"
-                            class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm focus:border-brand focus:ring-1 focus:ring-brand transition">{{ old($field, $item?->$field) }}</textarea>
+                        <textarea name="{{ $field }}" rows="3" {{ $isReq ? 'required' : '' }}
+                            class="w-full border @error($field) border-rose-400 focus:border-rose-500 focus:ring-rose-200 @else border-slate-300 focus:border-brand focus:ring-brand @enderror rounded-lg px-3.5 py-2.5 text-sm focus:ring-1 transition">{{ old($field, $item?->$field) }}</textarea>
                     @elseif (($meta['type'] ?? '') === 'select')
-                        <select name="{{ $field }}" class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm bg-white focus:border-brand focus:ring-1 focus:ring-brand transition">
+                        <select name="{{ $field }}" {{ $isReq ? 'required' : '' }}
+                            class="w-full border @error($field) border-rose-400 focus:border-rose-500 focus:ring-rose-200 @else border-slate-300 focus:border-brand focus:ring-brand @enderror rounded-lg px-3.5 py-2.5 text-sm bg-white focus:ring-1 transition">
                             <option value="">— pilih {{ strtolower($meta['label'] ?? '') }} —</option>
                             @if (!empty($meta['opts']) && is_array($meta['opts']))
                                 @foreach ($meta['opts'] as $opt)
@@ -33,7 +50,8 @@
                         </select>
                     @elseif (($meta['type'] ?? '') === 'checkbox')
                         <label class="inline-flex items-center gap-2 mt-1">
-                            <input type="checkbox" name="{{ $field }}" value="1" @checked(old($field, $item?->$field)) class="rounded border-slate-300">
+                            <input type="hidden" name="{{ $field }}" value="0">
+                            <input type="checkbox" name="{{ $field }}" value="1" @checked(old($field, $item?->$field)) class="rounded border-slate-300 text-brand focus:ring-brand">
                             <span class="text-sm text-slate-500">Ya</span>
                         </label>
                     @elseif (($meta['type'] ?? '') === 'date')
@@ -45,19 +63,19 @@
                                 $dateVal = substr($dateVal, 0, 10);
                             }
                         @endphp
-                        <input type="date" name="{{ $field }}" value="{{ $dateVal }}"
-                               class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm focus:border-brand focus:ring-1 focus:ring-brand transition">
+                        <input type="date" name="{{ $field }}" value="{{ $dateVal }}" {{ $isReq ? 'required' : '' }}
+                               class="w-full border @error($field) border-rose-400 focus:border-rose-500 focus:ring-rose-200 @else border-slate-300 focus:border-brand focus:ring-brand @enderror rounded-lg px-3.5 py-2.5 text-sm focus:ring-1 transition">
                     @elseif (in_array($meta['type'] ?? '', ['number', 'money']))
-                        <input type="number" step="{{ ($meta['type'] ?? '') === 'money' ? '1' : '0.01' }}" name="{{ $field }}" value="{{ old($field, $item?->$field) }}"
-                               class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm font-mono focus:border-brand focus:ring-1 focus:ring-brand transition">
-                    @elseif (($meta['type'] ?? '') === 'file')
-                        <input type="text" name="{{ $field }}" value="{{ old($field, $item?->$field) }}"
-                               placeholder="Nama file (upload asli menyusul)"
-                               class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm focus:border-brand focus:ring-1 focus:ring-brand transition">
+                        <input type="number" step="{{ ($meta['type'] ?? '') === 'money' ? '1' : '0.01' }}" name="{{ $field }}" value="{{ old($field, $item?->$field) }}" {{ $isReq ? 'required' : '' }}
+                               class="w-full border @error($field) border-rose-400 focus:border-rose-500 focus:ring-rose-200 @else border-slate-300 focus:border-brand focus:ring-brand @enderror rounded-lg px-3.5 py-2.5 text-sm font-mono focus:ring-1 transition">
                     @else
-                        <input type="text" name="{{ $field }}" value="{{ old($field, $item?->$field) }}"
-                               class="w-full border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm focus:border-brand focus:ring-1 focus:ring-brand transition">
+                        <input type="text" name="{{ $field }}" value="{{ old($field, $item?->$field) }}" {{ $isReq ? 'required' : '' }}
+                               class="w-full border @error($field) border-rose-400 focus:border-rose-500 focus:ring-rose-200 @else border-slate-300 focus:border-brand focus:ring-brand @enderror rounded-lg px-3.5 py-2.5 text-sm focus:ring-1 transition">
                     @endif
+
+                    @error($field)
+                        <p class="text-xs text-rose-600 mt-1 font-medium">{{ $message }}</p>
+                    @enderror
 
                     @if (!empty($meta['help']))
                         <p class="text-[12px] text-slate-400 mt-1">{{ $meta['help'] }}</p>

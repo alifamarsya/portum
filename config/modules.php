@@ -1,2582 +1,3029 @@
 <?php
 
-// Konfigurasi mesin CRUD generik -- diekstrak 1:1 dari dictionary RES
-// di portum.py (versi Python) supaya label, tipe field, opsi select,
-// dan field mana yang wajib tetap identik dengan aplikasi lama.
-// Dipakai oleh App\Http\Controllers\ModuleController.
-
-return [
-    'kendaraan' => [
-        'model' => 'App\\Models\\UmKendaraan',
-        'perm' => 'umum_rt',
-        'modul' => 'Umum & Rumah Tangga',
-        'judul' => 'Kendaraan & Driver',
-        'maker_checker' => false,
-        'fields' => [
-            'no_polisi' => [
-                'label' => 'No. Polisi',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'jenis' => [
-                'label' => 'Jenis',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'merk' => [
-                'label' => 'Merk',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'tahun' => [
-                'label' => 'Tahun',
-                'type' => 'text',
-                'list' => false,
-                'req' => false,
-            ],
-            'peruntukan' => [
-                'label' => 'Peruntukan',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'driver' => [
-                'label' => 'Driver',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'status' => [
-                'label' => 'Status',
-                'type' => 'select',
-                'list' => true,
-                'fmt' => 'badge',
-                'req' => false,
-                'opts' => ['Aktif', 'Servis', 'Nonaktif'],
-            ],
-            'keterangan' => [
-                'label' => 'Keterangan',
-                'type' => 'textarea',
-                'list' => false,
-                'req' => false,
-            ],
-        ],
-    ],
-    'biaya_harian' => [
-        'model' => 'App\\Models\\UmBiayaHarian',
-        'perm' => 'umum_rt',
-        'modul' => 'Umum & Rumah Tangga',
-        'judul' => 'Biaya BBM / Perawatan / Rumah Tangga',
-        'maker_checker' => true,
-        'fields' => [
-            'tanggal' => [
-                'label' => 'Tanggal',
-                'type' => 'date',
-                'list' => true,
-                'fmt' => 'date',
-                'req' => true,
-            ],
-            'kategori' => [
-                'label' => 'Kategori',
-                'type' => 'select',
-                'list' => true,
-                'fmt' => 'badge',
-                'req' => true,
-                'opts' => ['BBM', 'Perawatan', 'Rumah Tangga', 'Kebersihan', 'Keamanan', 'Utilitas', 'Lainnya'],
-            ],
-            'kendaraan' => [
-                'label' => 'Kendaraan',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'nama_beban' => [
-                'label' => 'Nama Beban (Akun)',
-                'type' => 'select',
-                'list' => false,
-                'req' => false,
-                'opts_sql' => 'SELECT nama_beban AS v, nama_beban || " — " || rekening_debet AS t FROM ref_akun ORDER BY nama_beban',
-            ],
-            'rekening_debet' => [
-                'label' => 'Rekening Debet',
-                'type' => 'text',
-                'list' => false,
-                'req' => false,
-            ],
-            'rekening_kredit' => [
-                'label' => 'Rekening Kredit',
-                'type' => 'text',
-                'list' => false,
-                'req' => false,
-            ],
-            'uraian' => [
-                'label' => 'Uraian',
-                'type' => 'textarea',
-                'list' => true,
-                'req' => false,
-            ],
-            'jumlah' => [
-                'label' => 'Jumlah',
-                'type' => 'money',
-                'list' => true,
-                'fmt' => 'money',
-                'req' => false,
-            ],
-            'no_nota' => [
-                'label' => 'No. Nota',
-                'type' => 'text',
-                'list' => false,
-                'req' => false,
-            ],
-            'status' => [
-                'label' => 'Status',
-                'type' => 'select',
-                'list' => true,
-                'fmt' => 'badge',
-                'req' => false,
-                'opts' => ['Draft', 'Diajukan', 'Dibukukan'],
-            ],
-            'dibuat_oleh' => [
-                'label' => 'Dibuat Oleh',
-                'type' => 'auto_user',
-                'list' => false,
-                'req' => false,
-            ],
-            'dokumen' => [
-                'label' => 'Dokumen (Lampiran)',
-                'type' => 'file',
-                'list' => true,
-                'req' => false,
-            ],
-        ],
-    ],
-    // permintaan_cabang → DINONAKTIFKAN (digantikan oleh Ticketing per Fase 1)
-    // Data lama tetap di tabel um_permintaan_cabang tapi tidak ditampilkan di menu.
-
-    // ─────────────────────────────────────────────────────────────────────────────
-    // MODUL BARU — Unit Kerja Umum & Rumah Tangga (perm: umum_rt)
-    // ─────────────────────────────────────────────────────────────────────────────
-    'fasilitas_kantor' => [
-        'model'         => 'App\\Models\\UmFasilitasKantor',
-        'perm'          => 'umum_rt',
-        'modul'         => 'Umum & Rumah Tangga',
-        'judul'         => 'Master Fasilitas Kantor',
-        'maker_checker' => false,
-        'fields'        => [
-            'nama_fasilitas' => [
-                'label' => 'Nama Fasilitas',
-                'type'  => 'text',
-                'list'  => true,
-                'req'   => true,
-            ],
-            'kode' => [
-                'label' => 'Kode',
-                'type'  => 'text',
-                'list'  => true,
-                'req'   => false,
-            ],
-            'kategori' => [
-                'label' => 'Kategori',
-                'type'  => 'select',
-                'list'  => true,
-                'fmt'   => 'badge',
-                'req'   => false,
-                'opts'  => ['Ruangan', 'Peralatan', 'Furnitur', 'Elektronik', 'Kendaraan', 'Lainnya'],
-            ],
-            'lokasi' => [
-                'label' => 'Lokasi',
-                'type'  => 'text',
-                'list'  => true,
-                'req'   => false,
-            ],
-            'kondisi' => [
-                'label' => 'Kondisi',
-                'type'  => 'select',
-                'list'  => true,
-                'fmt'   => 'badge',
-                'req'   => false,
-                'opts'  => ['Baik', 'Perlu Perawatan', 'Rusak Ringan', 'Rusak Berat'],
-            ],
-            'tanggal_perolehan' => [
-                'label' => 'Tgl Perolehan',
-                'type'  => 'date',
-                'list'  => false,
-                'fmt'   => 'date',
-                'req'   => false,
-            ],
-            'penanggung_jawab' => [
-                'label' => 'Penanggung Jawab',
-                'type'  => 'text',
-                'list'  => false,
-                'req'   => false,
-            ],
-            'keterangan' => [
-                'label' => 'Keterangan',
-                'type'  => 'textarea',
-                'list'  => false,
-                'req'   => false,
-            ],
-        ],
-    ],
-    'pemeliharaan_gedung' => [
-        'model'         => 'App\\Models\\UmPemeliharaanGedung',
-        'perm'          => 'umum_rt',
-        'modul'         => 'Umum & Rumah Tangga',
-        'judul'         => 'Pemeliharaan Gedung & Utilitas',
-        'maker_checker' => true,
-        'fields'        => [
-            'jenis_pekerjaan' => [
-                'label' => 'Jenis Pekerjaan',
-                'type'  => 'select',
-                'list'  => true,
-                'fmt'   => 'badge',
-                'req'   => true,
-                'opts'  => ['Gedung', 'Listrik', 'Air & Sanitasi', 'AC & Ventilasi', 'Lift', 'Taman', 'Lainnya'],
-            ],
-            'uraian' => [
-                'label' => 'Uraian',
-                'type'  => 'textarea',
-                'list'  => true,
-                'req'   => true,
-            ],
-            'lokasi' => [
-                'label' => 'Lokasi',
-                'type'  => 'text',
-                'list'  => true,
-                'req'   => false,
-            ],
-            'tanggal_rencana' => [
-                'label' => 'Tgl Rencana',
-                'type'  => 'date',
-                'list'  => true,
-                'fmt'   => 'date',
-                'req'   => false,
-            ],
-            'tanggal_realisasi' => [
-                'label' => 'Tgl Realisasi',
-                'type'  => 'date',
-                'list'  => true,
-                'fmt'   => 'date',
-                'req'   => false,
-            ],
-            'vendor' => [
-                'label' => 'Vendor / Pelaksana',
-                'type'  => 'text',
-                'list'  => false,
-                'req'   => false,
-            ],
-            'biaya' => [
-                'label' => 'Biaya',
-                'type'  => 'money',
-                'list'  => true,
-                'fmt'   => 'money',
-                'req'   => false,
-            ],
-            'status' => [
-                'label' => 'Status',
-                'type'  => 'select',
-                'list'  => true,
-                'fmt'   => 'badge',
-                'req'   => false,
-                'opts'  => ['Dijadwalkan', 'Berjalan', 'Selesai', 'Ditunda'],
-            ],
-            'dokumen' => [
-                'label' => 'Dokumen (Lampiran)',
-                'type'  => 'file',
-                'list'  => false,
-                'req'   => false,
-            ],
-        ],
-    ],
-    'checklist_kebersihan' => [
-        'model'         => 'App\\Models\\UmChecklistKebersihan',
-        'perm'          => 'umum_rt',
-        'modul'         => 'Umum & Rumah Tangga',
-        'judul'         => 'Checklist Kebersihan & Keamanan',
-        'maker_checker' => false,
-        'fields'        => [
-            'tanggal' => [
-                'label'   => 'Tanggal',
-                'type'    => 'date',
-                'list'    => true,
-                'fmt'     => 'date',
-                'req'     => true,
-                'default' => 'today',
-            ],
-            'jenis' => [
-                'label' => 'Jenis',
-                'type'  => 'select',
-                'list'  => true,
-                'fmt'   => 'badge',
-                'req'   => true,
-                'opts'  => ['Kebersihan Harian', 'Kebersihan Mingguan', 'Keamanan Harian', 'Keamanan Mingguan'],
-            ],
-            'area' => [
-                'label' => 'Area',
-                'type'  => 'text',
-                'list'  => true,
-                'req'   => false,
-            ],
-            'petugas' => [
-                'label' => 'Petugas',
-                'type'  => 'text',
-                'list'  => true,
-                'req'   => false,
-            ],
-            'status' => [
-                'label' => 'Status',
-                'type'  => 'select',
-                'list'  => true,
-                'fmt'   => 'badge',
-                'req'   => false,
-                'opts'  => ['Belum Dilakukan', 'Selesai', 'Ada Catatan'],
-            ],
-            'catatan' => [
-                'label' => 'Catatan',
-                'type'  => 'textarea',
-                'list'  => false,
-                'req'   => false,
-            ],
-            'dibuat_oleh' => [
-                'label' => 'Dibuat Oleh',
-                'type'  => 'auto_user',
-                'list'  => false,
-                'req'   => false,
-            ],
-        ],
-    ],
-    'k3_insiden' => [
-        'model'         => 'App\\Models\\UmK3Insiden',
-        'perm'          => 'umum_rt',
-        'modul'         => 'Umum & Rumah Tangga',
-        'judul'         => 'Catatan K3 & Lingkungan',
-        'maker_checker' => false,
-        'fields'        => [
-            'tanggal' => [
-                'label'   => 'Tanggal Kejadian',
-                'type'    => 'date',
-                'list'    => true,
-                'fmt'     => 'date',
-                'req'     => true,
-                'default' => 'today',
-            ],
-            'jenis' => [
-                'label' => 'Jenis',
-                'type'  => 'select',
-                'list'  => true,
-                'fmt'   => 'badge',
-                'req'   => true,
-                'opts'  => ['Insiden K3', 'Near Miss', 'Isu Lingkungan', 'Isu Ergonomi', 'Lainnya'],
-            ],
-            'lokasi' => [
-                'label' => 'Lokasi',
-                'type'  => 'text',
-                'list'  => true,
-                'req'   => false,
-            ],
-            'uraian' => [
-                'label' => 'Uraian Kejadian',
-                'type'  => 'textarea',
-                'list'  => true,
-                'req'   => true,
-            ],
-            'korban' => [
-                'label' => 'Korban / Yang Terdampak',
-                'type'  => 'text',
-                'list'  => false,
-                'req'   => false,
-            ],
-            'tindak_lanjut' => [
-                'label' => 'Tindak Lanjut',
-                'type'  => 'textarea',
-                'list'  => false,
-                'req'   => false,
-            ],
-            'status' => [
-                'label' => 'Status',
-                'type'  => 'select',
-                'list'  => true,
-                'fmt'   => 'badge',
-                'req'   => false,
-                'opts'  => ['Open', 'Dalam Penanganan', 'Selesai'],
-            ],
-            'dokumen' => [
-                'label' => 'Dokumen (Lampiran)',
-                'type'  => 'file',
-                'list'  => false,
-                'req'   => false,
-            ],
-            'dibuat_oleh' => [
-                'label' => 'Dilaporkan Oleh',
-                'type'  => 'auto_user',
-                'list'  => false,
-                'req'   => false,
-            ],
-        ],
-    ],
-    'invoice_sewa' => [
-        'model' => 'App\\Models\\AsInvoiceSewa',
-        'perm' => 'logistik_pelaporan',
-        'modul' => 'Logistik & Pelaporan',
-        'judul' => 'Tagihan / Invoice Sewa',
-        'maker_checker' => false,
-        'fields' => [
-            'no_invoice' => [
-                'label' => 'No. Invoice',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'vendor' => [
-                'label' => 'Vendor',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'jenis_sewa' => [
-                'label' => 'Jenis Sewa',
-                'type' => 'select',
-                'list' => true,
-                'req' => false,
-                'opts' => ['Aplikasi', 'Mesin ATM', 'Brankas', 'Perangkat IT', 'Software', 'Hardware'],
-            ],
-            'periode_mulai' => [
-                'label' => 'Periode Mulai',
-                'type' => 'date',
-                'list' => false,
-                'req' => false,
-            ],
-            'periode_selesai' => [
-                'label' => 'Periode Selesai',
-                'type' => 'date',
-                'list' => false,
-                'req' => false,
-            ],
-            'nilai' => [
-                'label' => 'Nilai',
-                'type' => 'money',
-                'list' => true,
-                'fmt' => 'money',
-                'req' => false,
-            ],
-            'jatuh_tempo' => [
-                'label' => 'Jatuh Tempo',
-                'type' => 'date',
-                'list' => true,
-                'fmt' => 'date',
-                'req' => false,
-            ],
-            'status' => [
-                'label' => 'Status',
-                'type' => 'select',
-                'list' => true,
-                'fmt' => 'badge',
-                'req' => false,
-                'opts' => ['Belum Bayar', 'Proses', 'Lunas'],
-            ],
-            'keterangan' => [
-                'label' => 'Keterangan',
-                'type' => 'textarea',
-                'list' => false,
-                'req' => false,
-            ],
-            'dokumen' => [
-                'label' => 'Dokumen (Lampiran)',
-                'type' => 'file',
-                'list' => true,
-                'req' => false,
-            ],
-        ],
-    ],
-    'aset' => [
-        'model' => 'App\\Models\\AsAset',
-        'perm' => 'administrasi_aset',
-        'modul' => 'Administrasi Aset & Inventaris',
-        'judul' => 'Inventarisasi Aset',
-        'maker_checker' => false,
-        'fields' => [
-            'kode_aset' => [
-                'label' => 'Kode Aset',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'nama_aset' => [
-                'label' => 'Nama Aset',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'kategori' => [
-                'label' => 'Kategori',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'lokasi' => [
-                'label' => 'Lokasi',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'tanggal_perolehan' => [
-                'label' => 'Tgl Perolehan',
-                'type' => 'date',
-                'list' => false,
-                'fmt' => 'date',
-                'req' => false,
-            ],
-            'nilai_perolehan' => [
-                'label' => 'Nilai Perolehan',
-                'type' => 'money',
-                'list' => true,
-                'fmt' => 'money',
-                'req' => false,
-            ],
-            'umur_ekonomis' => [
-                'label' => 'Umur Ekonomis (bln)',
-                'type' => 'number',
-                'list' => false,
-                'req' => false,
-            ],
-            'kondisi' => [
-                'label' => 'Kondisi',
-                'type' => 'select',
-                'list' => true,
-                'fmt' => 'badge',
-                'req' => false,
-                'opts' => ['Baik', 'Rusak Ringan', 'Rusak Berat'],
-            ],
-            'penanggung_jawab' => [
-                'label' => 'Penanggung Jawab',
-                'type' => 'text',
-                'list' => false,
-                'req' => false,
-            ],
-            'keterangan' => [
-                'label' => 'Keterangan',
-                'type' => 'textarea',
-                'list' => false,
-                'req' => false,
-            ],
-        ],
-    ],
-    'amortisasi' => [
-        'model' => 'App\\Models\\AsAmortisasi',
-        'perm' => 'administrasi_aset',
-        'modul' => 'Administrasi Aset & Inventaris',
-        'judul' => 'Amortisasi Biaya',
-        'maker_checker' => false,
-        'fields' => [
-            'nama_biaya' => [
-                'label' => 'Nama Biaya',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'nilai_perolehan' => [
-                'label' => 'Nilai Perolehan',
-                'type' => 'money',
-                'list' => true,
-                'fmt' => 'money',
-                'req' => false,
-            ],
-            'tanggal_mulai' => [
-                'label' => 'Tgl Mulai',
-                'type' => 'date',
-                'list' => false,
-                'fmt' => 'date',
-                'req' => false,
-            ],
-            'umur_bulan' => [
-                'label' => 'Umur (bulan)',
-                'type' => 'number',
-                'list' => true,
-                'req' => false,
-            ],
-            'nilai_per_bulan' => [
-                'label' => 'Nilai / Bulan',
-                'type' => 'money',
-                'list' => true,
-                'fmt' => 'money',
-                'req' => false,
-                'help' => 'Dihitung otomatis bila dikosongkan (nilai ÷ umur)',
-            ],
-            'akumulasi' => [
-                'label' => 'Akumulasi',
-                'type' => 'money',
-                'list' => false,
-                'fmt' => 'money',
-                'req' => false,
-            ],
-            'nilai_buku' => [
-                'label' => 'Nilai Buku',
-                'type' => 'money',
-                'list' => true,
-                'fmt' => 'money',
-                'req' => false,
-            ],
-            'keterangan' => [
-                'label' => 'Keterangan',
-                'type' => 'textarea',
-                'list' => false,
-                'req' => false,
-            ],
-        ],
-    ],
-    'pks' => [
-        'model' => 'App\\Models\\AsPks',
-        'perm' => 'logistik_pelaporan',
-        'modul' => 'Logistik & Pelaporan',
-        'judul' => 'PKS & Jatuh Tempo',
-        'maker_checker' => true,
-        'fields' => [
-            'no_pks' => [
-                'label' => 'No. PKS',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'judul' => [
-                'label' => 'Judul PKS',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'vendor' => [
-                'label' => 'Vendor / Pihak',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'div_owner' => [
-                'label' => 'Divisi Owner',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'tanggal_mulai' => [
-                'label' => 'Tgl Mulai',
-                'type' => 'date',
-                'list' => false,
-                'fmt' => 'date',
-                'req' => false,
-            ],
-            'jatuh_tempo' => [
-                'label' => 'Jatuh Tempo',
-                'type' => 'date',
-                'list' => true,
-                'fmt' => 'date',
-                'req' => false,
-            ],
-            'nilai' => [
-                'label' => 'Nilai',
-                'type' => 'money',
-                'list' => false,
-                'fmt' => 'money',
-                'req' => false,
-            ],
-            'status' => [
-                'label' => 'Status',
-                'type' => 'select',
-                'list' => true,
-                'fmt' => 'badge',
-                'req' => false,
-                'opts' => ['Aktif', 'Akan Jatuh Tempo', 'Berakhir', 'Diperpanjang'],
-            ],
-            'memo_dibuat' => [
-                'label' => 'Memo ke Div Owner Dibuat',
-                'type' => 'checkbox',
-                'list' => true,
-                'req' => false,
-            ],
-            'keterangan' => [
-                'label' => 'Keterangan',
-                'type' => 'textarea',
-                'list' => false,
-                'req' => false,
-            ],
-            'dokumen' => [
-                'label' => 'Dokumen (Lampiran)',
-                'type' => 'file',
-                'list' => true,
-                'req' => false,
-            ],
-        ],
-    ],
-    'memo_sewa_cabang' => [
-        'model' => 'App\\Models\\AsMemoSewaCabang',
-        'perm' => 'logistik_pelaporan',
-        'modul' => 'Logistik & Pelaporan',
-        'judul' => 'Memo Sewa Cabang',
-        'maker_checker' => true,
-        'fields' => [
-            'no_memo' => [
-                'label' => 'No. Memo',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'cabang' => [
-                'label' => 'Cabang',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'jenis' => [
-                'label' => 'Jenis Sewa',
-                'type' => 'select',
-                'list' => true,
-                'req' => false,
-                'opts' => ['Galeri ATM', 'Gedung Kantor', 'Gudang', 'Rumah Dinas'],
-            ],
-            'tanggal' => [
-                'label' => 'Tanggal',
-                'type' => 'date',
-                'list' => true,
-                'fmt' => 'date',
-                'req' => false,
-            ],
-            'nilai' => [
-                'label' => 'Nilai',
-                'type' => 'money',
-                'list' => true,
-                'fmt' => 'money',
-                'req' => false,
-            ],
-            'status_persetujuan' => [
-                'label' => 'Status Persetujuan',
-                'type' => 'select',
-                'list' => true,
-                'fmt' => 'badge',
-                'req' => false,
-                'opts' => ['Diajukan', 'Persetujuan Prinsip', 'Disetujui', 'Ditolak'],
-            ],
-            'keterangan' => [
-                'label' => 'Keterangan',
-                'type' => 'textarea',
-                'list' => false,
-                'req' => false,
-            ],
-            'dokumen' => [
-                'label' => 'Dokumen (Lampiran)',
-                'type' => 'file',
-                'list' => true,
-                'req' => false,
-            ],
-        ],
-    ],
-    'temuan' => [
-        'model' => 'App\\Models\\AsTemuan',
-        'perm' => 'administrasi_aset',
-        'modul' => 'Administrasi Aset & Inventaris',
-        'judul' => 'Tindak Lanjut Temuan',
-        'maker_checker' => false,
-        'fields' => [
-            'no_temuan' => [
-                'label' => 'No. Temuan',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'sumber' => [
-                'label' => 'Sumber',
-                'type' => 'select',
-                'list' => true,
-                'req' => false,
-                'opts' => ['Audit Internal', 'OJK', 'KAP', 'Lainnya'],
-            ],
-            'uraian' => [
-                'label' => 'Uraian Temuan',
-                'type' => 'textarea',
-                'list' => true,
-                'req' => true,
-            ],
-            'tanggal_temuan' => [
-                'label' => 'Tgl Temuan',
-                'type' => 'date',
-                'list' => false,
-                'fmt' => 'date',
-                'req' => false,
-            ],
-            'batas_tindak_lanjut' => [
-                'label' => 'Batas Tindak Lanjut',
-                'type' => 'date',
-                'list' => true,
-                'fmt' => 'date',
-                'req' => false,
-            ],
-            'status' => [
-                'label' => 'Status',
-                'type' => 'select',
-                'list' => true,
-                'fmt' => 'badge',
-                'req' => false,
-                'opts' => ['Open', 'Proses', 'Selesai'],
-            ],
-            'penanggung_jawab' => [
-                'label' => 'Penanggung Jawab',
-                'type' => 'text',
-                'list' => false,
-                'req' => false,
-            ],
-            'tindak_lanjut' => [
-                'label' => 'Tindak Lanjut',
-                'type' => 'textarea',
-                'list' => false,
-                'req' => false,
-            ],
-            'dokumen' => [
-                'label' => 'Dokumen (Lampiran)',
-                'type' => 'file',
-                'list' => true,
-                'req' => false,
-            ],
-        ],
-    ],
-    'aset_history' => [
-        'model' => 'App\\Models\\AsAsetHistory',
-        'perm' => 'administrasi_aset',
-        'modul' => 'Administrasi Aset & Inventaris',
-        'judul' => 'Riwayat Pergerakan Aset',
-        'maker_checker' => false,
-        'fields' => [
-            'aset_id' => [
-                'label' => 'ID Aset',
-                'type' => 'number',
-                'list' => true,
-                'req' => true,
-            ],
-            'field_changed' => [
-                'label' => 'Perubahan',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'old_value' => [
-                'label' => 'Nilai Lama',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'new_value' => [
-                'label' => 'Nilai Baru',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'keterangan' => [
-                'label' => 'Keterangan',
-                'type' => 'textarea',
-                'list' => true,
-                'req' => false,
-            ],
-            'changed_at' => [
-                'label' => 'Waktu Perubahan',
-                'type' => 'date',
-                'list' => true,
-                'fmt' => 'date',
-                'req' => false,
-            ],
-        ],
-    ],
-    'mutasi_aset' => [
-        'model' => 'App\\Models\\AsMutasiAset',
-        'perm' => 'administrasi_aset',
-        'modul' => 'Administrasi Aset & Inventaris',
-        'judul' => 'Mutasi Aset',
-        'maker_checker' => true,
-        'fields' => [
-            'no_mutasi' => [
-                'label' => 'No. Mutasi',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'aset_id' => [
-                'label' => 'ID Aset',
-                'type' => 'number',
-                'list' => true,
-                'req' => true,
-            ],
-            'dari_lokasi' => [
-                'label' => 'Dari Lokasi',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'ke_lokasi' => [
-                'label' => 'Ke Lokasi',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'dari_penanggung_jawab' => [
-                'label' => 'Dari PJ',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'ke_penanggung_jawab' => [
-                'label' => 'Ke PJ',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'alasan' => [
-                'label' => 'Alasan Mutasi',
-                'type' => 'textarea',
-                'list' => false,
-                'req' => false,
-            ],
-            'status' => [
-                'label' => 'Status',
-                'type' => 'select',
-                'list' => true,
-                'fmt' => 'badge',
-                'req' => false,
-                'opts' => ['Diajukan', 'Disetujui', 'Ditolak', 'Selesai'],
-            ],
-            'keterangan' => [
-                'label' => 'Keterangan',
-                'type' => 'textarea',
-                'list' => false,
-                'req' => false,
-            ],
-            'dokumen' => [
-                'label' => 'Dokumen Berita Acara',
-                'type' => 'file',
-                'list' => true,
-                'req' => false,
-            ],
-        ],
-    ],
-    'disposal_aset' => [
-        'model' => 'App\\Models\\AsDisposalAset',
-        'perm' => 'administrasi_aset',
-        'modul' => 'Administrasi Aset & Inventaris',
-        'judul' => 'Penghapusan Aset (Disposal)',
-        'maker_checker' => true,
-        'fields' => [
-            'no_disposal' => [
-                'label' => 'No. Disposal',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'aset_id' => [
-                'label' => 'ID Aset',
-                'type' => 'number',
-                'list' => true,
-                'req' => true,
-            ],
-            'tanggal_pengajuan' => [
-                'label' => 'Tgl Pengajuan',
-                'type' => 'date',
-                'list' => true,
-                'fmt' => 'date',
-                'req' => false,
-            ],
-            'alasan_penghapusan' => [
-                'label' => 'Alasan Penghapusan',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'metode' => [
-                'label' => 'Metode',
-                'type' => 'select',
-                'list' => true,
-                'fmt' => 'badge',
-                'req' => false,
-                'opts' => ['Dihibahkan', 'Dijual', 'Dimusnahkan', 'Dihapusbukukan'],
-            ],
-            'nilai_buku_terakhir' => [
-                'label' => 'Nilai Buku Terakhir',
-                'type' => 'money',
-                'list' => true,
-                'fmt' => 'money',
-                'req' => false,
-            ],
-            'status' => [
-                'label' => 'Status',
-                'type' => 'select',
-                'list' => true,
-                'fmt' => 'badge',
-                'req' => false,
-                'opts' => ['Diajukan', 'Disetujui', 'Ditolak', 'Selesai'],
-            ],
-            'keterangan' => [
-                'label' => 'Keterangan',
-                'type' => 'textarea',
-                'list' => false,
-                'req' => false,
-            ],
-            'dokumen' => [
-                'label' => 'Dokumen SK / Berita Acara',
-                'type' => 'file',
-                'list' => true,
-                'req' => false,
-            ],
-        ],
-    ],
-    'rekonsiliasi_aset' => [
-        'model' => 'App\\Models\\AsRekonsiliasiAset',
-        'perm' => 'administrasi_aset',
-        'modul' => 'Administrasi Aset & Inventaris',
-        'judul' => 'Rekonsiliasi & Reklasifikasi Aset',
-        'maker_checker' => false,
-        'fields' => [
-            'no_rekonsiliasi' => [
-                'label' => 'No. Rekonsiliasi',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'periode' => [
-                'label' => 'Periode',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'tanggal' => [
-                'label' => 'Tanggal',
-                'type' => 'date',
-                'list' => true,
-                'fmt' => 'date',
-                'req' => false,
-            ],
-            'jenis' => [
-                'label' => 'Jenis Kegiatan',
-                'type' => 'select',
-                'list' => true,
-                'fmt' => 'badge',
-                'req' => false,
-                'opts' => ['Rekonsiliasi', 'Reklasifikasi'],
-            ],
-            'aset_id' => [
-                'label' => 'ID Aset',
-                'type' => 'number',
-                'list' => false,
-                'req' => false,
-            ],
-            'kategori_awal' => [
-                'label' => 'Kategori Semula',
-                'type' => 'text',
-                'list' => false,
-                'req' => false,
-            ],
-            'kategori_baru' => [
-                'label' => 'Kategori Baru',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'kondisi_awal' => [
-                'label' => 'Kondisi Semula',
-                'type' => 'select',
-                'list' => false,
-                'req' => false,
-                'opts' => ['Baik', 'Rusak Ringan', 'Rusak Berat'],
-            ],
-            'kondisi_baru' => [
-                'label' => 'Kondisi Hasil Cek',
-                'type' => 'select',
-                'list' => true,
-                'fmt' => 'badge',
-                'req' => false,
-                'opts' => ['Baik', 'Rusak Ringan', 'Rusak Berat'],
-            ],
-            'hasil_rekonsiliasi' => [
-                'label' => 'Hasil Rekonsiliasi',
-                'type' => 'textarea',
-                'list' => true,
-                'req' => false,
-            ],
-            'petugas' => [
-                'label' => 'Petugas Pemeriksa',
-                'type' => 'text',
-                'list' => false,
-                'req' => false,
-            ],
-            'status' => [
-                'label' => 'Status',
-                'type' => 'select',
-                'list' => true,
-                'fmt' => 'badge',
-                'req' => false,
-                'opts' => ['Proses', 'Selesai'],
-            ],
-            'keterangan' => [
-                'label' => 'Keterangan',
-                'type' => 'textarea',
-                'list' => false,
-                'req' => false,
-            ],
-            'dokumen' => [
-                'label' => 'Dokumen Rekon / BA',
-                'type' => 'file',
-                'list' => true,
-                'req' => false,
-            ],
-        ],
-    ],
-    'penerimaan_barang' => [
-        'model' => 'App\\Models\\AsPenerimaanBarang',
-        'perm' => 'logistik_pelaporan',
-        'modul' => 'Logistik & Pelaporan',
-        'judul' => 'Penerimaan Barang / Jasa',
-        'maker_checker' => false,
-        'fields' => [
-            'no_penerimaan' => [
-                'label' => 'No. Penerimaan',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'tanggal' => [
-                'label' => 'Tanggal Masuk',
-                'type' => 'date',
-                'list' => true,
-                'fmt' => 'date',
-                'req' => false,
-            ],
-            'vendor' => [
-                'label' => 'Vendor / Penyedia',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'nama_barang' => [
-                'label' => 'Nama Barang / Jasa',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'jumlah' => [
-                'label' => 'Jumlah',
-                'type' => 'number',
-                'list' => true,
-                'req' => false,
-            ],
-            'satuan' => [
-                'label' => 'Satuan',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'kondisi' => [
-                'label' => 'Kondisi Barang',
-                'type' => 'select',
-                'list' => true,
-                'fmt' => 'badge',
-                'req' => false,
-                'opts' => ['Baik', 'Rusak', 'Tidak Sesuai'],
-            ],
-            'penerima' => [
-                'label' => 'Penerima',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'status' => [
-                'label' => 'Status',
-                'type' => 'select',
-                'list' => true,
-                'fmt' => 'badge',
-                'req' => false,
-                'opts' => ['Diterima', 'Diperiksa', 'Disimpan'],
-            ],
-            'keterangan' => [
-                'label' => 'Keterangan',
-                'type' => 'textarea',
-                'list' => false,
-                'req' => false,
-            ],
-            'dokumen' => [
-                'label' => 'Surat Jalan / BAST',
-                'type' => 'file',
-                'list' => true,
-                'req' => false,
-            ],
-        ],
-    ],
-    'distribusi_barang' => [
-        'model' => 'App\\Models\\AsDistribusiBarang',
-        'perm' => 'logistik_pelaporan',
-        'modul' => 'Logistik & Pelaporan',
-        'judul' => 'Distribusi Barang / Jasa',
-        'maker_checker' => false,
-        'fields' => [
-            'no_distribusi' => [
-                'label' => 'No. Distribusi',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'tanggal' => [
-                'label' => 'Tanggal Keluar',
-                'type' => 'date',
-                'list' => true,
-                'fmt' => 'date',
-                'req' => false,
-            ],
-            'nama_barang' => [
-                'label' => 'Nama Barang / Jasa',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'jumlah' => [
-                'label' => 'Jumlah',
-                'type' => 'number',
-                'list' => true,
-                'req' => false,
-            ],
-            'satuan' => [
-                'label' => 'Satuan',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'tujuan_unit' => [
-                'label' => 'Unit / Cabang Tujuan',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'penerima' => [
-                'label' => 'Nama Penerima',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'status' => [
-                'label' => 'Status',
-                'type' => 'select',
-                'list' => true,
-                'fmt' => 'badge',
-                'req' => false,
-                'opts' => ['Disiapkan', 'Terkirim', 'Diterima'],
-            ],
-            'keterangan' => [
-                'label' => 'Keterangan',
-                'type' => 'textarea',
-                'list' => false,
-                'req' => false,
-            ],
-            'dokumen' => [
-                'label' => 'Tanda Terima / Ekspedisi',
-                'type' => 'file',
-                'list' => true,
-                'req' => false,
-            ],
-        ],
-    ],
-    'pembayaran_tagihan' => [
-        'model' => 'App\\Models\\AsPembayaranTagihan',
-        'perm' => 'logistik_pelaporan',
-        'modul' => 'Logistik & Pelaporan',
-        'judul' => 'Administrasi Pembayaran Tagihan',
-        'maker_checker' => true,
-        'fields' => [
-            'no_tagihan' => [
-                'label' => 'No. Tagihan',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'tanggal_tagihan' => [
-                'label' => 'Tgl Tagihan',
-                'type' => 'date',
-                'list' => true,
-                'fmt' => 'date',
-                'req' => false,
-            ],
-            'tanggal_bayar' => [
-                'label' => 'Tgl Bayar',
-                'type' => 'date',
-                'list' => true,
-                'fmt' => 'date',
-                'req' => false,
-            ],
-            'vendor' => [
-                'label' => 'Vendor / Rekanan',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'uraian' => [
-                'label' => 'Uraian Pembayaran',
-                'type' => 'textarea',
-                'list' => true,
-                'req' => false,
-            ],
-            'nilai' => [
-                'label' => 'Nilai Tagihan',
-                'type' => 'money',
-                'list' => true,
-                'fmt' => 'money',
-                'req' => true,
-            ],
-            'no_rekening' => [
-                'label' => 'No. Rekening Tujuan',
-                'type' => 'text',
-                'list' => false,
-                'req' => false,
-            ],
-            'status' => [
-                'label' => 'Status Pembayaran',
-                'type' => 'select',
-                'list' => true,
-                'fmt' => 'badge',
-                'req' => false,
-                'opts' => ['Belum Bayar', 'Proses', 'Lunas'],
-            ],
-            'keterangan' => [
-                'label' => 'Keterangan',
-                'type' => 'textarea',
-                'list' => false,
-                'req' => false,
-            ],
-            'dokumen' => [
-                'label' => 'Bukti Bayar / Kuitansi',
-                'type' => 'file',
-                'list' => true,
-                'req' => false,
-            ],
-        ],
-    ],
-    'memo_internal' => [
-        'model' => 'App\\Models\\PgMemoInternal',
-        'perm' => 'pengadaan',
-        'modul' => 'Pengadaan & Pemeliharaan',
-        'judul' => 'Memo Internal',
-        'maker_checker' => false,
-        'fields' => [
-            'no_memo' => [
-                'label' => 'No. Memo',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'dari_unit' => [
-                'label' => 'Dari Unit',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'ke_unit' => [
-                'label' => 'Ke Unit',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'perihal' => [
-                'label' => 'Perihal',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'tanggal' => [
-                'label' => 'Tanggal',
-                'type' => 'date',
-                'list' => true,
-                'fmt' => 'date',
-                'req' => false,
-            ],
-            'jenis' => [
-                'label' => 'Jenis',
-                'type' => 'select',
-                'list' => false,
-                'req' => false,
-                'opts' => ['Divisi', 'Cabang', 'Cabang Pembantu', 'Kantor Kas'],
-            ],
-            'status' => [
-                'label' => 'Status',
-                'type' => 'select',
-                'list' => true,
-                'fmt' => 'badge',
-                'req' => false,
-                'opts' => ['Masuk', 'Diproses', 'Selesai'],
-            ],
-            'keterangan' => [
-                'label' => 'Keterangan',
-                'type' => 'textarea',
-                'list' => false,
-                'req' => false,
-            ],
-            'dokumen' => [
-                'label' => 'Dokumen (Lampiran)',
-                'type' => 'file',
-                'list' => true,
-                'req' => false,
-            ],
-        ],
-    ],
-    'penawaran' => [
-        'model' => 'App\\Models\\PgPenawaran',
-        'perm' => 'pengadaan',
-        'modul' => 'Pengadaan & Pemeliharaan',
-        'judul' => 'Penawaran Vendor',
-        'maker_checker' => false,
-        'fields' => [
-            'no_penawaran' => [
-                'label' => 'No. Penawaran',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'vendor' => [
-                'label' => 'Vendor',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'barang_jasa' => [
-                'label' => 'Barang / Jasa',
-                'type' => 'textarea',
-                'list' => true,
-                'req' => false,
-            ],
-            'nilai' => [
-                'label' => 'Nilai Penawaran',
-                'type' => 'money',
-                'list' => true,
-                'fmt' => 'money',
-                'req' => false,
-            ],
-            'tanggal' => [
-                'label' => 'Tanggal',
-                'type' => 'date',
-                'list' => true,
-                'fmt' => 'date',
-                'req' => false,
-            ],
-            'status' => [
-                'label' => 'Status',
-                'type' => 'select',
-                'list' => true,
-                'fmt' => 'badge',
-                'req' => false,
-                'opts' => ['Diterima', 'Evaluasi', 'Negosiasi', 'Ditolak'],
-            ],
-            'keterangan' => [
-                'label' => 'Keterangan',
-                'type' => 'textarea',
-                'list' => false,
-                'req' => false,
-            ],
-            'dokumen' => [
-                'label' => 'Dokumen (Lampiran)',
-                'type' => 'file',
-                'list' => true,
-                'req' => false,
-            ],
-        ],
-    ],
-    'negosiasi' => [
-        'model' => 'App\\Models\\PgNegosiasi',
-        'perm' => 'pengadaan',
-        'modul' => 'Pengadaan & Pemeliharaan',
-        'judul' => 'Negosiasi (Berita Acara)',
-        'maker_checker' => false,
-        'fields' => [
-            'no_berita_acara' => [
-                'label' => 'No. Berita Acara',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'vendor' => [
-                'label' => 'Vendor',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'barang_jasa' => [
-                'label' => 'Barang / Jasa',
-                'type' => 'textarea',
-                'list' => true,
-                'req' => false,
-            ],
-            'nilai_awal' => [
-                'label' => 'Nilai Awal',
-                'type' => 'money',
-                'list' => true,
-                'fmt' => 'money',
-                'req' => false,
-            ],
-            'nilai_nego' => [
-                'label' => 'Nilai Nego',
-                'type' => 'money',
-                'list' => true,
-                'fmt' => 'money',
-                'req' => false,
-            ],
-            'tanggal' => [
-                'label' => 'Tanggal',
-                'type' => 'date',
-                'list' => true,
-                'fmt' => 'date',
-                'req' => false,
-            ],
-            'hasil' => [
-                'label' => 'Hasil',
-                'type' => 'textarea',
-                'list' => false,
-                'req' => false,
-            ],
-            'dokumen' => [
-                'label' => 'Dokumen (Lampiran)',
-                'type' => 'file',
-                'list' => true,
-                'req' => false,
-            ],
-        ],
-    ],
-    'draft_dokumen' => [
-        'model' => 'App\\Models\\PgDraftDokumen',
-        'perm' => 'pengadaan',
-        'modul' => 'Pengadaan & Pemeliharaan',
-        'judul' => 'Draft Dokumen (PKS/NDA/SPK)',
-        'maker_checker' => false,
-        'fields' => [
-            'jenis' => [
-                'label' => 'Jenis',
-                'type' => 'select',
-                'list' => true,
-                'fmt' => 'badge',
-                'req' => false,
-                'opts' => ['PKS', 'NDA', 'SPK', 'Lainnya'],
-            ],
-            'no_dokumen' => [
-                'label' => 'No. Dokumen',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'judul' => [
-                'label' => 'Judul',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'vendor' => [
-                'label' => 'Vendor',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'tanggal' => [
-                'label' => 'Tanggal',
-                'type' => 'date',
-                'list' => true,
-                'fmt' => 'date',
-                'req' => false,
-            ],
-            'status' => [
-                'label' => 'Status',
-                'type' => 'select',
-                'list' => true,
-                'fmt' => 'badge',
-                'req' => false,
-                'opts' => ['Draft', 'Review', 'Final'],
-            ],
-            'keterangan' => [
-                'label' => 'Keterangan',
-                'type' => 'textarea',
-                'list' => false,
-                'req' => false,
-            ],
-            'file' => [
-                'label' => 'Dokumen (Lampiran)',
-                'type' => 'file',
-                'list' => true,
-                'req' => false,
-            ],
-        ],
-    ],
-    'spk' => [
-        'model' => 'App\\Models\\PgSpk',
-        'perm' => 'pengadaan',
-        'modul' => 'Pengadaan & Pemeliharaan',
-        'judul' => 'SPK (Surat Perintah Kerja)',
-        'maker_checker' => true,
-        'fields' => [
-            'no_spk' => [
-                'label' => 'No. SPK',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'vendor' => [
-                'label' => 'Vendor',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'pekerjaan' => [
-                'label' => 'Pekerjaan',
-                'type' => 'textarea',
-                'list' => true,
-                'req' => false,
-            ],
-            'nilai' => [
-                'label' => 'Nilai',
-                'type' => 'money',
-                'list' => true,
-                'fmt' => 'money',
-                'req' => false,
-            ],
-            'tanggal_terbit' => [
-                'label' => 'Tgl Terbit',
-                'type' => 'date',
-                'list' => true,
-                'fmt' => 'date',
-                'req' => false,
-            ],
-            'tanggal_selesai' => [
-                'label' => 'Tgl Selesai',
-                'type' => 'date',
-                'list' => false,
-                'fmt' => 'date',
-                'req' => false,
-            ],
-            'status' => [
-                'label' => 'Status',
-                'type' => 'select',
-                'list' => true,
-                'fmt' => 'badge',
-                'req' => false,
-                'opts' => ['Berjalan', 'Selesai', 'Batal'],
-            ],
-            'keterangan' => [
-                'label' => 'Keterangan',
-                'type' => 'textarea',
-                'list' => false,
-                'req' => false,
-            ],
-            'dokumen' => [
-                'label' => 'Dokumen (Lampiran)',
-                'type' => 'file',
-                'list' => true,
-                'req' => false,
-            ],
-        ],
-    ],
-    'reminder' => [
-        'model' => 'App\\Models\\PgReminder',
-        'perm' => 'pengadaan',
-        'modul' => 'Pengadaan & Pemeliharaan',
-        'judul' => 'Reminder Schedule',
-        'maker_checker' => false,
-        'fields' => [
-            'judul' => [
-                'label' => 'Judul',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'kategori' => [
-                'label' => 'Kategori',
-                'type' => 'select',
-                'list' => true,
-                'req' => true,
-                'opts' => ['PKS', 'Sewa', 'SPK', 'Pemeliharaan', 'Lainnya'],
-            ],
-            'tanggal_jatuh_tempo' => [
-                'label' => 'Tgl Jatuh Tempo',
-                'type' => 'date',
-                'list' => true,
-                'fmt' => 'date',
-                'req' => true,
-            ],
-            'status' => [
-                'label' => 'Status',
-                'type' => 'select',
-                'list' => true,
-                'fmt' => 'badge',
-                'req' => false,
-                'opts' => ['Aktif', 'Selesai'],
-            ],
-            'catatan' => [
-                'label' => 'Catatan',
-                'type' => 'textarea',
-                'list' => false,
-                'req' => false,
-            ],
-        ],
-    ],
-    'ref_akun' => [
-        'model' => 'App\\Models\\RefAkun',
-        'perm' => 'ref_akun',
-        'modul' => 'Pengaturan',
-        'judul' => 'Referensi Akun Biaya',
-        'maker_checker' => false,
-        'fields' => [
-            'nama_beban' => [
-                'label' => 'Nama Beban',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'rekening_debet' => [
-                'label' => 'Rekening Debet',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'contoh_keterangan' => [
-                'label' => 'Contoh Keterangan',
-                'type' => 'textarea',
-                'list' => true,
-                'req' => false,
-            ],
-        ],
-    ],
-    // ─────────────────────────────────────────────────────────────────────────────
-    // MODUL ARSIP SURAT & MEMO — Unit Kerja Dokumen & Kearsipan (perm: dokumen_arsip)
-    // ─────────────────────────────────────────────────────────────────────────────
-    'surat_masuk' => [
-        'model' => 'App\\Models\\SrSuratMasuk',
-        'perm' => 'dokumen_arsip',
-        'modul' => 'Dokumen & Kearsipan',
-        'judul' => 'Surat Masuk',
-        'maker_checker' => false,
-        'fields' => [
-            'nomor_agenda' => [
-                'label' => 'Nomor Agenda',
-                'type' => 'number',
-                'list' => true,
-                'req' => true,
-                'help' => 'Rekomendasi otomatis (+10 setiap hari baru, +1 di hari yang sama) — boleh diubah / disisip nomor untuk tanggal sebelumnya.',
-            ],
-            'no_surat' => [
-                'label' => 'No. Surat',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'pengirim' => [
-                'label' => 'Pengirim',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'perihal' => [
-                'label' => 'Perihal',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'tanggal' => [
-                'label' => 'Tanggal',
-                'type' => 'date',
-                'list' => true,
-                'fmt' => 'date',
-                'req' => true,
-                'default' => 'today',
-            ],
-            'penerima' => [
-                'label' => 'Penerima',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'lokasi_arsip' => [
-                'label' => 'Lokasi Arsip',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-                'help' => 'cth: Lemari A / Ordner 3 / Map Merah',
-            ],
-            'masa_retensi' => [
-                'label' => 'Masa Retensi (tahun)',
-                'type'  => 'number',
-                'list'  => false,
-                'req'   => false,
-            ],
-            'status_arsip' => [
-                'label' => 'Status Arsip',
-                'type'  => 'select',
-                'list'  => true,
-                'fmt'   => 'badge',
-                'req'   => false,
-                'opts'  => ['Aktif', 'Arsip', 'Musnah'],
-            ],
-            'lampiran' => [
-                'label' => 'Lampiran',
-                'type' => 'file',
-                'list' => true,
-                'req' => false,
-            ],
-            'dibuat_oleh' => [
-                'label' => 'Dibuat Oleh',
-                'type' => 'auto_user',
-                'list' => false,
-                'req' => false,
-            ],
-        ],
-    ],
-    'surat_keluar' => [
-        'model' => 'App\\Models\\SrSuratKeluar',
-        'perm' => 'dokumen_arsip',
-        'modul' => 'Dokumen & Kearsipan',
-        'judul' => 'Surat Keluar',
-        'maker_checker' => false,
-        'fields' => [
-            'nomor_agenda' => [
-                'label' => 'Nomor Agenda',
-                'type' => 'number',
-                'list' => true,
-                'req' => true,
-                'help' => 'Rekomendasi otomatis (+10 setiap hari baru, +1 di hari yang sama) — boleh diubah / disisip nomor untuk tanggal sebelumnya.',
-            ],
-            'no_surat' => [
-                'label' => 'No. Surat',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'pengirim' => [
-                'label' => 'Pengirim (Unit)',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'perihal' => [
-                'label' => 'Perihal',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'tanggal' => [
-                'label' => 'Tanggal',
-                'type' => 'date',
-                'list' => true,
-                'fmt' => 'date',
-                'req' => true,
-                'default' => 'today',
-            ],
-            'penerima' => [
-                'label' => 'Penerima / Tujuan',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'lokasi_arsip' => [
-                'label' => 'Lokasi Arsip',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-                'help' => 'cth: Lemari A / Ordner 3 / Map Merah',
-            ],
-            'masa_retensi' => [
-                'label' => 'Masa Retensi (tahun)',
-                'type'  => 'number',
-                'list'  => false,
-                'req'   => false,
-            ],
-            'status_arsip' => [
-                'label' => 'Status Arsip',
-                'type'  => 'select',
-                'list'  => true,
-                'fmt'   => 'badge',
-                'req'   => false,
-                'opts'  => ['Aktif', 'Arsip', 'Musnah'],
-            ],
-            'lampiran' => [
-                'label' => 'Lampiran',
-                'type' => 'file',
-                'list' => true,
-                'req' => false,
-            ],
-            'dibuat_oleh' => [
-                'label' => 'Dibuat Oleh',
-                'type' => 'auto_user',
-                'list' => false,
-                'req' => false,
-            ],
-        ],
-    ],
-    'memo_masuk' => [
-        'model' => 'App\\Models\\SrMemoMasuk',
-        'perm' => 'dokumen_arsip',
-        'modul' => 'Dokumen & Kearsipan',
-        'judul' => 'Memo Masuk',
-        'maker_checker' => false,
-        'fields' => [
-            'nomor_agenda' => [
-                'label' => 'Nomor Agenda',
-                'type' => 'number',
-                'list' => true,
-                'req' => true,
-                'help' => 'Rekomendasi otomatis (+10 setiap hari baru, +1 di hari yang sama) — boleh diubah / disisip nomor untuk tanggal sebelumnya.',
-            ],
-            'no_surat' => [
-                'label' => 'No. Surat',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'pengirim' => [
-                'label' => 'Pengirim',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'perihal' => [
-                'label' => 'Perihal',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'tanggal' => [
-                'label' => 'Tanggal',
-                'type' => 'date',
-                'list' => true,
-                'fmt' => 'date',
-                'req' => true,
-                'default' => 'today',
-            ],
-            'penerima' => [
-                'label' => 'Penerima',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'lokasi_arsip' => [
-                'label' => 'Lokasi Arsip',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-                'help' => 'cth: Lemari A / Ordner 3 / Map Merah',
-            ],
-            'masa_retensi' => [
-                'label' => 'Masa Retensi (tahun)',
-                'type'  => 'number',
-                'list'  => false,
-                'req'   => false,
-            ],
-            'status_arsip' => [
-                'label' => 'Status Arsip',
-                'type'  => 'select',
-                'list'  => true,
-                'fmt'   => 'badge',
-                'req'   => false,
-                'opts'  => ['Aktif', 'Arsip', 'Musnah'],
-            ],
-            'lampiran' => [
-                'label' => 'Lampiran',
-                'type' => 'file',
-                'list' => true,
-                'req' => false,
-            ],
-            'dibuat_oleh' => [
-                'label' => 'Dibuat Oleh',
-                'type' => 'auto_user',
-                'list' => false,
-                'req' => false,
-            ],
-        ],
-    ],
-    'memo_keluar' => [
-        'model' => 'App\\Models\\SrMemoKeluar',
-        'perm' => 'dokumen_arsip',
-        'modul' => 'Dokumen & Kearsipan',
-        'judul' => 'Memo Keluar',
-        'maker_checker' => false,
-        'fields' => [
-            'nomor_agenda' => [
-                'label' => 'Nomor Agenda',
-                'type' => 'number',
-                'list' => true,
-                'req' => true,
-                'help' => 'Rekomendasi otomatis (+10 setiap hari baru, +1 di hari yang sama) — boleh diubah / disisip nomor untuk tanggal sebelumnya.',
-            ],
-            'no_surat' => [
-                'label' => 'No. Surat',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'pengirim' => [
-                'label' => 'Pengirim (Unit)',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'perihal' => [
-                'label' => 'Perihal',
-                'type' => 'text',
-                'list' => true,
-                'req' => true,
-            ],
-            'tanggal' => [
-                'label' => 'Tanggal',
-                'type' => 'date',
-                'list' => true,
-                'fmt' => 'date',
-                'req' => true,
-                'default' => 'today',
-            ],
-            'penerima' => [
-                'label' => 'Penerima / Tujuan',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-            ],
-            'lokasi_arsip' => [
-                'label' => 'Lokasi Arsip',
-                'type' => 'text',
-                'list' => true,
-                'req' => false,
-                'help' => 'cth: Lemari A / Ordner 3 / Map Merah',
-            ],
-            'masa_retensi' => [
-                'label' => 'Masa Retensi (tahun)',
-                'type'  => 'number',
-                'list'  => false,
-                'req'   => false,
-            ],
-            'status_arsip' => [
-                'label' => 'Status Arsip',
-                'type'  => 'select',
-                'list'  => true,
-                'fmt'   => 'badge',
-                'req'   => false,
-                'opts'  => ['Aktif', 'Arsip', 'Musnah'],
-            ],
-            'lampiran' => [
-                'label' => 'Lampiran',
-                'type' => 'file',
-                'list' => true,
-                'req' => false,
-            ],
-            'dibuat_oleh' => [
-                'label' => 'Dibuat Oleh',
-                'type' => 'auto_user',
-                'list' => false,
-                'req' => false,
-            ],
-        ],
-    ],
-    // ─────────────────────────────────────────────────────────────────────────────
-    // MODUL BARU — Unit Kerja Dokumen & Kearsipan (perm: dokumen_arsip)
-    // ─────────────────────────────────────────────────────────────────────────────
-    'arsip_dokumen' => [
-        'model'         => 'App\\Models\\DkArsipDokumen',
-        'perm'          => 'dokumen_arsip',
-        'modul'         => 'Dokumen & Kearsipan',
-        'judul'         => 'Master Arsip Dokumen',
-        'maker_checker' => false,
-        'fields'        => [
-            'kode_arsip' => [
-                'label' => 'Kode Arsip',
-                'type'  => 'text',
-                'list'  => true,
-                'req'   => false,
-            ],
-            'judul' => [
-                'label' => 'Judul Dokumen',
-                'type'  => 'text',
-                'list'  => true,
-                'req'   => true,
-            ],
-            'jenis' => [
-                'label' => 'Jenis',
-                'type'  => 'select',
-                'list'  => true,
-                'fmt'   => 'badge',
-                'req'   => false,
-                'opts'  => ['Fisik', 'Digital', 'Fisik & Digital'],
-            ],
-            'kategori' => [
-                'label' => 'Kategori',
-                'type'  => 'select',
-                'list'  => true,
-                'req'   => false,
-                'opts'  => ['Surat', 'Memo', 'Kontrak', 'Laporan', 'SK', 'Kebijakan', 'Lainnya'],
-            ],
-            'tanggal_dokumen' => [
-                'label' => 'Tanggal Dokumen',
-                'type'  => 'date',
-                'list'  => true,
-                'fmt'   => 'date',
-                'req'   => false,
-            ],
-            'lokasi_arsip' => [
-                'label' => 'Lokasi Arsip',
-                'type'  => 'text',
-                'list'  => true,
-                'req'   => false,
-                'help'  => 'cth: Lemari A / Ordner 3 / Map Merah',
-            ],
-            'masa_retensi' => [
-                'label' => 'Masa Retensi (tahun)',
-                'type'  => 'number',
-                'list'  => false,
-                'req'   => false,
-            ],
-            'status_arsip' => [
-                'label' => 'Status Arsip',
-                'type'  => 'select',
-                'list'  => true,
-                'fmt'   => 'badge',
-                'req'   => false,
-                'opts'  => ['Aktif', 'Arsip', 'Musnah'],
-            ],
-            'keterangan' => [
-                'label' => 'Keterangan',
-                'type'  => 'textarea',
-                'list'  => false,
-                'req'   => false,
-            ],
-            'lampiran' => [
-                'label' => 'File Digital',
-                'type'  => 'file',
-                'list'  => false,
-                'req'   => false,
-            ],
-            'dibuat_oleh' => [
-                'label' => 'Diinput Oleh',
-                'type'  => 'auto_user',
-                'list'  => false,
-                'req'   => false,
-            ],
-        ],
-    ],
-    'dokumen_legalitas' => [
-        'model'         => 'App\\Models\\DkDokumenLegalitas',
-        'perm'          => 'dokumen_arsip',
-        'modul'         => 'Dokumen & Kearsipan',
-        'judul'         => 'Dokumen Legalitas',
-        'maker_checker' => false,
-        'fields'        => [
-            'nama_dokumen' => [
-                'label' => 'Nama Dokumen',
-                'type'  => 'text',
-                'list'  => true,
-                'req'   => true,
-            ],
-            'jenis' => [
-                'label' => 'Jenis',
-                'type'  => 'select',
-                'list'  => true,
-                'fmt'   => 'badge',
-                'req'   => false,
-                'opts'  => ['Izin Usaha', 'Sertifikat', 'NPWP', 'Akta', 'SK', 'Lisensi', 'Lainnya'],
-            ],
-            'no_dokumen' => [
-                'label' => 'No. Dokumen',
-                'type'  => 'text',
-                'list'  => true,
-                'req'   => false,
-            ],
-            'penerbit' => [
-                'label' => 'Penerbit / Instansi',
-                'type'  => 'text',
-                'list'  => true,
-                'req'   => false,
-            ],
-            'tanggal_terbit' => [
-                'label' => 'Tgl Terbit',
-                'type'  => 'date',
-                'list'  => true,
-                'fmt'   => 'date',
-                'req'   => false,
-            ],
-            'tanggal_berlaku' => [
-                'label' => 'Tgl Berlaku Sampai',
-                'type'  => 'date',
-                'list'  => true,
-                'fmt'   => 'date',
-                'req'   => false,
-            ],
-            'status' => [
-                'label' => 'Status',
-                'type'  => 'select',
-                'list'  => true,
-                'fmt'   => 'badge',
-                'req'   => false,
-                'opts'  => ['Aktif', 'Akan Kadaluarsa', 'Kadaluarsa', 'Diperpanjang'],
-            ],
-            'keterangan' => [
-                'label' => 'Keterangan',
-                'type'  => 'textarea',
-                'list'  => false,
-                'req'   => false,
-            ],
-            'dokumen' => [
-                'label' => 'Dokumen (Lampiran)',
-                'type'  => 'file',
-                'list'  => false,
-                'req'   => false,
-            ],
-        ],
-    ],
-    // ─────────────────────────────────────────────────────────────────────────────
-    // MODUL PENGADAAN — Unit Kerja Pengadaan Aset & Inventaris (perm: pengadaan)
-    // Modul tambahan (opsional): Perencanaan Kebutuhan
-    // ─────────────────────────────────────────────────────────────────────────────
-    'perencanaan_kebutuhan' => [
-        'model'         => 'App\\Models\\PmPerencanaanKebutuhan',
-        'perm'          => 'pengadaan',
-        'modul'         => 'Pengadaan & Pemeliharaan',
-        'judul'         => 'Perencanaan Kebutuhan',
-        'maker_checker' => false,
-        'fields'        => [
-            'no_rencana' => [
-                'label' => 'No. Rencana',
-                'type'  => 'text',
-                'list'  => true,
-                'req'   => false,
-            ],
-            'periode' => [
-                'label' => 'Periode',
-                'type'  => 'text',
-                'list'  => true,
-                'req'   => false,
-                'help'  => 'cth: Q1 2026 / Semester I 2026',
-            ],
-            'jenis_kebutuhan' => [
-                'label' => 'Jenis Kebutuhan',
-                'type'  => 'select',
-                'list'  => true,
-                'fmt'   => 'badge',
-                'req'   => false,
-                'opts'  => ['Barang', 'Jasa', 'Aset'],
-            ],
-            'nama_item' => [
-                'label' => 'Nama Barang / Jasa / Aset',
-                'type'  => 'text',
-                'list'  => true,
-                'req'   => true,
-            ],
-            'jumlah' => [
-                'label' => 'Jumlah',
-                'type'  => 'number',
-                'list'  => true,
-                'req'   => false,
-            ],
-            'satuan' => [
-                'label' => 'Satuan',
-                'type'  => 'text',
-                'list'  => true,
-                'req'   => false,
-            ],
-            'spesifikasi' => [
-                'label' => 'Spesifikasi / Keterangan',
-                'type'  => 'textarea',
-                'list'  => false,
-                'req'   => false,
-            ],
-            'estimasi_harga' => [
-                'label' => 'Estimasi Harga',
-                'type'  => 'money',
-                'list'  => true,
-                'fmt'   => 'money',
-                'req'   => false,
-            ],
-            'prioritas' => [
-                'label' => 'Prioritas',
-                'type'  => 'select',
-                'list'  => true,
-                'fmt'   => 'badge',
-                'req'   => false,
-                'opts'  => ['Darurat', 'Tinggi', 'Normal', 'Rendah'],
-            ],
-            'status' => [
-                'label' => 'Status',
-                'type'  => 'select',
-                'list'  => true,
-                'fmt'   => 'badge',
-                'req'   => false,
-                'opts'  => ['Draft', 'Diajukan', 'Disetujui', 'Ditolak', 'Selesai'],
-            ],
-            'keterangan' => [
-                'label' => 'Keterangan',
-                'type'  => 'textarea',
-                'list'  => false,
-                'req'   => false,
-            ],
-        ],
-    ],
-    // ─────────────────────────────────────────────────────────────────────────────
-    // MODUL PEMELIHARAAN — Unit Kerja Pemeliharaan & Pengawasan (perm: pemeliharaan_pengawasan)
-    // ─────────────────────────────────────────────────────────────────────────────
-    'jadwal_pemeliharaan' => [
-        'model'         => 'App\\Models\\PmJadwalPemeliharaan',
-        'perm'          => 'pemeliharaan_pengawasan',
-        'modul'         => 'Pemeliharaan & Pengawasan',
-        'judul'         => 'Jadwal Pemeliharaan Rutin',
-        'maker_checker' => false,
-        'fields'        => [
-            'no_jadwal' => [
-                'label' => 'No. Jadwal',
-                'type'  => 'text',
-                'list'  => true,
-                'req'   => false,
-            ],
-            'nama_aset' => [
-                'label' => 'Nama Aset',
-                'type'  => 'text',
-                'list'  => true,
-                'req'   => false,
-                'help'  => 'Nama atau kode aset yang akan dipelihara',
-            ],
-            'jenis_pemeliharaan' => [
-                'label' => 'Jenis Pemeliharaan',
-                'type'  => 'select',
-                'list'  => true,
-                'fmt'   => 'badge',
-                'req'   => false,
-                'opts'  => ['Rutin', 'Insidental', 'Preventif', 'Korektif'],
-            ],
-            'tanggal_rencana' => [
-                'label' => 'Tgl Rencana',
-                'type'  => 'date',
-                'list'  => true,
-                'fmt'   => 'date',
-                'req'   => false,
-            ],
-            'tanggal_realisasi' => [
-                'label' => 'Tgl Realisasi',
-                'type'  => 'date',
-                'list'  => true,
-                'fmt'   => 'date',
-                'req'   => false,
-            ],
-            'pelaksana' => [
-                'label' => 'Pelaksana',
-                'type'  => 'text',
-                'list'  => true,
-                'req'   => false,
-            ],
-            'status' => [
-                'label' => 'Status',
-                'type'  => 'select',
-                'list'  => true,
-                'fmt'   => 'badge',
-                'req'   => false,
-                'opts'  => ['Direncanakan', 'Dikerjakan', 'Selesai', 'Dibatalkan'],
-            ],
-            'keterangan' => [
-                'label' => 'Keterangan',
-                'type'  => 'textarea',
-                'list'  => false,
-                'req'   => false,
-            ],
-            'dokumen' => [
-                'label' => 'Dokumen / Laporan',
-                'type'  => 'file',
-                'list'  => false,
-                'req'   => false,
-            ],
-        ],
-    ],
-    'monitoring_kondisi' => [
-        'model'         => 'App\\Models\\PmMonitoringKondisi',
-        'perm'          => 'pemeliharaan_pengawasan',
-        'modul'         => 'Pemeliharaan & Pengawasan',
-        'judul'         => 'Monitoring Kondisi Fisik Aset',
-        'maker_checker' => false,
-        'fields'        => [
-            'nama_aset' => [
-                'label' => 'Nama Aset',
-                'type'  => 'text',
-                'list'  => true,
-                'req'   => false,
-            ],
-            'tanggal_inspeksi' => [
-                'label' => 'Tgl Inspeksi',
-                'type'  => 'date',
-                'list'  => true,
-                'fmt'   => 'date',
-                'req'   => true,
-                'default' => 'today',
-            ],
-            'kondisi' => [
-                'label' => 'Kondisi',
-                'type'  => 'select',
-                'list'  => true,
-                'fmt'   => 'badge',
-                'req'   => false,
-                'opts'  => ['Baik', 'Rusak Ringan', 'Rusak Berat'],
-            ],
-            'temuan' => [
-                'label' => 'Temuan',
-                'type'  => 'textarea',
-                'list'  => true,
-                'req'   => false,
-            ],
-            'rekomendasi' => [
-                'label' => 'Rekomendasi',
-                'type'  => 'textarea',
-                'list'  => false,
-                'req'   => false,
-            ],
-            'petugas' => [
-                'label' => 'Petugas Pemeriksa',
-                'type'  => 'text',
-                'list'  => true,
-                'req'   => false,
-            ],
-            'status' => [
-                'label' => 'Status',
-                'type'  => 'select',
-                'list'  => true,
-                'fmt'   => 'badge',
-                'req'   => false,
-                'opts'  => ['Selesai', 'Perlu Tindak Lanjut'],
-            ],
-            'dokumen' => [
-                'label' => 'Foto / Dokumen',
-                'type'  => 'file',
-                'list'  => false,
-                'req'   => false,
-            ],
-        ],
-    ],
-    'pengawasan_penggunaan' => [
-        'model'         => 'App\\Models\\PmPengawasanPenggunaan',
-        'perm'          => 'pemeliharaan_pengawasan',
-        'modul'         => 'Pemeliharaan & Pengawasan',
-        'judul'         => 'Pengawasan Penggunaan Aset',
-        'maker_checker' => false,
-        'fields'        => [
-            'nama_aset' => [
-                'label' => 'Nama Aset',
-                'type'  => 'text',
-                'list'  => true,
-                'req'   => false,
-            ],
-            'tanggal' => [
-                'label'   => 'Tanggal',
-                'type'    => 'date',
-                'list'    => true,
-                'fmt'     => 'date',
-                'req'     => true,
-                'default' => 'today',
-            ],
-            'pengguna' => [
-                'label' => 'Unit / Pengguna',
-                'type'  => 'text',
-                'list'  => true,
-                'req'   => false,
-            ],
-            'uraian_penggunaan' => [
-                'label' => 'Uraian Penggunaan',
-                'type'  => 'textarea',
-                'list'  => true,
-                'req'   => false,
-            ],
-            'kesesuaian' => [
-                'label' => 'Kesesuaian Penggunaan',
-                'type'  => 'select',
-                'list'  => true,
-                'fmt'   => 'badge',
-                'req'   => false,
-                'opts'  => ['Sesuai', 'Tidak Sesuai', 'Perlu Evaluasi'],
-            ],
-            'catatan' => [
-                'label' => 'Catatan',
-                'type'  => 'textarea',
-                'list'  => false,
-                'req'   => false,
-            ],
-            'petugas' => [
-                'label' => 'Petugas Pengawas',
-                'type'  => 'text',
-                'list'  => true,
-                'req'   => false,
-            ],
-            'dokumen' => [
-                'label' => 'Dokumen / Foto',
-                'type'  => 'file',
-                'list'  => false,
-                'req'   => false,
-            ],
-        ],
-    ],
-    'tindak_lanjut_perbaikan' => [
-        'model'         => 'App\\Models\\PmTindakLanjutPerbaikan',
-        'perm'          => 'pemeliharaan_pengawasan',
-        'modul'         => 'Pemeliharaan & Pengawasan',
-        'judul'         => 'Tindak Lanjut Perbaikan',
-        'maker_checker' => false,
-        'fields'        => [
-            'no_tindak_lanjut' => [
-                'label' => 'No. TL',
-                'type'  => 'text',
-                'list'  => true,
-                'req'   => false,
-            ],
-            'nama_aset' => [
-                'label' => 'Nama Aset',
-                'type'  => 'text',
-                'list'  => true,
-                'req'   => false,
-            ],
-            'sumber' => [
-                'label' => 'Sumber Laporan',
-                'type'  => 'select',
-                'list'  => true,
-                'fmt'   => 'badge',
-                'req'   => false,
-                'opts'  => ['Tiket', 'Inspeksi Mandiri', 'Pengawasan', 'Lainnya'],
-            ],
-            'uraian_kerusakan' => [
-                'label' => 'Uraian Kerusakan',
-                'type'  => 'textarea',
-                'list'  => true,
-                'req'   => false,
-            ],
-            'tanggal_laporan' => [
-                'label'   => 'Tgl Dilaporkan',
-                'type'    => 'date',
-                'list'    => true,
-                'fmt'     => 'date',
-                'req'     => false,
-                'default' => 'today',
-            ],
-            'tanggal_perbaikan' => [
-                'label' => 'Tgl Perbaikan',
-                'type'  => 'date',
-                'list'  => true,
-                'fmt'   => 'date',
-                'req'   => false,
-            ],
-            'teknisi' => [
-                'label' => 'Teknisi / Pelaksana',
-                'type'  => 'text',
-                'list'  => true,
-                'req'   => false,
-            ],
-            'hasil_perbaikan' => [
-                'label' => 'Hasil Perbaikan',
-                'type'  => 'textarea',
-                'list'  => false,
-                'req'   => false,
-            ],
-            'status' => [
-                'label' => 'Status',
-                'type'  => 'select',
-                'list'  => true,
-                'fmt'   => 'badge',
-                'req'   => false,
-                'opts'  => ['Dilaporkan', 'Dalam Proses', 'Selesai', 'Ditangguhkan'],
-            ],
-            'dokumen' => [
-                'label' => 'Dokumen / BAST',
-                'type'  => 'file',
-                'list'  => false,
-                'req'   => false,
-            ],
-        ],
-    ],
-];
+// Konfigurasi mesin CRUD generik Portum (Operasional & Referensi)
+return array (
+  'kendaraan' => 
+  array (
+    'model' => 'App\\Models\\UmKendaraan',
+    'perm' => 'umum_rt',
+    'modul' => 'Umum & Rumah Tangga',
+    'judul' => 'Kendaraan & Driver',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'no_polisi' => 
+      array (
+        'label' => 'No. Polisi',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'jenis' => 
+      array (
+        'label' => 'Jenis',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'merk' => 
+      array (
+        'label' => 'Merk',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'tahun' => 
+      array (
+        'label' => 'Tahun',
+        'type' => 'text',
+        'list' => false,
+        'req' => true,
+      ),
+      'peruntukan' => 
+      array (
+        'label' => 'Peruntukan',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'driver' => 
+      array (
+        'label' => 'Driver',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'status' => 
+      array (
+        'label' => 'Status',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Aktif',
+          1 => 'Servis',
+          2 => 'Nonaktif',
+        ),
+      ),
+      'keterangan' => 
+      array (
+        'label' => 'Keterangan',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+    ),
+  ),
+  'biaya_harian' => 
+  array (
+    'model' => 'App\\Models\\UmBiayaHarian',
+    'perm' => 'umum_rt',
+    'modul' => 'Umum & Rumah Tangga',
+    'judul' => 'Biaya BBM / Perawatan / Rumah Tangga',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'tanggal' => 
+      array (
+        'label' => 'Tanggal',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'kategori' => 
+      array (
+        'label' => 'Kategori',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'BBM',
+          1 => 'Perawatan',
+          2 => 'Rumah Tangga',
+          3 => 'Kebersihan',
+          4 => 'Keamanan',
+          5 => 'Utilitas',
+          6 => 'Lainnya',
+        ),
+      ),
+      'kendaraan' => 
+      array (
+        'label' => 'Kendaraan',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'nama_beban' => 
+      array (
+        'label' => 'Nama Beban (Akun)',
+        'type' => 'select',
+        'list' => false,
+        'req' => true,
+        'opts_sql' => 'SELECT nama_beban AS v, nama_beban || " — " || rekening_debet AS t FROM ref_akun ORDER BY nama_beban',
+      ),
+      'rekening_debet' => 
+      array (
+        'label' => 'Rekening Debet',
+        'type' => 'text',
+        'list' => false,
+        'req' => true,
+      ),
+      'rekening_kredit' => 
+      array (
+        'label' => 'Rekening Kredit',
+        'type' => 'text',
+        'list' => false,
+        'req' => true,
+      ),
+      'uraian' => 
+      array (
+        'label' => 'Uraian',
+        'type' => 'textarea',
+        'list' => true,
+        'req' => true,
+      ),
+      'jumlah' => 
+      array (
+        'label' => 'Jumlah',
+        'type' => 'money',
+        'list' => true,
+        'fmt' => 'money',
+        'req' => true,
+      ),
+      'no_nota' => 
+      array (
+        'label' => 'No. Nota',
+        'type' => 'text',
+        'list' => false,
+        'req' => true,
+      ),
+      'dibuat_oleh' => 
+      array (
+        'label' => 'Dibuat Oleh',
+        'type' => 'auto_user',
+        'list' => false,
+        'req' => false,
+      ),
+    ),
+  ),
+  'fasilitas_kantor' => 
+  array (
+    'model' => 'App\\Models\\UmFasilitasKantor',
+    'perm' => 'umum_rt',
+    'modul' => 'Umum & Rumah Tangga',
+    'judul' => 'Master Fasilitas Kantor',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'nama_fasilitas' => 
+      array (
+        'label' => 'Nama Fasilitas',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'kode' => 
+      array (
+        'label' => 'Kode',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'kategori' => 
+      array (
+        'label' => 'Kategori',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Ruangan',
+          1 => 'Peralatan',
+          2 => 'Furnitur',
+          3 => 'Elektronik',
+          4 => 'Kendaraan',
+          5 => 'Lainnya',
+        ),
+      ),
+      'lokasi' => 
+      array (
+        'label' => 'Lokasi',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'kondisi' => 
+      array (
+        'label' => 'Kondisi',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Baik',
+          1 => 'Perlu Perawatan',
+          2 => 'Rusak Ringan',
+          3 => 'Rusak Berat',
+        ),
+      ),
+      'tanggal_perolehan' => 
+      array (
+        'label' => 'Tgl Perolehan',
+        'type' => 'date',
+        'list' => false,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'penanggung_jawab' => 
+      array (
+        'label' => 'Penanggung Jawab',
+        'type' => 'text',
+        'list' => false,
+        'req' => true,
+      ),
+      'keterangan' => 
+      array (
+        'label' => 'Keterangan',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+    ),
+  ),
+  'pemeliharaan_gedung' => 
+  array (
+    'model' => 'App\\Models\\UmPemeliharaanGedung',
+    'perm' => 'umum_rt',
+    'modul' => 'Umum & Rumah Tangga',
+    'judul' => 'Pemeliharaan Gedung & Utilitas',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'jenis_pekerjaan' => 
+      array (
+        'label' => 'Jenis Pekerjaan',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Gedung',
+          1 => 'Listrik',
+          2 => 'Air & Sanitasi',
+          3 => 'AC & Ventilasi',
+          4 => 'Lift',
+          5 => 'Taman',
+          6 => 'Lainnya',
+        ),
+      ),
+      'uraian' => 
+      array (
+        'label' => 'Uraian',
+        'type' => 'textarea',
+        'list' => true,
+        'req' => true,
+      ),
+      'lokasi' => 
+      array (
+        'label' => 'Lokasi',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'tanggal_rencana' => 
+      array (
+        'label' => 'Tgl Rencana',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'tanggal_realisasi' => 
+      array (
+        'label' => 'Tgl Realisasi',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'vendor' => 
+      array (
+        'label' => 'Vendor / Pelaksana',
+        'type' => 'text',
+        'list' => false,
+        'req' => true,
+      ),
+      'biaya' => 
+      array (
+        'label' => 'Biaya',
+        'type' => 'money',
+        'list' => true,
+        'fmt' => 'money',
+        'req' => true,
+      ),
+      'status' => 
+      array (
+        'label' => 'Status',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Dijadwalkan',
+          1 => 'Berjalan',
+          2 => 'Selesai',
+          3 => 'Ditunda',
+        ),
+      ),
+    ),
+  ),
+  'checklist_kebersihan' => 
+  array (
+    'model' => 'App\\Models\\UmChecklistKebersihan',
+    'perm' => 'umum_rt',
+    'modul' => 'Umum & Rumah Tangga',
+    'judul' => 'Checklist Kebersihan & Keamanan',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'tanggal' => 
+      array (
+        'label' => 'Tanggal',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+        'default' => 'today',
+      ),
+      'jenis' => 
+      array (
+        'label' => 'Jenis',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Kebersihan Harian',
+          1 => 'Kebersihan Mingguan',
+          2 => 'Keamanan Harian',
+          3 => 'Keamanan Mingguan',
+        ),
+      ),
+      'area' => 
+      array (
+        'label' => 'Area',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'petugas' => 
+      array (
+        'label' => 'Petugas',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'status' => 
+      array (
+        'label' => 'Status',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Belum Dilakukan',
+          1 => 'Selesai',
+          2 => 'Ada Catatan',
+        ),
+      ),
+      'catatan' => 
+      array (
+        'label' => 'Catatan',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+      'dibuat_oleh' => 
+      array (
+        'label' => 'Dibuat Oleh',
+        'type' => 'auto_user',
+        'list' => false,
+        'req' => false,
+      ),
+    ),
+  ),
+  'k3_insiden' => 
+  array (
+    'model' => 'App\\Models\\UmK3Insiden',
+    'perm' => 'umum_rt',
+    'modul' => 'Umum & Rumah Tangga',
+    'judul' => 'Catatan K3 & Lingkungan',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'tanggal' => 
+      array (
+        'label' => 'Tanggal Kejadian',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+        'default' => 'today',
+      ),
+      'jenis' => 
+      array (
+        'label' => 'Jenis',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Insiden K3',
+          1 => 'Near Miss',
+          2 => 'Isu Lingkungan',
+          3 => 'Isu Ergonomi',
+          4 => 'Lainnya',
+        ),
+      ),
+      'lokasi' => 
+      array (
+        'label' => 'Lokasi',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'uraian' => 
+      array (
+        'label' => 'Uraian Kejadian',
+        'type' => 'textarea',
+        'list' => true,
+        'req' => true,
+      ),
+      'korban' => 
+      array (
+        'label' => 'Korban / Yang Terdampak',
+        'type' => 'text',
+        'list' => false,
+        'req' => true,
+      ),
+      'tindak_lanjut' => 
+      array (
+        'label' => 'Tindak Lanjut',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+      'status' => 
+      array (
+        'label' => 'Status',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Open',
+          1 => 'Dalam Penanganan',
+          2 => 'Selesai',
+        ),
+      ),
+      'dibuat_oleh' => 
+      array (
+        'label' => 'Dilaporkan Oleh',
+        'type' => 'auto_user',
+        'list' => false,
+        'req' => false,
+      ),
+    ),
+  ),
+  'invoice_sewa' => 
+  array (
+    'model' => 'App\\Models\\AsInvoiceSewa',
+    'perm' => 'logistik_pelaporan',
+    'modul' => 'Logistik & Pelaporan',
+    'judul' => 'Tagihan / Invoice Sewa',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'no_invoice' => 
+      array (
+        'label' => 'No. Invoice',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'vendor' => 
+      array (
+        'label' => 'Vendor',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'jenis_sewa' => 
+      array (
+        'label' => 'Jenis Sewa',
+        'type' => 'select',
+        'list' => true,
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Aplikasi',
+          1 => 'Mesin ATM',
+          2 => 'Brankas',
+          3 => 'Perangkat IT',
+          4 => 'Software',
+          5 => 'Hardware',
+        ),
+      ),
+      'periode_mulai' => 
+      array (
+        'label' => 'Periode Mulai',
+        'type' => 'date',
+        'list' => false,
+        'req' => true,
+      ),
+      'periode_selesai' => 
+      array (
+        'label' => 'Periode Selesai',
+        'type' => 'date',
+        'list' => false,
+        'req' => true,
+      ),
+      'nilai' => 
+      array (
+        'label' => 'Nilai',
+        'type' => 'money',
+        'list' => true,
+        'fmt' => 'money',
+        'req' => true,
+      ),
+      'jatuh_tempo' => 
+      array (
+        'label' => 'Jatuh Tempo',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'status' => 
+      array (
+        'label' => 'Status',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Belum Bayar',
+          1 => 'Proses',
+          2 => 'Lunas',
+        ),
+      ),
+      'keterangan' => 
+      array (
+        'label' => 'Keterangan',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+    ),
+  ),
+  'aset' => 
+  array (
+    'model' => 'App\\Models\\AsAset',
+    'perm' => 'administrasi_aset',
+    'modul' => 'Administrasi Aset & Inventaris',
+    'judul' => 'Inventarisasi Aset',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'kode_aset' => 
+      array (
+        'label' => 'Kode Aset',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'nama_aset' => 
+      array (
+        'label' => 'Nama Aset',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'kategori' => 
+      array (
+        'label' => 'Kategori',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'lokasi' => 
+      array (
+        'label' => 'Lokasi',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'tanggal_perolehan' => 
+      array (
+        'label' => 'Tgl Perolehan',
+        'type' => 'date',
+        'list' => false,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'nilai_perolehan' => 
+      array (
+        'label' => 'Nilai Perolehan',
+        'type' => 'money',
+        'list' => true,
+        'fmt' => 'money',
+        'req' => true,
+      ),
+      'umur_ekonomis' => 
+      array (
+        'label' => 'Umur Ekonomis (bln)',
+        'type' => 'number',
+        'list' => false,
+        'req' => true,
+      ),
+      'kondisi' => 
+      array (
+        'label' => 'Kondisi',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Baik',
+          1 => 'Rusak Ringan',
+          2 => 'Rusak Berat',
+        ),
+      ),
+      'penanggung_jawab' => 
+      array (
+        'label' => 'Penanggung Jawab',
+        'type' => 'text',
+        'list' => false,
+        'req' => true,
+      ),
+      'keterangan' => 
+      array (
+        'label' => 'Keterangan',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+    ),
+  ),
+  'amortisasi' => 
+  array (
+    'model' => 'App\\Models\\AsAmortisasi',
+    'perm' => 'administrasi_aset',
+    'modul' => 'Administrasi Aset & Inventaris',
+    'judul' => 'Amortisasi Biaya',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'nama_biaya' => 
+      array (
+        'label' => 'Nama Biaya',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'nilai_perolehan' => 
+      array (
+        'label' => 'Nilai Perolehan',
+        'type' => 'money',
+        'list' => true,
+        'fmt' => 'money',
+        'req' => true,
+      ),
+      'tanggal_mulai' => 
+      array (
+        'label' => 'Tgl Mulai',
+        'type' => 'date',
+        'list' => false,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'umur_bulan' => 
+      array (
+        'label' => 'Umur (bulan)',
+        'type' => 'number',
+        'list' => true,
+        'req' => true,
+      ),
+      'nilai_per_bulan' => 
+      array (
+        'label' => 'Nilai / Bulan',
+        'type' => 'money',
+        'list' => true,
+        'fmt' => 'money',
+        'req' => true,
+        'help' => 'Dihitung otomatis bila dikosongkan (nilai ÷ umur)',
+      ),
+      'akumulasi' => 
+      array (
+        'label' => 'Akumulasi',
+        'type' => 'money',
+        'list' => false,
+        'fmt' => 'money',
+        'req' => true,
+      ),
+      'nilai_buku' => 
+      array (
+        'label' => 'Nilai Buku',
+        'type' => 'money',
+        'list' => true,
+        'fmt' => 'money',
+        'req' => true,
+      ),
+      'keterangan' => 
+      array (
+        'label' => 'Keterangan',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+    ),
+  ),
+  'pks' => 
+  array (
+    'model' => 'App\\Models\\AsPks',
+    'perm' => 'logistik_pelaporan',
+    'modul' => 'Logistik & Pelaporan',
+    'judul' => 'PKS & Jatuh Tempo',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'no_pks' => 
+      array (
+        'label' => 'No. PKS',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'judul' => 
+      array (
+        'label' => 'Judul PKS',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'vendor' => 
+      array (
+        'label' => 'Vendor / Pihak',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'div_owner' => 
+      array (
+        'label' => 'Divisi Owner',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'tanggal_mulai' => 
+      array (
+        'label' => 'Tgl Mulai',
+        'type' => 'date',
+        'list' => false,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'jatuh_tempo' => 
+      array (
+        'label' => 'Jatuh Tempo',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'nilai' => 
+      array (
+        'label' => 'Nilai',
+        'type' => 'money',
+        'list' => false,
+        'fmt' => 'money',
+        'req' => true,
+      ),
+      'status' => 
+      array (
+        'label' => 'Status',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Aktif',
+          1 => 'Akan Jatuh Tempo',
+          2 => 'Berakhir',
+          3 => 'Diperpanjang',
+        ),
+      ),
+      'memo_dibuat' => 
+      array (
+        'label' => 'Memo ke Div Owner Dibuat',
+        'type' => 'checkbox',
+        'list' => true,
+        'req' => true,
+      ),
+      'keterangan' => 
+      array (
+        'label' => 'Keterangan',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+    ),
+  ),
+  'memo_sewa_cabang' => 
+  array (
+    'model' => 'App\\Models\\AsMemoSewaCabang',
+    'perm' => 'logistik_pelaporan',
+    'modul' => 'Logistik & Pelaporan',
+    'judul' => 'Memo Sewa Cabang',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'no_memo' => 
+      array (
+        'label' => 'No. Memo',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'cabang' => 
+      array (
+        'label' => 'Cabang',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'jenis' => 
+      array (
+        'label' => 'Jenis Sewa',
+        'type' => 'select',
+        'list' => true,
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Galeri ATM',
+          1 => 'Gedung Kantor',
+          2 => 'Gudang',
+          3 => 'Rumah Dinas',
+        ),
+      ),
+      'tanggal' => 
+      array (
+        'label' => 'Tanggal',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'nilai' => 
+      array (
+        'label' => 'Nilai',
+        'type' => 'money',
+        'list' => true,
+        'fmt' => 'money',
+        'req' => true,
+      ),
+      'keterangan' => 
+      array (
+        'label' => 'Keterangan',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+    ),
+  ),
+  'temuan' => 
+  array (
+    'model' => 'App\\Models\\AsTemuan',
+    'perm' => 'administrasi_aset',
+    'modul' => 'Administrasi Aset & Inventaris',
+    'judul' => 'Tindak Lanjut Temuan',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'no_temuan' => 
+      array (
+        'label' => 'No. Temuan',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'sumber' => 
+      array (
+        'label' => 'Sumber',
+        'type' => 'select',
+        'list' => true,
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Audit Internal',
+          1 => 'OJK',
+          2 => 'KAP',
+          3 => 'Lainnya',
+        ),
+      ),
+      'uraian' => 
+      array (
+        'label' => 'Uraian Temuan',
+        'type' => 'textarea',
+        'list' => true,
+        'req' => true,
+      ),
+      'tanggal_temuan' => 
+      array (
+        'label' => 'Tgl Temuan',
+        'type' => 'date',
+        'list' => false,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'batas_tindak_lanjut' => 
+      array (
+        'label' => 'Batas Tindak Lanjut',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'status' => 
+      array (
+        'label' => 'Status',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Open',
+          1 => 'Proses',
+          2 => 'Selesai',
+        ),
+      ),
+      'penanggung_jawab' => 
+      array (
+        'label' => 'Penanggung Jawab',
+        'type' => 'text',
+        'list' => false,
+        'req' => true,
+      ),
+      'tindak_lanjut' => 
+      array (
+        'label' => 'Tindak Lanjut',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+    ),
+  ),
+  'aset_history' => 
+  array (
+    'model' => 'App\\Models\\AsAsetHistory',
+    'perm' => 'administrasi_aset',
+    'modul' => 'Administrasi Aset & Inventaris',
+    'judul' => 'Riwayat Pergerakan Aset',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'aset_id' => 
+      array (
+        'label' => 'ID Aset',
+        'type' => 'number',
+        'list' => true,
+        'req' => true,
+      ),
+      'field_changed' => 
+      array (
+        'label' => 'Perubahan',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'old_value' => 
+      array (
+        'label' => 'Nilai Lama',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'new_value' => 
+      array (
+        'label' => 'Nilai Baru',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'keterangan' => 
+      array (
+        'label' => 'Keterangan',
+        'type' => 'textarea',
+        'list' => true,
+        'req' => true,
+      ),
+      'changed_at' => 
+      array (
+        'label' => 'Waktu Perubahan',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+    ),
+  ),
+  'mutasi_aset' => 
+  array (
+    'model' => 'App\\Models\\AsMutasiAset',
+    'perm' => 'administrasi_aset',
+    'modul' => 'Administrasi Aset & Inventaris',
+    'judul' => 'Mutasi Aset',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'no_mutasi' => 
+      array (
+        'label' => 'No. Mutasi',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'aset_id' => 
+      array (
+        'label' => 'ID Aset',
+        'type' => 'number',
+        'list' => true,
+        'req' => true,
+      ),
+      'dari_lokasi' => 
+      array (
+        'label' => 'Dari Lokasi',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'ke_lokasi' => 
+      array (
+        'label' => 'Ke Lokasi',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'dari_penanggung_jawab' => 
+      array (
+        'label' => 'Dari PJ',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'ke_penanggung_jawab' => 
+      array (
+        'label' => 'Ke PJ',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'alasan' => 
+      array (
+        'label' => 'Alasan Mutasi',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+      'keterangan' => 
+      array (
+        'label' => 'Keterangan',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+    ),
+  ),
+  'disposal_aset' => 
+  array (
+    'model' => 'App\\Models\\AsDisposalAset',
+    'perm' => 'administrasi_aset',
+    'modul' => 'Administrasi Aset & Inventaris',
+    'judul' => 'Penghapusan Aset (Disposal)',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'no_disposal' => 
+      array (
+        'label' => 'No. Disposal',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'aset_id' => 
+      array (
+        'label' => 'ID Aset',
+        'type' => 'number',
+        'list' => true,
+        'req' => true,
+      ),
+      'tanggal_pengajuan' => 
+      array (
+        'label' => 'Tgl Pengajuan',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'alasan_penghapusan' => 
+      array (
+        'label' => 'Alasan Penghapusan',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'metode' => 
+      array (
+        'label' => 'Metode',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Dihibahkan',
+          1 => 'Dijual',
+          2 => 'Dimusnahkan',
+          3 => 'Dihapusbukukan',
+        ),
+      ),
+      'nilai_buku_terakhir' => 
+      array (
+        'label' => 'Nilai Buku Terakhir',
+        'type' => 'money',
+        'list' => true,
+        'fmt' => 'money',
+        'req' => true,
+      ),
+      'keterangan' => 
+      array (
+        'label' => 'Keterangan',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+    ),
+  ),
+  'rekonsiliasi_aset' => 
+  array (
+    'model' => 'App\\Models\\AsRekonsiliasiAset',
+    'perm' => 'administrasi_aset',
+    'modul' => 'Administrasi Aset & Inventaris',
+    'judul' => 'Rekonsiliasi & Reklasifikasi Aset',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'no_rekonsiliasi' => 
+      array (
+        'label' => 'No. Rekonsiliasi',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'periode' => 
+      array (
+        'label' => 'Periode',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'tanggal' => 
+      array (
+        'label' => 'Tanggal',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'jenis' => 
+      array (
+        'label' => 'Jenis Kegiatan',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Rekonsiliasi',
+          1 => 'Reklasifikasi',
+        ),
+      ),
+      'aset_id' => 
+      array (
+        'label' => 'ID Aset',
+        'type' => 'number',
+        'list' => false,
+        'req' => true,
+      ),
+      'kategori_awal' => 
+      array (
+        'label' => 'Kategori Semula',
+        'type' => 'text',
+        'list' => false,
+        'req' => true,
+      ),
+      'kategori_baru' => 
+      array (
+        'label' => 'Kategori Baru',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'kondisi_awal' => 
+      array (
+        'label' => 'Kondisi Semula',
+        'type' => 'select',
+        'list' => false,
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Baik',
+          1 => 'Rusak Ringan',
+          2 => 'Rusak Berat',
+        ),
+      ),
+      'kondisi_baru' => 
+      array (
+        'label' => 'Kondisi Hasil Cek',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Baik',
+          1 => 'Rusak Ringan',
+          2 => 'Rusak Berat',
+        ),
+      ),
+      'hasil_rekonsiliasi' => 
+      array (
+        'label' => 'Hasil Rekonsiliasi',
+        'type' => 'textarea',
+        'list' => true,
+        'req' => true,
+      ),
+      'petugas' => 
+      array (
+        'label' => 'Petugas Pemeriksa',
+        'type' => 'text',
+        'list' => false,
+        'req' => true,
+      ),
+      'status' => 
+      array (
+        'label' => 'Status',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Proses',
+          1 => 'Selesai',
+        ),
+      ),
+      'keterangan' => 
+      array (
+        'label' => 'Keterangan',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+    ),
+  ),
+  'penerimaan_barang' => 
+  array (
+    'model' => 'App\\Models\\AsPenerimaanBarang',
+    'perm' => 'logistik_pelaporan',
+    'modul' => 'Logistik & Pelaporan',
+    'judul' => 'Penerimaan Barang / Jasa',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'no_penerimaan' => 
+      array (
+        'label' => 'No. Penerimaan',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'tanggal' => 
+      array (
+        'label' => 'Tanggal Masuk',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'vendor' => 
+      array (
+        'label' => 'Vendor / Penyedia',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'nama_barang' => 
+      array (
+        'label' => 'Nama Barang / Jasa',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'jumlah' => 
+      array (
+        'label' => 'Jumlah',
+        'type' => 'number',
+        'list' => true,
+        'req' => true,
+      ),
+      'satuan' => 
+      array (
+        'label' => 'Satuan',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'kondisi' => 
+      array (
+        'label' => 'Kondisi Barang',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Baik',
+          1 => 'Rusak',
+          2 => 'Tidak Sesuai',
+        ),
+      ),
+      'penerima' => 
+      array (
+        'label' => 'Penerima',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'status' => 
+      array (
+        'label' => 'Status',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Diterima',
+          1 => 'Diperiksa',
+          2 => 'Disimpan',
+        ),
+      ),
+      'keterangan' => 
+      array (
+        'label' => 'Keterangan',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+    ),
+  ),
+  'distribusi_barang' => 
+  array (
+    'model' => 'App\\Models\\AsDistribusiBarang',
+    'perm' => 'logistik_pelaporan',
+    'modul' => 'Logistik & Pelaporan',
+    'judul' => 'Distribusi Barang / Jasa',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'no_distribusi' => 
+      array (
+        'label' => 'No. Distribusi',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'tanggal' => 
+      array (
+        'label' => 'Tanggal Keluar',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'nama_barang' => 
+      array (
+        'label' => 'Nama Barang / Jasa',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'jumlah' => 
+      array (
+        'label' => 'Jumlah',
+        'type' => 'number',
+        'list' => true,
+        'req' => true,
+      ),
+      'satuan' => 
+      array (
+        'label' => 'Satuan',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'tujuan_unit' => 
+      array (
+        'label' => 'Unit / Cabang Tujuan',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'penerima' => 
+      array (
+        'label' => 'Nama Penerima',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'status' => 
+      array (
+        'label' => 'Status',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Disiapkan',
+          1 => 'Terkirim',
+          2 => 'Diterima',
+        ),
+      ),
+      'keterangan' => 
+      array (
+        'label' => 'Keterangan',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+    ),
+  ),
+  'pembayaran_tagihan' => 
+  array (
+    'model' => 'App\\Models\\AsPembayaranTagihan',
+    'perm' => 'logistik_pelaporan',
+    'modul' => 'Logistik & Pelaporan',
+    'judul' => 'Administrasi Pembayaran Tagihan',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'no_tagihan' => 
+      array (
+        'label' => 'No. Tagihan',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'tanggal_tagihan' => 
+      array (
+        'label' => 'Tgl Tagihan',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'tanggal_bayar' => 
+      array (
+        'label' => 'Tgl Bayar',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'vendor' => 
+      array (
+        'label' => 'Vendor / Rekanan',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'uraian' => 
+      array (
+        'label' => 'Uraian Pembayaran',
+        'type' => 'textarea',
+        'list' => true,
+        'req' => true,
+      ),
+      'nilai' => 
+      array (
+        'label' => 'Nilai Tagihan',
+        'type' => 'money',
+        'list' => true,
+        'fmt' => 'money',
+        'req' => true,
+      ),
+      'no_rekening' => 
+      array (
+        'label' => 'No. Rekening Tujuan',
+        'type' => 'text',
+        'list' => false,
+        'req' => true,
+      ),
+      'status' => 
+      array (
+        'label' => 'Status Pembayaran',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Belum Bayar',
+          1 => 'Proses',
+          2 => 'Lunas',
+        ),
+      ),
+      'keterangan' => 
+      array (
+        'label' => 'Keterangan',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+    ),
+  ),
+  'memo_internal' => 
+  array (
+    'model' => 'App\\Models\\PgMemoInternal',
+    'perm' => 'pengadaan',
+    'modul' => 'Pengadaan & Pemeliharaan',
+    'judul' => 'Memo Internal',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'no_memo' => 
+      array (
+        'label' => 'No. Memo',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'dari_unit' => 
+      array (
+        'label' => 'Dari Unit',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'ke_unit' => 
+      array (
+        'label' => 'Ke Unit',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'perihal' => 
+      array (
+        'label' => 'Perihal',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'tanggal' => 
+      array (
+        'label' => 'Tanggal',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'jenis' => 
+      array (
+        'label' => 'Jenis',
+        'type' => 'select',
+        'list' => false,
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Divisi',
+          1 => 'Cabang',
+          2 => 'Cabang Pembantu',
+          3 => 'Kantor Kas',
+        ),
+      ),
+      'status' => 
+      array (
+        'label' => 'Status',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Masuk',
+          1 => 'Diproses',
+          2 => 'Selesai',
+        ),
+      ),
+      'keterangan' => 
+      array (
+        'label' => 'Keterangan',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+    ),
+  ),
+  'penawaran' => 
+  array (
+    'model' => 'App\\Models\\PgPenawaran',
+    'perm' => 'pengadaan',
+    'modul' => 'Pengadaan & Pemeliharaan',
+    'judul' => 'Penawaran Vendor',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'no_penawaran' => 
+      array (
+        'label' => 'No. Penawaran',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'vendor' => 
+      array (
+        'label' => 'Vendor',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'barang_jasa' => 
+      array (
+        'label' => 'Barang / Jasa',
+        'type' => 'textarea',
+        'list' => true,
+        'req' => true,
+      ),
+      'nilai' => 
+      array (
+        'label' => 'Nilai Penawaran',
+        'type' => 'money',
+        'list' => true,
+        'fmt' => 'money',
+        'req' => true,
+      ),
+      'tanggal' => 
+      array (
+        'label' => 'Tanggal',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'status' => 
+      array (
+        'label' => 'Status',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Diterima',
+          1 => 'Evaluasi',
+          2 => 'Negosiasi',
+          3 => 'Ditolak',
+        ),
+      ),
+      'keterangan' => 
+      array (
+        'label' => 'Keterangan',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+    ),
+  ),
+  'negosiasi' => 
+  array (
+    'model' => 'App\\Models\\PgNegosiasi',
+    'perm' => 'pengadaan',
+    'modul' => 'Pengadaan & Pemeliharaan',
+    'judul' => 'Negosiasi (Berita Acara)',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'no_berita_acara' => 
+      array (
+        'label' => 'No. Berita Acara',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'vendor' => 
+      array (
+        'label' => 'Vendor',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'barang_jasa' => 
+      array (
+        'label' => 'Barang / Jasa',
+        'type' => 'textarea',
+        'list' => true,
+        'req' => true,
+      ),
+      'nilai_awal' => 
+      array (
+        'label' => 'Nilai Awal',
+        'type' => 'money',
+        'list' => true,
+        'fmt' => 'money',
+        'req' => true,
+      ),
+      'nilai_nego' => 
+      array (
+        'label' => 'Nilai Nego',
+        'type' => 'money',
+        'list' => true,
+        'fmt' => 'money',
+        'req' => true,
+      ),
+      'tanggal' => 
+      array (
+        'label' => 'Tanggal',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'hasil' => 
+      array (
+        'label' => 'Hasil',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+    ),
+  ),
+  'draft_dokumen' => 
+  array (
+    'model' => 'App\\Models\\PgDraftDokumen',
+    'perm' => 'pengadaan',
+    'modul' => 'Pengadaan & Pemeliharaan',
+    'judul' => 'Draft Dokumen (PKS/NDA/SPK)',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'jenis' => 
+      array (
+        'label' => 'Jenis',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'PKS',
+          1 => 'NDA',
+          2 => 'SPK',
+          3 => 'Lainnya',
+        ),
+      ),
+      'no_dokumen' => 
+      array (
+        'label' => 'No. Dokumen',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'judul' => 
+      array (
+        'label' => 'Judul',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'vendor' => 
+      array (
+        'label' => 'Vendor',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'tanggal' => 
+      array (
+        'label' => 'Tanggal',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'status' => 
+      array (
+        'label' => 'Status',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Draft',
+          1 => 'Review',
+          2 => 'Final',
+        ),
+      ),
+      'keterangan' => 
+      array (
+        'label' => 'Keterangan',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+    ),
+  ),
+  'spk' => 
+  array (
+    'model' => 'App\\Models\\PgSpk',
+    'perm' => 'pengadaan',
+    'modul' => 'Pengadaan & Pemeliharaan',
+    'judul' => 'SPK (Surat Perintah Kerja)',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'no_spk' => 
+      array (
+        'label' => 'No. SPK',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'vendor' => 
+      array (
+        'label' => 'Vendor',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'pekerjaan' => 
+      array (
+        'label' => 'Pekerjaan',
+        'type' => 'textarea',
+        'list' => true,
+        'req' => true,
+      ),
+      'nilai' => 
+      array (
+        'label' => 'Nilai',
+        'type' => 'money',
+        'list' => true,
+        'fmt' => 'money',
+        'req' => true,
+      ),
+      'tanggal_terbit' => 
+      array (
+        'label' => 'Tgl Terbit',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'tanggal_selesai' => 
+      array (
+        'label' => 'Tgl Selesai',
+        'type' => 'date',
+        'list' => false,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'status' => 
+      array (
+        'label' => 'Status',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Berjalan',
+          1 => 'Selesai',
+          2 => 'Batal',
+        ),
+      ),
+      'keterangan' => 
+      array (
+        'label' => 'Keterangan',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+    ),
+  ),
+  'reminder' => 
+  array (
+    'model' => 'App\\Models\\PgReminder',
+    'perm' => 'pengadaan',
+    'modul' => 'Pengadaan & Pemeliharaan',
+    'judul' => 'Reminder Schedule',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'judul' => 
+      array (
+        'label' => 'Judul',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'kategori' => 
+      array (
+        'label' => 'Kategori',
+        'type' => 'select',
+        'list' => true,
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'PKS',
+          1 => 'Sewa',
+          2 => 'SPK',
+          3 => 'Pemeliharaan',
+          4 => 'Lainnya',
+        ),
+      ),
+      'tanggal_jatuh_tempo' => 
+      array (
+        'label' => 'Tgl Jatuh Tempo',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'status' => 
+      array (
+        'label' => 'Status',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Aktif',
+          1 => 'Selesai',
+        ),
+      ),
+      'catatan' => 
+      array (
+        'label' => 'Catatan',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+    ),
+  ),
+  'ref_akun' => 
+  array (
+    'model' => 'App\\Models\\RefAkun',
+    'perm' => 'ref_akun',
+    'modul' => 'Pengaturan',
+    'judul' => 'Referensi Akun Biaya',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'nama_beban' => 
+      array (
+        'label' => 'Nama Beban',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'rekening_debet' => 
+      array (
+        'label' => 'Rekening Debet',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'contoh_keterangan' => 
+      array (
+        'label' => 'Contoh Keterangan',
+        'type' => 'textarea',
+        'list' => true,
+        'req' => true,
+      ),
+    ),
+  ),
+  'surat_masuk' => 
+  array (
+    'model' => 'App\\Models\\SrSuratMasuk',
+    'perm' => 'dokumen_arsip',
+    'modul' => 'Dokumen & Kearsipan',
+    'judul' => 'Surat Masuk',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'nomor_agenda' => 
+      array (
+        'label' => 'Nomor Agenda',
+        'type' => 'number',
+        'list' => true,
+        'req' => true,
+        'help' => 'Rekomendasi otomatis (+10 setiap hari baru, +1 di hari yang sama) — boleh diubah / disisip nomor untuk tanggal sebelumnya.',
+      ),
+      'no_surat' => 
+      array (
+        'label' => 'No. Surat',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'pengirim' => 
+      array (
+        'label' => 'Pengirim',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'perihal' => 
+      array (
+        'label' => 'Perihal',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'tanggal' => 
+      array (
+        'label' => 'Tanggal',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+        'default' => 'today',
+      ),
+      'penerima' => 
+      array (
+        'label' => 'Penerima',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'lokasi_arsip' => 
+      array (
+        'label' => 'Lokasi Arsip',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+        'help' => 'cth: Lemari A / Ordner 3 / Map Merah',
+      ),
+      'masa_retensi' => 
+      array (
+        'label' => 'Masa Retensi (tahun)',
+        'type' => 'number',
+        'list' => false,
+        'req' => true,
+      ),
+      'status_arsip' => 
+      array (
+        'label' => 'Status Arsip',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Aktif',
+          1 => 'Arsip',
+          2 => 'Musnah',
+        ),
+      ),
+      'dibuat_oleh' => 
+      array (
+        'label' => 'Dibuat Oleh',
+        'type' => 'auto_user',
+        'list' => false,
+        'req' => false,
+      ),
+    ),
+  ),
+  'surat_keluar' => 
+  array (
+    'model' => 'App\\Models\\SrSuratKeluar',
+    'perm' => 'dokumen_arsip',
+    'modul' => 'Dokumen & Kearsipan',
+    'judul' => 'Surat Keluar',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'nomor_agenda' => 
+      array (
+        'label' => 'Nomor Agenda',
+        'type' => 'number',
+        'list' => true,
+        'req' => true,
+        'help' => 'Rekomendasi otomatis (+10 setiap hari baru, +1 di hari yang sama) — boleh diubah / disisip nomor untuk tanggal sebelumnya.',
+      ),
+      'no_surat' => 
+      array (
+        'label' => 'No. Surat',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'pengirim' => 
+      array (
+        'label' => 'Pengirim (Unit)',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'perihal' => 
+      array (
+        'label' => 'Perihal',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'tanggal' => 
+      array (
+        'label' => 'Tanggal',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+        'default' => 'today',
+      ),
+      'penerima' => 
+      array (
+        'label' => 'Penerima / Tujuan',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'lokasi_arsip' => 
+      array (
+        'label' => 'Lokasi Arsip',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+        'help' => 'cth: Lemari A / Ordner 3 / Map Merah',
+      ),
+      'masa_retensi' => 
+      array (
+        'label' => 'Masa Retensi (tahun)',
+        'type' => 'number',
+        'list' => false,
+        'req' => true,
+      ),
+      'status_arsip' => 
+      array (
+        'label' => 'Status Arsip',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Aktif',
+          1 => 'Arsip',
+          2 => 'Musnah',
+        ),
+      ),
+      'dibuat_oleh' => 
+      array (
+        'label' => 'Dibuat Oleh',
+        'type' => 'auto_user',
+        'list' => false,
+        'req' => false,
+      ),
+    ),
+  ),
+  'memo_masuk' => 
+  array (
+    'model' => 'App\\Models\\SrMemoMasuk',
+    'perm' => 'dokumen_arsip',
+    'modul' => 'Dokumen & Kearsipan',
+    'judul' => 'Memo Masuk',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'nomor_agenda' => 
+      array (
+        'label' => 'Nomor Agenda',
+        'type' => 'number',
+        'list' => true,
+        'req' => true,
+        'help' => 'Rekomendasi otomatis (+10 setiap hari baru, +1 di hari yang sama) — boleh diubah / disisip nomor untuk tanggal sebelumnya.',
+      ),
+      'no_surat' => 
+      array (
+        'label' => 'No. Surat',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'pengirim' => 
+      array (
+        'label' => 'Pengirim',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'perihal' => 
+      array (
+        'label' => 'Perihal',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'tanggal' => 
+      array (
+        'label' => 'Tanggal',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+        'default' => 'today',
+      ),
+      'penerima' => 
+      array (
+        'label' => 'Penerima',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'lokasi_arsip' => 
+      array (
+        'label' => 'Lokasi Arsip',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+        'help' => 'cth: Lemari A / Ordner 3 / Map Merah',
+      ),
+      'masa_retensi' => 
+      array (
+        'label' => 'Masa Retensi (tahun)',
+        'type' => 'number',
+        'list' => false,
+        'req' => true,
+      ),
+      'status_arsip' => 
+      array (
+        'label' => 'Status Arsip',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Aktif',
+          1 => 'Arsip',
+          2 => 'Musnah',
+        ),
+      ),
+      'dibuat_oleh' => 
+      array (
+        'label' => 'Dibuat Oleh',
+        'type' => 'auto_user',
+        'list' => false,
+        'req' => false,
+      ),
+    ),
+  ),
+  'memo_keluar' => 
+  array (
+    'model' => 'App\\Models\\SrMemoKeluar',
+    'perm' => 'dokumen_arsip',
+    'modul' => 'Dokumen & Kearsipan',
+    'judul' => 'Memo Keluar',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'nomor_agenda' => 
+      array (
+        'label' => 'Nomor Agenda',
+        'type' => 'number',
+        'list' => true,
+        'req' => true,
+        'help' => 'Rekomendasi otomatis (+10 setiap hari baru, +1 di hari yang sama) — boleh diubah / disisip nomor untuk tanggal sebelumnya.',
+      ),
+      'no_surat' => 
+      array (
+        'label' => 'No. Surat',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'pengirim' => 
+      array (
+        'label' => 'Pengirim (Unit)',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'perihal' => 
+      array (
+        'label' => 'Perihal',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'tanggal' => 
+      array (
+        'label' => 'Tanggal',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+        'default' => 'today',
+      ),
+      'penerima' => 
+      array (
+        'label' => 'Penerima / Tujuan',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'lokasi_arsip' => 
+      array (
+        'label' => 'Lokasi Arsip',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+        'help' => 'cth: Lemari A / Ordner 3 / Map Merah',
+      ),
+      'masa_retensi' => 
+      array (
+        'label' => 'Masa Retensi (tahun)',
+        'type' => 'number',
+        'list' => false,
+        'req' => true,
+      ),
+      'status_arsip' => 
+      array (
+        'label' => 'Status Arsip',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Aktif',
+          1 => 'Arsip',
+          2 => 'Musnah',
+        ),
+      ),
+      'dibuat_oleh' => 
+      array (
+        'label' => 'Dibuat Oleh',
+        'type' => 'auto_user',
+        'list' => false,
+        'req' => false,
+      ),
+    ),
+  ),
+  'arsip_dokumen' => 
+  array (
+    'model' => 'App\\Models\\DkArsipDokumen',
+    'perm' => 'dokumen_arsip',
+    'modul' => 'Dokumen & Kearsipan',
+    'judul' => 'Master Arsip Dokumen',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'kode_arsip' => 
+      array (
+        'label' => 'Kode Arsip',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'judul' => 
+      array (
+        'label' => 'Judul Dokumen',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'jenis' => 
+      array (
+        'label' => 'Jenis',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Fisik',
+          1 => 'Digital',
+          2 => 'Fisik & Digital',
+        ),
+      ),
+      'kategori' => 
+      array (
+        'label' => 'Kategori',
+        'type' => 'select',
+        'list' => true,
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Surat',
+          1 => 'Memo',
+          2 => 'Kontrak',
+          3 => 'Laporan',
+          4 => 'SK',
+          5 => 'Kebijakan',
+          6 => 'Lainnya',
+        ),
+      ),
+      'tanggal_dokumen' => 
+      array (
+        'label' => 'Tanggal Dokumen',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'lokasi_arsip' => 
+      array (
+        'label' => 'Lokasi Arsip',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+        'help' => 'cth: Lemari A / Ordner 3 / Map Merah',
+      ),
+      'masa_retensi' => 
+      array (
+        'label' => 'Masa Retensi (tahun)',
+        'type' => 'number',
+        'list' => false,
+        'req' => true,
+      ),
+      'status_arsip' => 
+      array (
+        'label' => 'Status Arsip',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Aktif',
+          1 => 'Arsip',
+          2 => 'Musnah',
+        ),
+      ),
+      'keterangan' => 
+      array (
+        'label' => 'Keterangan',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+      'dibuat_oleh' => 
+      array (
+        'label' => 'Diinput Oleh',
+        'type' => 'auto_user',
+        'list' => false,
+        'req' => false,
+      ),
+    ),
+  ),
+  'dokumen_legalitas' => 
+  array (
+    'model' => 'App\\Models\\DkDokumenLegalitas',
+    'perm' => 'dokumen_arsip',
+    'modul' => 'Dokumen & Kearsipan',
+    'judul' => 'Dokumen Legalitas',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'nama_dokumen' => 
+      array (
+        'label' => 'Nama Dokumen',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'jenis' => 
+      array (
+        'label' => 'Jenis',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Izin Usaha',
+          1 => 'Sertifikat',
+          2 => 'NPWP',
+          3 => 'Akta',
+          4 => 'SK',
+          5 => 'Lisensi',
+          6 => 'Lainnya',
+        ),
+      ),
+      'no_dokumen' => 
+      array (
+        'label' => 'No. Dokumen',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'penerbit' => 
+      array (
+        'label' => 'Penerbit / Instansi',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'tanggal_terbit' => 
+      array (
+        'label' => 'Tgl Terbit',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'tanggal_berlaku' => 
+      array (
+        'label' => 'Tgl Berlaku Sampai',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'status' => 
+      array (
+        'label' => 'Status',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Aktif',
+          1 => 'Akan Kadaluarsa',
+          2 => 'Kadaluarsa',
+          3 => 'Diperpanjang',
+        ),
+      ),
+      'keterangan' => 
+      array (
+        'label' => 'Keterangan',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+    ),
+  ),
+  'perencanaan_kebutuhan' => 
+  array (
+    'model' => 'App\\Models\\PmPerencanaanKebutuhan',
+    'perm' => 'pengadaan',
+    'modul' => 'Pengadaan & Pemeliharaan',
+    'judul' => 'Perencanaan Kebutuhan',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'no_rencana' => 
+      array (
+        'label' => 'No. Rencana',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'periode' => 
+      array (
+        'label' => 'Periode',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+        'help' => 'cth: Q1 2026 / Semester I 2026',
+      ),
+      'jenis_kebutuhan' => 
+      array (
+        'label' => 'Jenis Kebutuhan',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Barang',
+          1 => 'Jasa',
+          2 => 'Aset',
+        ),
+      ),
+      'nama_item' => 
+      array (
+        'label' => 'Nama Barang / Jasa / Aset',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'jumlah' => 
+      array (
+        'label' => 'Jumlah',
+        'type' => 'number',
+        'list' => true,
+        'req' => true,
+      ),
+      'satuan' => 
+      array (
+        'label' => 'Satuan',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'spesifikasi' => 
+      array (
+        'label' => 'Spesifikasi / Keterangan',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+      'estimasi_harga' => 
+      array (
+        'label' => 'Estimasi Harga',
+        'type' => 'money',
+        'list' => true,
+        'fmt' => 'money',
+        'req' => true,
+      ),
+      'prioritas' => 
+      array (
+        'label' => 'Prioritas',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Darurat',
+          1 => 'Tinggi',
+          2 => 'Normal',
+          3 => 'Rendah',
+        ),
+      ),
+      'keterangan' => 
+      array (
+        'label' => 'Keterangan',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+    ),
+  ),
+  'jadwal_pemeliharaan' => 
+  array (
+    'model' => 'App\\Models\\PmJadwalPemeliharaan',
+    'perm' => 'pemeliharaan_pengawasan',
+    'modul' => 'Pemeliharaan & Pengawasan',
+    'judul' => 'Jadwal Pemeliharaan Rutin',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'no_jadwal' => 
+      array (
+        'label' => 'No. Jadwal',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'nama_aset' => 
+      array (
+        'label' => 'Nama Aset',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+        'help' => 'Nama atau kode aset yang akan dipelihara',
+      ),
+      'jenis_pemeliharaan' => 
+      array (
+        'label' => 'Jenis Pemeliharaan',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Rutin',
+          1 => 'Insidental',
+          2 => 'Preventif',
+          3 => 'Korektif',
+        ),
+      ),
+      'tanggal_rencana' => 
+      array (
+        'label' => 'Tgl Rencana',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'tanggal_realisasi' => 
+      array (
+        'label' => 'Tgl Realisasi',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'pelaksana' => 
+      array (
+        'label' => 'Pelaksana',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'status' => 
+      array (
+        'label' => 'Status',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Direncanakan',
+          1 => 'Dikerjakan',
+          2 => 'Selesai',
+          3 => 'Dibatalkan',
+        ),
+      ),
+      'keterangan' => 
+      array (
+        'label' => 'Keterangan',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+    ),
+  ),
+  'monitoring_kondisi' => 
+  array (
+    'model' => 'App\\Models\\PmMonitoringKondisi',
+    'perm' => 'pemeliharaan_pengawasan',
+    'modul' => 'Pemeliharaan & Pengawasan',
+    'judul' => 'Monitoring Kondisi Fisik Aset',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'nama_aset' => 
+      array (
+        'label' => 'Nama Aset',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'tanggal_inspeksi' => 
+      array (
+        'label' => 'Tgl Inspeksi',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+        'default' => 'today',
+      ),
+      'kondisi' => 
+      array (
+        'label' => 'Kondisi',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Baik',
+          1 => 'Rusak Ringan',
+          2 => 'Rusak Berat',
+        ),
+      ),
+      'temuan' => 
+      array (
+        'label' => 'Temuan',
+        'type' => 'textarea',
+        'list' => true,
+        'req' => true,
+      ),
+      'rekomendasi' => 
+      array (
+        'label' => 'Rekomendasi',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+      'petugas' => 
+      array (
+        'label' => 'Petugas Pemeriksa',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'status' => 
+      array (
+        'label' => 'Status',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Selesai',
+          1 => 'Perlu Tindak Lanjut',
+        ),
+      ),
+    ),
+  ),
+  'pengawasan_penggunaan' => 
+  array (
+    'model' => 'App\\Models\\PmPengawasanPenggunaan',
+    'perm' => 'pemeliharaan_pengawasan',
+    'modul' => 'Pemeliharaan & Pengawasan',
+    'judul' => 'Pengawasan Penggunaan Aset',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'nama_aset' => 
+      array (
+        'label' => 'Nama Aset',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'tanggal' => 
+      array (
+        'label' => 'Tanggal',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+        'default' => 'today',
+      ),
+      'pengguna' => 
+      array (
+        'label' => 'Unit / Pengguna',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'uraian_penggunaan' => 
+      array (
+        'label' => 'Uraian Penggunaan',
+        'type' => 'textarea',
+        'list' => true,
+        'req' => true,
+      ),
+      'kesesuaian' => 
+      array (
+        'label' => 'Kesesuaian Penggunaan',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Sesuai',
+          1 => 'Tidak Sesuai',
+          2 => 'Perlu Evaluasi',
+        ),
+      ),
+      'catatan' => 
+      array (
+        'label' => 'Catatan',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+      'petugas' => 
+      array (
+        'label' => 'Petugas Pengawas',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+    ),
+  ),
+  'tindak_lanjut_perbaikan' => 
+  array (
+    'model' => 'App\\Models\\PmTindakLanjutPerbaikan',
+    'perm' => 'pemeliharaan_pengawasan',
+    'modul' => 'Pemeliharaan & Pengawasan',
+    'judul' => 'Tindak Lanjut Perbaikan',
+    'maker_checker' => false,
+    'fields' => 
+    array (
+      'no_tindak_lanjut' => 
+      array (
+        'label' => 'No. TL',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'nama_aset' => 
+      array (
+        'label' => 'Nama Aset',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'sumber' => 
+      array (
+        'label' => 'Sumber Laporan',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Tiket',
+          1 => 'Inspeksi Mandiri',
+          2 => 'Pengawasan',
+          3 => 'Lainnya',
+        ),
+      ),
+      'uraian_kerusakan' => 
+      array (
+        'label' => 'Uraian Kerusakan',
+        'type' => 'textarea',
+        'list' => true,
+        'req' => true,
+      ),
+      'tanggal_laporan' => 
+      array (
+        'label' => 'Tgl Dilaporkan',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+        'default' => 'today',
+      ),
+      'tanggal_perbaikan' => 
+      array (
+        'label' => 'Tgl Perbaikan',
+        'type' => 'date',
+        'list' => true,
+        'fmt' => 'date',
+        'req' => true,
+      ),
+      'teknisi' => 
+      array (
+        'label' => 'Teknisi / Pelaksana',
+        'type' => 'text',
+        'list' => true,
+        'req' => true,
+      ),
+      'hasil_perbaikan' => 
+      array (
+        'label' => 'Hasil Perbaikan',
+        'type' => 'textarea',
+        'list' => false,
+        'req' => true,
+      ),
+      'status' => 
+      array (
+        'label' => 'Status',
+        'type' => 'select',
+        'list' => true,
+        'fmt' => 'badge',
+        'req' => true,
+        'opts' => 
+        array (
+          0 => 'Dilaporkan',
+          1 => 'Dalam Proses',
+          2 => 'Selesai',
+          3 => 'Ditangguhkan',
+        ),
+      ),
+    ),
+  ),
+);
