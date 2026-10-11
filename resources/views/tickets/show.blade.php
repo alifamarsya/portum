@@ -72,58 +72,125 @@
                                 </div>
                                 <p class="text-[11px] text-slate-400 mt-0.5">Verifikasi Operator &bull; Maks. 2 Jam Kerja</p>
                             </div>
-                            @if (auth()->user()->isOperator() && $ticket->status === 'Menunggu Verifikasi')
-                                <a href="{{ route('tickets.edit', $ticket) }}"
-                                   class="inline-flex items-center gap-1 bg-[#114E84] hover:bg-[#0E4272] text-white text-[11px] font-bold px-3 py-1.5 rounded-lg shadow-xs transition flex-shrink-0">
-                                    @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-3 h-3 text-white'])
-                                    Verifikasi &rarr;
-                                </a>
-                            @endif
+                            <div class="flex items-center gap-2 flex-shrink-0">
+                                @if ($sla['is_verified'])
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                        @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-3 h-3 text-emerald-600'])
+                                        Telah Diverifikasi
+                                    </span>
+                                @elseif ($sla['is_waiting_start'] ?? false)
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                        Menunggu Jam Kerja
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-blue-600 animate-ping"></span>
+                                        Berjalan
+                                    </span>
+                                @endif
+
+                                @if (auth()->user()->isOperator() && $ticket->status === 'Menunggu Verifikasi')
+                                    <a href="{{ route('tickets.edit', $ticket) }}"
+                                       class="inline-flex items-center gap-1 bg-[#114E84] hover:bg-[#0E4272] text-white text-[11px] font-bold px-3 py-1.5 rounded-lg shadow-xs transition">
+                                        @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-3 h-3 text-white'])
+                                        Verifikasi &rarr;
+                                    </a>
+                                @endif
+                            </div>
                         </div>
 
-                        {{-- Circular Timer & Center Metrics --}}
-                        <div class="flex flex-col sm:flex-row items-center gap-5 my-2">
-                            {{-- Circular Clock SVG --}}
-                            <div class="relative w-28 h-28 flex-shrink-0 flex items-center justify-center">
-                                <svg class="w-28 h-28 transform -rotate-90 origin-center" viewBox="0 0 100 100">
-                                    {{-- Background Track --}}
-                                    <circle cx="50" cy="50" r="44" stroke="#f1f5f9" stroke-width="8" fill="none" />
-                                    {{-- Progress Arc --}}
-                                    <circle cx="50" cy="50" r="44" stroke="{{ $slaStroke }}" stroke-width="8" stroke-linecap="round" fill="none"
-                                            stroke-dasharray="{{ $slaCircumference }}"
-                                            stroke-dashoffset="{{ $slaOffset }}"
-                                            class="transition-all duration-700 ease-out" />
-                                </svg>
-                                {{-- Text in Center of Circle --}}
-                                <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-2">
-                                    @if ($sla['is_verified'])
-                                        <span class="text-xs font-extrabold text-emerald-700 leading-tight">Selesai</span>
-                                        <span class="text-[9px] text-slate-400 font-medium">Diverifikasi</span>
-                                    @else
-                                        <span class="text-xs font-extrabold {{ $sla['is_overdue'] ? 'text-rose-600' : ($sla['is_warning'] ? 'text-amber-600' : 'text-slate-800') }} leading-tight">
-                                            {{ $sla['remaining_formatted'] }}
+                        {{-- Body: Menunggu Jam Kerja vs Circular Timer --}}
+                        @if ($sla['is_waiting_start'] ?? false)
+                            <div class="flex items-center gap-4 p-3.5 bg-amber-50/60 rounded-xl border border-amber-200/80 my-2">
+                                <div class="w-16 h-16 rounded-full border-2 border-dashed border-amber-300 flex items-center justify-center flex-shrink-0 bg-white text-amber-600 font-bold text-xs">
+                                    2j
+                                </div>
+                                <div class="text-xs text-amber-900 leading-relaxed">
+                                    <p class="font-bold">Timer Belum Dimulai</p>
+                                    <p class="text-[11px] text-amber-700 mt-0.5">
+                                        Berjalan otomatis saat jam kerja pada <strong>{{ $sla['start_at']->translatedFormat('l, d M Y - H:i') }} WITA</strong>. Target: 2 Jam Kerja Operator.
+                                    </p>
+                                </div>
+                            </div>
+                        @else
+                            {{-- Circular Timer & Center Metrics --}}
+                            <div class="flex flex-col sm:flex-row items-center gap-5 my-2">
+                                {{-- Circular Clock SVG --}}
+                                <div class="relative w-28 h-28 flex-shrink-0 flex items-center justify-center">
+                                    <svg class="w-28 h-28 transform -rotate-90 origin-center" viewBox="0 0 100 100">
+                                        {{-- Background Track --}}
+                                        <circle cx="50" cy="50" r="44" stroke="#f1f5f9" stroke-width="7" fill="none" />
+                                        {{-- Progress Arc --}}
+                                        <circle cx="50" cy="50" r="44" stroke="{{ $slaStroke }}" stroke-width="7" stroke-linecap="round" fill="none"
+                                                stroke-dasharray="{{ $slaCircumference }}"
+                                                stroke-dashoffset="{{ $slaOffset }}"
+                                                class="transition-all duration-700 ease-out" />
+                                    </svg>
+                                    {{-- Text in Center of Circle --}}
+                                    <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                                        @if ($sla['is_verified'])
+                                            <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-0.5">
+                                                @include('partials.icon', ['name' => 'check', 'class' => 'w-4 h-4 text-emerald-600', 'stroke' => 2.5])
+                                            </div>
+                                            <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Selesai</span>
+                                        @else
+                                            <span class="text-xl font-black {{ $sla['is_overdue'] ? 'text-rose-600' : ($sla['is_warning'] ? 'text-amber-600' : 'text-slate-800') }} leading-none tracking-tight">
+                                                {{ $slaPct }}%
+                                            </span>
+                                            <span class="text-[9.5px] font-semibold mt-1 uppercase tracking-wider {{ $sla['is_overdue'] ? 'text-rose-500' : ($sla['is_warning'] ? 'text-amber-600' : 'text-slate-400') }}">
+                                                {{ $sla['is_overdue'] ? 'Overdue' : 'Terpakai' }}
+                                            </span>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                {{-- Summary Metrics --}}
+                                <div class="flex-1 w-full space-y-2.5 text-xs">
+                                    {{-- Status / Sisa Waktu Highlight Pill --}}
+                                    <div class="px-3 py-2 rounded-xl flex items-center justify-between {{ $sla['is_verified'] ? 'bg-emerald-50/80 border border-emerald-200 text-emerald-900' : ($sla['is_overdue'] ? 'bg-rose-50 border border-rose-200 text-rose-900' : ($sla['is_warning'] ? 'bg-amber-50 border border-amber-200 text-amber-900' : 'bg-slate-50 border border-slate-200 text-slate-800')) }}">
+                                        <div class="flex items-center gap-1.5 font-medium text-[11px]">
+                                            @if ($sla['is_verified'])
+                                                @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-3.5 h-3.5 text-emerald-600'])
+                                                <span>Status:</span>
+                                            @elseif ($sla['is_overdue'])
+                                                <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                                                <span class="text-rose-700 font-semibold">Keterlambatan:</span>
+                                            @elseif ($sla['is_warning'])
+                                                <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                                                <span class="text-amber-700 font-semibold">Sisa Waktu:</span>
+                                            @else
+                                                @include('partials.icon', ['name' => 'clock', 'class' => 'w-3.5 h-3.5 text-slate-500'])
+                                                <span>Sisa Waktu:</span>
+                                            @endif
+                                        </div>
+                                        <span class="font-bold text-xs">
+                                            @if ($sla['is_verified'])
+                                                {{ $sla['status'] }}
+                                            @else
+                                                {{ $sla['remaining_formatted'] }}
+                                            @endif
                                         </span>
-                                        <span class="text-[9px] text-slate-400 font-medium">Sisa Waktu</span>
-                                    @endif
-                                </div>
-                            </div>
+                                    </div>
 
-                            {{-- Summary Metrics --}}
-                            <div class="flex-1 w-full space-y-2 text-xs">
-                                <div class="flex justify-between py-1 border-b border-slate-50">
-                                    <span class="text-slate-400">Mulai:</span>
-                                    <span class="font-semibold text-slate-700 font-mono">{{ $sla['start_at']->format('d M, H:i') }}</span>
-                                </div>
-                                <div class="flex justify-between py-1 border-b border-slate-50">
-                                    <span class="text-slate-400">Batas Waktu:</span>
-                                    <span class="font-semibold {{ $sla['is_overdue'] ? 'text-rose-600' : 'text-slate-700' }} font-mono">{{ $sla['due_at']->format('d M, H:i') }}</span>
-                                </div>
-                                <div class="flex justify-between py-1 border-b border-slate-50">
-                                    <span class="text-slate-400">Terpakai:</span>
-                                    <span class="font-bold text-slate-800">{{ $sla['elapsed_formatted'] }} <span class="text-[10px] text-slate-400 font-normal">({{ $sla['percentage_used'] }}%)</span></span>
+                                    {{-- Details --}}
+                                    <div class="space-y-1.5 text-slate-600">
+                                        <div class="flex justify-between py-0.5 border-b border-slate-100">
+                                            <span class="text-slate-400">Mulai:</span>
+                                            <span class="font-semibold text-slate-700 font-mono">{{ $sla['start_at']->format('d M, H:i') }}</span>
+                                        </div>
+                                        <div class="flex justify-between py-0.5 border-b border-slate-100">
+                                            <span class="text-slate-400">Batas Waktu:</span>
+                                            <span class="font-semibold {{ $sla['is_overdue'] ? 'text-rose-600' : 'text-slate-700' }} font-mono">{{ $sla['due_at']->format('d M, H:i') }}</span>
+                                        </div>
+                                        <div class="flex justify-between py-0.5">
+                                            <span class="text-slate-400">Terpakai:</span>
+                                            <span class="font-bold text-slate-800">{{ $sla['elapsed_formatted'] }}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        @endif
                     </div>
 
                     @if ($sla['is_verified'] && $ticket->verified_at)
@@ -160,6 +227,11 @@
                                     @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-3 h-3 text-emerald-600'])
                                     Telah Selesai
                                 </span>
+                            @elseif ($slaRes['is_waiting_start'] ?? false)
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 flex-shrink-0">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                    Menunggu Jam Kerja
+                                </span>
                             @else
                                 <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-semibold bg-blue-50 text-blue-800 border border-blue-200 flex-shrink-0">
                                     <span class="w-1.5 h-1.5 rounded-full bg-blue-600 animate-ping"></span>
@@ -169,47 +241,92 @@
                         </div>
 
                         {{-- Circular Timer & Center Metrics --}}
-                        @if ($slaRes['is_started'])
+                        @if ($slaRes['is_started'] && !($slaRes['is_waiting_start'] ?? false))
                             <div class="flex flex-col sm:flex-row items-center gap-5 my-2">
                                 {{-- Circular Clock SVG --}}
                                 <div class="relative w-28 h-28 flex-shrink-0 flex items-center justify-center">
                                     <svg class="w-28 h-28 transform -rotate-90 origin-center" viewBox="0 0 100 100">
                                         {{-- Background Track --}}
-                                        <circle cx="50" cy="50" r="44" stroke="#f1f5f9" stroke-width="8" fill="none" />
+                                        <circle cx="50" cy="50" r="44" stroke="#f1f5f9" stroke-width="7" fill="none" />
                                         {{-- Progress Arc --}}
-                                        <circle cx="50" cy="50" r="44" stroke="{{ $slaResStroke }}" stroke-width="8" stroke-linecap="round" fill="none"
+                                        <circle cx="50" cy="50" r="44" stroke="{{ $slaResStroke }}" stroke-width="7" stroke-linecap="round" fill="none"
                                                 stroke-dasharray="{{ $slaCircumference }}"
                                                 stroke-dashoffset="{{ $slaResOffset }}"
                                                 class="transition-all duration-700 ease-out" />
                                     </svg>
                                     {{-- Text in Center of Circle --}}
-                                    <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-2">
+                                    <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
                                         @if ($slaRes['is_resolved'])
-                                            <span class="text-xs font-extrabold text-emerald-700 leading-tight">Selesai</span>
-                                            <span class="text-[9px] text-slate-400 font-medium">Tuntas</span>
+                                            <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-0.5">
+                                                @include('partials.icon', ['name' => 'check', 'class' => 'w-4 h-4 text-emerald-600', 'stroke' => 2.5])
+                                            </div>
+                                            <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Selesai</span>
                                         @else
-                                            <span class="text-xs font-extrabold {{ $slaRes['is_overdue'] ? 'text-rose-600' : ($slaRes['is_warning'] ? 'text-amber-600' : 'text-slate-800') }} leading-tight">
-                                                {{ $slaRes['remaining_formatted'] }}
+                                            <span class="text-xl font-black {{ $slaRes['is_overdue'] ? 'text-rose-600' : ($slaRes['is_warning'] ? 'text-amber-600' : 'text-slate-800') }} leading-none tracking-tight">
+                                                {{ $slaResPct }}%
                                             </span>
-                                            <span class="text-[9px] text-slate-400 font-medium">Sisa Waktu</span>
+                                            <span class="text-[9.5px] font-semibold mt-1 uppercase tracking-wider {{ $slaRes['is_overdue'] ? 'text-rose-500' : ($slaRes['is_warning'] ? 'text-amber-600' : 'text-slate-400') }}">
+                                                {{ $slaRes['is_overdue'] ? 'Overdue' : 'Terpakai' }}
+                                            </span>
                                         @endif
                                     </div>
                                 </div>
 
                                 {{-- Summary Metrics --}}
-                                <div class="flex-1 w-full space-y-2 text-xs">
-                                    <div class="flex justify-between py-1 border-b border-slate-50">
-                                        <span class="text-slate-400">Mulai:</span>
-                                        <span class="font-semibold text-slate-700 font-mono">{{ $slaRes['start_at'] ? $slaRes['start_at']->format('d M, H:i') : '-' }}</span>
+                                <div class="flex-1 w-full space-y-2.5 text-xs">
+                                    {{-- Status / Sisa Waktu Highlight Pill --}}
+                                    <div class="px-3 py-2 rounded-xl flex items-center justify-between {{ $slaRes['is_resolved'] ? 'bg-emerald-50/80 border border-emerald-200 text-emerald-900' : ($slaRes['is_overdue'] ? 'bg-rose-50 border border-rose-200 text-rose-900' : ($slaRes['is_warning'] ? 'bg-amber-50 border border-amber-200 text-amber-900' : 'bg-slate-50 border border-slate-200 text-slate-800')) }}">
+                                        <div class="flex items-center gap-1.5 font-medium text-[11px]">
+                                            @if ($slaRes['is_resolved'])
+                                                @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-3.5 h-3.5 text-emerald-600'])
+                                                <span>Status:</span>
+                                            @elseif ($slaRes['is_overdue'])
+                                                <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                                                <span class="text-rose-700 font-semibold">Keterlambatan:</span>
+                                            @elseif ($slaRes['is_warning'])
+                                                <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                                                <span class="text-amber-700 font-semibold">Sisa Waktu:</span>
+                                            @else
+                                                @include('partials.icon', ['name' => 'clock', 'class' => 'w-3.5 h-3.5 text-slate-500'])
+                                                <span>Sisa Waktu:</span>
+                                            @endif
+                                        </div>
+                                        <span class="font-bold text-xs">
+                                            @if ($slaRes['is_resolved'])
+                                                {{ $slaRes['status'] }}
+                                            @else
+                                                {{ $slaRes['remaining_formatted'] }}
+                                            @endif
+                                        </span>
                                     </div>
-                                    <div class="flex justify-between py-1 border-b border-slate-50">
-                                        <span class="text-slate-400">Batas Waktu:</span>
-                                        <span class="font-semibold {{ $slaRes['is_overdue'] ? 'text-rose-600' : 'text-slate-700' }} font-mono">{{ $slaRes['due_at'] ? $slaRes['due_at']->format('d M, H:i') : '-' }}</span>
+
+                                    {{-- Details --}}
+                                    <div class="space-y-1.5 text-slate-600">
+                                        <div class="flex justify-between py-0.5 border-b border-slate-100">
+                                            <span class="text-slate-400">Mulai:</span>
+                                            <span class="font-semibold text-slate-700 font-mono">{{ $slaRes['start_at'] ? $slaRes['start_at']->format('d M, H:i') : '-' }}</span>
+                                        </div>
+                                        <div class="flex justify-between py-0.5 border-b border-slate-100">
+                                            <span class="text-slate-400">Batas Waktu:</span>
+                                            <span class="font-semibold {{ $slaRes['is_overdue'] ? 'text-rose-600' : 'text-slate-700' }} font-mono">{{ $slaRes['due_at'] ? $slaRes['due_at']->format('d M, H:i') : '-' }}</span>
+                                        </div>
+                                        <div class="flex justify-between py-0.5">
+                                            <span class="text-slate-400">Terpakai:</span>
+                                            <span class="font-bold text-slate-800">{{ $slaRes['elapsed_formatted'] }}</span>
+                                        </div>
                                     </div>
-                                    <div class="flex justify-between py-1 border-b border-slate-50">
-                                        <span class="text-slate-400">Terpakai:</span>
-                                        <span class="font-bold text-slate-800">{{ $slaRes['elapsed_formatted'] }} <span class="text-[10px] text-slate-400 font-normal">({{ $slaRes['percentage_used'] }}%)</span></span>
-                                    </div>
+                                </div>
+                            </div>
+                        @elseif ($slaRes['is_waiting_start'] ?? false)
+                            <div class="flex items-center gap-4 p-3.5 bg-amber-50/60 rounded-xl border border-amber-200/80 my-2">
+                                <div class="w-16 h-16 rounded-full border-2 border-dashed border-amber-300 flex items-center justify-center flex-shrink-0 bg-white text-amber-600 font-bold text-xs">
+                                    {{ $slaRes['target_hours'] }}j
+                                </div>
+                                <div class="text-xs text-amber-900 leading-relaxed">
+                                    <p class="font-bold">Timer Belum Dimulai</p>
+                                    <p class="text-[11px] text-amber-700 mt-0.5">
+                                        Berjalan otomatis saat jam kerja pada <strong>{{ $slaRes['start_at'] ? $slaRes['start_at']->translatedFormat('l, d M Y - H:i') : '-' }} WITA</strong>. Target: {{ $slaRes['target_hours'] }} Jam Kerja.
+                                    </p>
                                 </div>
                             </div>
                         @else

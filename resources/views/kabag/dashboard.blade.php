@@ -204,41 +204,7 @@
         {{-- RIGHT (1 COL): Monitoring Tim Staf & Modul Operasional --}}
         <div class="space-y-6">
             {{-- Tim Staf Bagian --}}
-            <div class="bg-white rounded-2xl border border-slate-200/90 shadow-card p-5 sm:p-6">
-                <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
-                    <div>
-                        <h2 class="font-bold text-ink text-sm sm:text-base">Tim Staf Pelaksana</h2>
-                        <p class="text-xs text-slate-500">Akun staf terdaftar di {{ $department->name ?? 'bagian' }}</p>
-                    </div>
-                </div>
-
-                @if ($staffMembers->isEmpty())
-                    <div class="p-4 text-center text-xs text-slate-400">
-                        Belum ada akun staf yang didaftarkan Admin untuk bagian ini.
-                    </div>
-                @else
-                    <div class="space-y-3">
-                        @foreach ($staffMembers as $staff)
-                            <div class="p-3 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-slate-50 transition flex items-center justify-between gap-3">
-                                <div class="flex items-center gap-2.5 min-w-0">
-                                    <div class="w-8 h-8 rounded-lg bg-[#114E84]/10 text-[#114E84] font-bold text-xs flex items-center justify-center flex-shrink-0">
-                                        {{ strtoupper(substr($staff->nama_lengkap, 0, 1)) }}
-                                    </div>
-                                    <div class="min-w-0">
-                                        <p class="text-xs font-bold text-ink truncate">{{ $staff->nama_lengkap }}</p>
-                                        <p class="text-[11px] text-slate-400 font-mono truncate">{{ $staff->username }} &bull; {{ $staff->jabatan ?? 'Staf' }}</p>
-                                    </div>
-                                </div>
-                                <div class="text-right flex-shrink-0">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-bold {{ $staff->active_tickets_count > 0 ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-slate-100 text-slate-500' }}">
-                                        {{ $staff->active_tickets_count }} Tiket Aktif
-                                    </span>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                @endif
-            </div>
+           
 
             {{-- Ringkasan Modul Operasional Sesuai Bagian --}}
             @if (!empty($deptMetrics))

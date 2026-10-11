@@ -145,66 +145,7 @@
     {{-- LEFT COLUMN: 7 cols on lg --}}
     <div class="lg:col-span-7 space-y-6">
         {{-- Card: Distribusi Pengguna Berdasarkan Role --}}
-        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-card p-5 sm:p-6">
-            <div class="flex items-center justify-between mb-4">
-                <div>
-                    <h2 class="text-sm sm:text-base font-bold text-ink flex items-center gap-2">
-                        @include('partials.icon', ['name' => 'shield', 'class' => 'w-4 h-4 text-[#114E84]'])
-                        Distribusi Pengguna per Peran (Role)
-                    </h2>
-                    <p class="text-xs text-slate-500 mt-0.5">Sebaran {{ $totalUsers }} akun pengguna di seluruh struktur Bank Sulteng</p>
-                </div>
-                <a href="{{ route('admin.users.index') }}" class="text-xs font-semibold text-[#114E84] hover:underline">
-                    Lihat Semua User →
-                </a>
-            </div>
-
-            <div class="space-y-3">
-                @foreach ($rolesWithUserCount as $role)
-                    @php
-                        $percentage = $totalUsers > 0 ? round(($role->users_count / $totalUsers) * 100) : 0;
-                        $badgeColor = match($role->nama) {
-                            'superadmin' => 'bg-indigo-50 text-indigo-700 border-indigo-200',
-                            'pimpinan', 'kepala_divisi' => 'bg-blue-50 text-blue-700 border-blue-200',
-                            'umum_rt' => 'bg-amber-50 text-amber-700 border-amber-200',
-                            'aset' => 'bg-teal-50 text-teal-700 border-teal-200',
-                            'pengadaan' => 'bg-cyan-50 text-cyan-700 border-cyan-200',
-                            'operator' => 'bg-rose-50 text-rose-700 border-rose-200',
-                            'user' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                            default => 'bg-slate-50 text-slate-700 border-slate-200',
-                        };
-                        $barColor = match($role->nama) {
-                            'superadmin' => 'bg-indigo-600',
-                            'pimpinan', 'kepala_divisi' => 'bg-blue-600',
-                            'umum_rt' => 'bg-amber-500',
-                            'aset' => 'bg-teal-500',
-                            'pengadaan' => 'bg-cyan-600',
-                            'operator' => 'bg-rose-500',
-                            'user' => 'bg-emerald-500',
-                            default => 'bg-slate-500',
-                        };
-                    @endphp
-                    <div class="p-3 rounded-xl border border-slate-100 hover:border-slate-200 bg-slate-50/40 transition">
-                        <div class="flex items-center justify-between mb-1.5">
-                            <div class="flex items-center gap-2">
-                                <span class="px-2 py-0.5 rounded-md text-[11px] font-bold border {{ $badgeColor }}">
-                                    {{ $role->label }}
-                                </span>
-                                <span class="text-[11px] font-mono text-slate-400">({{ $role->nama }})</span>
-                            </div>
-                            <div class="text-right">
-                                <span class="text-xs font-bold text-ink">{{ $role->users_count }} user</span>
-                                <span class="text-[11px] text-slate-400 ml-1">({{ $percentage }}%)</span>
-                            </div>
-                        </div>
-                        {{-- Progress Bar --}}
-                        <div class="w-full h-1.5 bg-slate-200/80 rounded-full overflow-hidden">
-                            <div class="h-full rounded-full {{ $barColor }}" style="width: {{ $percentage }}%"></div>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-        </div>
+       
 
         {{-- Card: Overview Sistem Tiket & Status Layanan --}}
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-card p-5 sm:p-6">
