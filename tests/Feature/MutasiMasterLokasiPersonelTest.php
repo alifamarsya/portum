@@ -351,17 +351,17 @@ class MutasiMasterLokasiPersonelTest extends TestCase
 
         $mutasi = AsMutasiAset::where('aset_id', $this->aset->id)->latest('id')->first();
 
-        // Staf Aset marks invalid
+        // Staf Aset rejects mutasi
         $this->actingAs($this->stafAset)->post(route('mutasi-aset.verify-staf', $mutasi), [
-            'keputusan'          => 'tidak_valid',
-            'catatan_verifikasi' => 'Data aset tidak sesuai fisik.',
+            'keputusan'        => 'tolak',
+            'alasan_penolakan' => 'Data aset tidak sesuai fisik.',
         ]);
 
         $this->assertEquals('Ditutup', $mutasi->fresh()->status);
-        $this->assertEquals('Tidak Valid', $mutasi->fresh()->status_hasil);
+        $this->assertEquals('Ditolak', $mutasi->fresh()->status_hasil);
 
         // KRITIS: Personel di master TETAP di lokasi asal!
-        $this->assertEquals($lokasiAsal->id, $pemohon->fresh()->lokasi_id, 'Personel harus tetap di lokasi asal jika pengajuan tidak valid.');
+        $this->assertEquals($lokasiAsal->id, $pemohon->fresh()->lokasi_id, 'Personel harus tetap di lokasi asal jika pengajuan ditolak.');
     }
 
     public function test_validation_fails_when_pemohon_does_not_belong_to_lokasi_asal(): void

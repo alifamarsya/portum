@@ -654,7 +654,7 @@
 
             <div>
                 <label class="block font-semibold text-slate-700 mb-2">Keputusan Bagian Aset <span class="text-rose-500">*</span></label>
-                <div class="grid grid-cols-3 gap-2.5">
+                <div class="grid grid-cols-2 gap-2.5">
                     <label class="flex flex-col p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition has-[:checked]:border-purple-600 has-[:checked]:bg-purple-50/60">
                         <div class="flex items-center gap-2 mb-1">
                             <input type="radio" name="keputusan" value="setujui" required checked onchange="handleBagianAsetKeputusan('setujui')" class="text-purple-600 focus:ring-purple-500">
@@ -670,14 +670,6 @@
                         </div>
                         <span class="text-[10px] text-slate-500 leading-tight">Tolak &amp; tutup pengajuan</span>
                     </label>
-
-                    <label class="flex flex-col p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition has-[:checked]:border-amber-600 has-[:checked]:bg-amber-50/60">
-                        <div class="flex items-center gap-2 mb-1">
-                            <input type="radio" name="keputusan" value="tidak_valid" required onchange="handleBagianAsetKeputusan('tidak_valid')" class="text-amber-600 focus:ring-amber-500">
-                            <span class="font-bold text-xs text-amber-900">Tidak Valid</span>
-                        </div>
-                        <span class="text-[10px] text-slate-500 leading-tight">Data tidak valid &amp; tutup</span>
-                    </label>
                 </div>
             </div>
 
@@ -689,16 +681,6 @@
                 <textarea id="alasan_penolakan" name="alasan_penolakan" rows="3"
                           placeholder="Jelaskan alasan pengajuan mutasi aset ini ditolak..."
                           class="w-full p-2.5 border border-rose-300 rounded-xl focus:ring-1 focus:ring-rose-500 focus:border-rose-500 bg-rose-50/30"></textarea>
-            </div>
-
-            {{-- Field Catatan Tidak Valid (Muncul saat Tidak Valid) --}}
-            <div id="fieldTidakValid" class="hidden">
-                <label for="catatan_verifikasi" class="block font-semibold text-amber-700 mb-1">
-                    Catatan Ketidakvalidan Data <span class="text-rose-500">*</span>
-                </label>
-                <textarea id="catatan_verifikasi" name="catatan_verifikasi" rows="3"
-                          placeholder="Jelaskan bagian data atau fisik aset yang tidak valid..."
-                          class="w-full p-2.5 border border-amber-300 rounded-xl focus:ring-1 focus:ring-amber-500 focus:border-amber-500 bg-amber-50/30"></textarea>
             </div>
 
             {{-- Field Catatan Persetujuan (Muncul saat Setujui) --}}
@@ -837,25 +819,17 @@
     function handleBagianAsetKeputusan(keputusan) {
         const fieldSetujui = document.getElementById('fieldSetujui');
         const fieldTolak = document.getElementById('fieldTolak');
-        const fieldTidakValid = document.getElementById('fieldTidakValid');
         const inputTolak = document.getElementById('alasan_penolakan');
-        const inputTidakValid = document.getElementById('catatan_verifikasi');
         const btnSubmit = document.getElementById('btnSubmitBagianAset');
 
         fieldSetujui.classList.add('hidden');
         fieldTolak.classList.add('hidden');
-        fieldTidakValid.classList.add('hidden');
         inputTolak.removeAttribute('required');
-        inputTidakValid.removeAttribute('required');
 
         if (keputusan === 'tolak') {
             fieldTolak.classList.remove('hidden');
             inputTolak.setAttribute('required', 'required');
             btnSubmit.className = 'px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-semibold shadow-xs';
-        } else if (keputusan === 'tidak_valid') {
-            fieldTidakValid.classList.remove('hidden');
-            inputTidakValid.setAttribute('required', 'required');
-            btnSubmit.className = 'px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-xs';
         } else {
             fieldSetujui.classList.remove('hidden');
             btnSubmit.className = 'px-4 py-2 rounded-lg bg-purple-700 hover:bg-purple-800 text-white font-semibold shadow-xs';

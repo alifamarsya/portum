@@ -492,44 +492,16 @@ class MutasiAsetController extends Controller
         }
 
         $validated = $request->validate([
-            'keputusan'          => 'required|in:setujui,valid,tolak,tidak_valid',
+            'keputusan'          => 'required|in:setujui,valid,tolak',
             'alasan_penolakan'   => 'required_if:keputusan,tolak|nullable|string|max:1000',
-            'catatan_verifikasi' => 'required_if:keputusan,tidak_valid|nullable|string|max:1000',
             'catatan_approval'   => 'nullable|string|max:1000',
             'catatan'            => 'nullable|string|max:1000',
         ], [
-            'keputusan.required'             => 'Pilih keputusan verifikasi Bagian Aset (Setujui, Tolak, atau Tidak Valid).',
-            'alasan_penolakan.required_if'   => 'Alasan penolakan mutasi wajib diisi apabila pengajuan ditolak.',
-            'catatan_verifikasi.required_if' => 'Catatan verifikasi wajib diisi apabila data dinyatakan tidak valid.',
+            'keputusan.required'           => 'Pilih keputusan verifikasi Bagian Aset (Setujui atau Tolak).',
+            'alasan_penolakan.required_if' => 'Alasan penolakan mutasi wajib diisi apabila pengajuan ditolak.',
         ]);
 
         $keputusan = $validated['keputusan'];
-
-        // Jika opsi 'tidak_valid' dipilih
-        if ($keputusan === 'tidak_valid') {
-            $catatan = $validated['catatan_verifikasi'] ?? ($validated['catatan'] ?? 'Data aset dinyatakan tidak valid oleh Bagian Aset.');
-
-            $mutasi->update([
-                'verifikator_id'     => $user->id,
-                'verified_at'        => now(),
-                'catatan_verifikasi' => $catatan,
-                'status'             => 'Ditutup',
-                'status_hasil'       => 'Tidak Valid',
-                'approval_status'    => 'Tidak Valid',
-            ]);
-
-            $this->audit('REJECT', 'Mutasi Aset', 'AsMutasiAset', $mutasi->id, "Bagian Aset {$user->nama_lengkap} menyatakan data mutasi {$mutasi->no_mutasi} TIDAK VALID. Catatan: {$catatan}");
-
-            // Notifikasi ke pemohon
-            $mutasi->pengaju?->notify(new MutasiStatusNotification(
-                $mutasi,
-                'Pengajuan Mutasi Aset Tidak Valid & Ditutup',
-                "Pengajuan mutasi aset {$mutasi->no_mutasi} untuk {$mutasi->aset?->nama_aset} dinyatakan TIDAK VALID oleh Bagian Aset dan statusnya telah ditutup. Catatan: {$catatan}",
-                'danger'
-            ));
-
-            return back()->with('status', "Pengajuan mutasi {$mutasi->no_mutasi} telah dinyatakan Tidak Valid dan ditutup.");
-        }
 
         // Jika opsi 'tolak' dipilih
         if ($keputusan === 'tolak') {

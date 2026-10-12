@@ -175,7 +175,7 @@ class MutasiAsetTest extends TestCase
         $this->assertNotNull($mutasi->operator_checked_at);
     }
 
-    public function test_bagian_aset_can_verify_invalid(): void
+    public function test_bagian_aset_cannot_use_tidak_valid(): void
     {
         Notification::fake();
 
@@ -196,11 +196,8 @@ class MutasiAsetTest extends TestCase
             'catatan_verifikasi' => 'Aset ini masih dalam status sewa aktif dan tidak dapat dimutasikan.',
         ]);
 
-        $response->assertRedirect();
-        $mutasi->refresh();
-        $this->assertEquals('Ditutup', $mutasi->status);
-        $this->assertEquals('Tidak Valid', $mutasi->status_hasil);
-        $this->assertEquals($this->stafAset->id, $mutasi->verifikator_id);
+        $response->assertSessionHasErrors(['keputusan']);
+        $this->assertEquals('Diproses', $mutasi->fresh()->status);
     }
 
     public function test_bagian_aset_can_reject(): void
@@ -356,5 +353,30 @@ class MutasiAsetTest extends TestCase
         $this->aset->refresh();
         $this->assertEquals($oldLokasi, $this->aset->lokasi);
         $this->assertEquals($oldPj, $this->aset->penanggung_jawab);
+    }
+
+    public function test_kadiv_sees_mutasi_pending_approval_indicator(): void
+    {
+        // Mutasi dalam status Menunggu Approval membutuhkan tindakan Kadiv
+        AsMutasiAset::create([
+            'no_mutasi'             => 'MUT-' . date('Ymd') . '-9996',
+            'aset_id'               => $this->aset->id,
+            'pengaju_id'            => $this->user->id,
+            'dari_lokasi'           => $this->aset->lokasi,
+            'ke_lokasi'             => 'KC Parigi',
+            'dari_penanggung_jawab' => $this->aset->penanggung_jawab,
+            'ke_penanggung_jawab'   => 'Andi',
+            'alasan'                => 'Kebutuhan cabang',
+            'status'                => 'Menunggu Approval',
+            'verifikator_id'        => $this->stafAset->id,
+            'verified_at'           => now(),
+        ]);
+
+        $response = $this->actingAs($this->kadiv)->get(route('pimpinan.dashboard'));
+        $response->assertStatus(200);
+        // Memastikan indikator angka 1 muncul untuk menu Mutasi Aset dan widget dashboard
+        $response->assertSee('Mutasi Aset');
+        $response->assertSee('1 mutasi butuh tindakan');
+        $response->assertSee('Butuh Tindakan');
     }
 }

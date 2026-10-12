@@ -88,7 +88,6 @@
                     <option value="Disetujui" {{ request('status') === 'Disetujui' ? 'selected' : '' }}>Disetujui</option>
                     <option value="Ditutup" {{ request('status') === 'Ditutup' ? 'selected' : '' }}>Selesai</option>
                     <option value="Ditolak" {{ request('status') === 'Ditolak' ? 'selected' : '' }}>Ditolak</option>
-                    <option value="Tidak Valid" {{ request('status') === 'Tidak Valid' ? 'selected' : '' }}>Tidak Valid</option>
                 </select>
             </div>
 
