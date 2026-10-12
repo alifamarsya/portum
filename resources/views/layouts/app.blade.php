@@ -240,6 +240,8 @@
                                     $mutasiAntriCount = \App\Models\AsMutasiAset::where('status', 'Diajukan')->count();
                                 } elseif ($user?->isUkAdministrasiAset() || $user?->hasRole('aset')) {
                                     $mutasiAntriCount = \App\Models\AsMutasiAset::where('status', 'Diproses')->count();
+                                } elseif ($user?->isKepalaDivisi() || $user?->hasRole(['pimpinan', 'kepala_divisi'])) {
+                                    $mutasiAntriCount = \App\Models\AsMutasiAset::where('status', 'Menunggu Approval')->count();
                                 } elseif ($user?->isKabagAset() || ($user?->isKabag() && $user?->effectiveDepartmentId() == 2)) {
                                     $mutasiAntriCount = \App\Models\AsMutasiAset::where('status', 'Menunggu Approval')->count();
                                 } elseif ($user?->isUser()) {
@@ -648,10 +650,29 @@
                     @if ($canAccess('mutasi_aset'))
                         @php
                             $isMobileMutasiActive = request()->routeIs('mutasi-aset.*');
+                            $mutasiAntriCountMobile = 0;
+                            if ($user?->isOperator()) {
+                                $mutasiAntriCountMobile = \App\Models\AsMutasiAset::where('status', 'Diajukan')->count();
+                            } elseif ($user?->isUkAdministrasiAset() || $user?->hasRole('aset')) {
+                                $mutasiAntriCountMobile = \App\Models\AsMutasiAset::where('status', 'Diproses')->count();
+                            } elseif ($user?->isKepalaDivisi() || $user?->hasRole(['pimpinan', 'kepala_divisi'])) {
+                                $mutasiAntriCountMobile = \App\Models\AsMutasiAset::where('status', 'Menunggu Approval')->count();
+                            } elseif ($user?->isKabagAset() || ($user?->isKabag() && $user?->effectiveDepartmentId() == 2)) {
+                                $mutasiAntriCountMobile = \App\Models\AsMutasiAset::where('status', 'Menunggu Approval')->count();
+                            } elseif ($user?->isUser()) {
+                                $mutasiAntriCountMobile = \App\Models\AsMutasiAset::where('pengaju_id', $user->id)->where('status', 'Disetujui')->count();
+                            }
                         @endphp
-                        <a href="{{ route('mutasi-aset.index') }}" class="flex items-center gap-3 p-2 rounded-xl {{ $isMobileMutasiActive ? 'bg-white/20 text-white font-bold' : 'text-white/80 hover:bg-white/10' }}">
-                            @include('partials.icon', ['name' => 'layers', 'class' => 'w-4 h-4'])
-                            <span>Mutasi Aset</span>
+                        <a href="{{ route('mutasi-aset.index') }}" class="flex items-center justify-between gap-3 p-2 rounded-xl {{ $isMobileMutasiActive ? 'bg-white/20 text-white font-bold' : 'text-white/80 hover:bg-white/10' }}">
+                            <div class="flex items-center gap-3 min-w-0">
+                                @include('partials.icon', ['name' => 'layers', 'class' => 'w-4 h-4 text-white/80'])
+                                <span class="truncate">Mutasi Aset</span>
+                            </div>
+                            @if ($mutasiAntriCountMobile > 0)
+                                <span class="bg-amber-400 text-[#0E1726] text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center">
+                                    {{ $mutasiAntriCountMobile }}
+                                </span>
+                            @endif
                         </a>
                     @endif
 

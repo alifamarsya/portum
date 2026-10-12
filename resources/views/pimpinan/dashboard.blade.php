@@ -270,7 +270,18 @@
                         @include('partials.icon', ['name' => 'layers', 'class' => 'w-4 h-4'])
                     </div>
                     <div>
-                        <h3 class="font-bold text-ink text-sm">Monitoring Mutasi &amp; Pergerakan Aset</h3>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-bold text-ink text-sm">Monitoring Mutasi &amp; Pergerakan Aset</h3>
+                            @php
+                                $kadivPendingMutasi = \App\Models\AsMutasiAset::where('status', 'Menunggu Approval')->count();
+                            @endphp
+                            @if ($kadivPendingMutasi > 0)
+                                <span class="bg-amber-400 text-[#0E1726] text-[10px] font-bold px-2 py-0.5 rounded-full leading-none flex items-center gap-1" title="{{ $kadivPendingMutasi }} mutasi butuh tindakan persetujuan">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-800 inline-block animate-pulse"></span>
+                                    {{ $kadivPendingMutasi }} Butuh Tindakan
+                                </span>
+                            @endif
+                        </div>
                         <p class="text-xs text-slate-400">Perpindahan fisik aset antar unit kerja &amp; kantor cabang</p>
                     </div>
                 </div>
