@@ -5,13 +5,15 @@ namespace Tests\Feature;
 use App\Models\AsAset;
 use App\Models\AsCustomField;
 use App\Models\AsMutasiAset;
+use App\Models\Role;
+use App\Models\RolePermission;
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class DynamicFieldMutasiTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
 
     protected User $admin;
     protected User $pemohon;
@@ -21,19 +23,58 @@ class DynamicFieldMutasiTest extends TestCase
     {
         parent::setUp();
 
-        $this->admin = User::whereHas('role', fn ($q) => $q->where('nama', 'admin'))->first()
-            ?? User::where('role_id', 1)->first();
+        $roleAdmin = Role::where('nama', 'admin')->first();
+        if (!$roleAdmin) {
+            $roleAdmin = Role::create([
+                'id'        => 1,
+                'nama'      => 'admin',
+                'label'     => 'Administrator',
+                'deskripsi' => 'Administrator Sistem',
+            ]);
+        }
 
-        $this->pemohon = User::whereHas('role', fn ($q) => $q->where('nama', 'user'))->first()
-            ?? User::factory()->create(['role_id' => 4]);
+        $roleUser = Role::where('nama', 'user')->first();
+        if (!$roleUser) {
+            $roleUser = Role::create([
+                'id'        => 6,
+                'nama'      => 'user',
+                'label'     => 'User',
+                'deskripsi' => 'User Pemohon',
+            ]);
+        }
 
-        $this->aset = AsAset::first() ?? AsAset::create([
-            'kode_aset'       => 'AST-TEST-001',
-            'nama_aset'       => 'Laptop Lenovo ThinkPad Test',
-            'kategori'        => 'Elektronik',
-            'lokasi'          => 'Kantor Pusat Lt. 3',
-            'penanggung_jawab'=> 'Budi Santoso',
-            'kondisi'         => 'Baik',
+        RolePermission::firstOrCreate(
+            ['role_id' => $roleAdmin->id, 'perm_key' => 'config_field_aset'],
+            ['can_write' => true]
+        );
+        RolePermission::firstOrCreate(
+            ['role_id' => $roleAdmin->id, 'perm_key' => 'mutasi_aset'],
+            ['can_write' => true]
+        );
+        RolePermission::firstOrCreate(
+            ['role_id' => $roleUser->id, 'perm_key' => 'mutasi_aset'],
+            ['can_write' => true]
+        );
+
+        $this->admin = User::factory()->create([
+            'username'  => 'admin_test',
+            'role_id'   => $roleAdmin->id,
+            'is_active' => true,
+        ]);
+
+        $this->pemohon = User::factory()->create([
+            'username'  => 'pemohon_test',
+            'role_id'   => $roleUser->id,
+            'is_active' => true,
+        ]);
+
+        $this->aset = AsAset::create([
+            'kode_aset'        => 'AST-TEST-001',
+            'nama_aset'        => 'Laptop Lenovo ThinkPad Test',
+            'kategori'         => 'Elektronik',
+            'lokasi'           => 'Kantor Pusat Lt. 3',
+            'penanggung_jawab' => 'Budi Santoso',
+            'kondisi'          => 'Baik',
         ]);
     }
 
@@ -70,20 +111,24 @@ class DynamicFieldMutasiTest extends TestCase
         $fieldLokasi = AsCustomField::where('module_key', 'mutasi')->where('field_name', 'ke_lokasi')->first();
         $fieldPj = AsCustomField::where('module_key', 'mutasi')->where('field_name', 'ke_penanggung_jawab')->first();
 
-        if ($fieldLokasi && $fieldPj) {
-            $response = $this->actingAs($this->admin)->post(route('admin.custom-fields.reorder'), [
-                'module' => 'mutasi',
-                'orders' => [
-                    $fieldLokasi->id => 10,
-                    $fieldPj->id     => 5,
-                ],
-            ]);
+        $this->assertNotNull($fieldLokasi, 'Field ke_lokasi harus tersedia.');
+        $this->assertNotNull($fieldPj, 'Field ke_penanggung_jawab harus tersedia.');
 
-            $response->assertRedirect(route('admin.custom-fields.index', ['module' => 'mutasi']));
+        // Kirim reorder: fieldPj (order: 5) diletakkan sebelum fieldLokasi (order: 10)
+        $response = $this->actingAs($this->admin)->post(route('admin.custom-fields.reorder'), [
+            'module' => 'mutasi',
+            'orders' => [
+                $fieldLokasi->id => 10,
+                $fieldPj->id     => 5,
+            ],
+        ]);
 
-            $this->assertEquals(10, $fieldLokasi->fresh()->sort_order);
-            $this->assertEquals(5, $fieldPj->fresh()->sort_order);
-        }
+        $response->assertRedirect(route('admin.custom-fields.index', ['module' => 'mutasi']));
+
+        // Kontrak CustomFieldController::reorder melakukan normalisasi urutan 1..N via asort() dan resequenceModuleFields()
+        $this->assertEquals(1, $fieldPj->fresh()->sort_order);
+        $this->assertEquals(2, $fieldLokasi->fresh()->sort_order);
+        $this->assertTrue($fieldPj->fresh()->sort_order < $fieldLokasi->fresh()->sort_order);
     }
 
     public function test_mutasi_store_validates_dynamic_fields_and_saves_custom_fields(): void
@@ -102,7 +147,20 @@ class DynamicFieldMutasiTest extends TestCase
             ]
         );
 
-        // 2. Submit form create mutasi oleh pemohon dengan field kustom terisi
+        // 2a. Uji penolakan jika nilai pilihan tidak valid (tidak ada di daftar opsi select)
+        $invalidResponse = $this->actingAs($this->pemohon)->post(route('mutasi-aset.store'), [
+            'nama_pemohon'        => 'Ahmad Rivai',
+            'jabatan_pemohon'     => 'Staf IT Cabang',
+            'username_pemohon'    => $this->pemohon->username,
+            'aset_id'             => $this->aset->id,
+            'ke_lokasi'           => 'Kantor Cabang Manado',
+            'ke_penanggung_jawab' => 'Siti Nurhaliza',
+            'alasan'              => 'Pemenuhan kebutuhan workstation cabang baru.',
+            'alasan_kategori'     => 'Opsi Sembarangan Tidak Terdaftar',
+        ]);
+        $invalidResponse->assertSessionHasErrors(['alasan_kategori']);
+
+        // 2b. Submit form create mutasi oleh pemohon dengan nilai field kustom yang valid
         $response = $this->actingAs($this->pemohon)->post(route('mutasi-aset.store'), [
             'nama_pemohon'        => 'Ahmad Rivai',
             'jabatan_pemohon'     => 'Staf IT Cabang',
