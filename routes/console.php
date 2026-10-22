@@ -1,7 +1,6 @@
 <?php
 
 use App\Jobs\CheckJatuhTempoReminderJob;
-use App\Jobs\GenerateLaporanBiayaBulananJob;
 use Illuminate\Support\Facades\Schedule;
 
 // Laravel 13 Task Scheduler (menggantikan app/Console/Kernel.php lama).
