@@ -288,24 +288,24 @@
     </script>
     @if(isset($showForceChangeModal) && $showForceChangeModal)
     <!-- Modal Backdrop -->
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/60 backdrop-blur-sm">
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/60 backdrop-blur-sm overflow-y-auto">
         <!-- Modal Content -->
-        <div class="w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-slate-200 p-8 relative animate-[fadeIn_0.2s_ease-out]">
-            <div class="flex items-center gap-2.5 mb-6">
+        <div class="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 sm:p-7 relative animate-[fadeIn_0.2s_ease-out] my-auto">
+            <div class="flex items-center gap-2.5 mb-5">
                 <img src="{{ asset('images/bank-sulteng.png') }}" alt="Bank Sulteng" class="h-6 w-auto">
             </div>
 
-            <div class="w-11 h-11 rounded-xl flex items-center justify-center mb-4" style="background-color: #F6EEDB; color: #D4A038;">
+            <div class="w-11 h-11 rounded-xl flex items-center justify-center mb-3" style="background-color: #F6EEDB; color: #D4A038;">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
                 </svg>
             </div>
 
-            <h1 class="text-lg font-bold mb-1 text-slate-900">Ganti password Anda</h1>
-            <p class="text-sm text-slate-500 mb-6">Ini login pertama Anda &mdash; buat password baru sebelum melanjutkan.</p>
+            <h1 class="text-lg font-bold mb-1 text-slate-900">Ganti Password Wajib</h1>
+            <p class="text-xs text-slate-500 mb-4 leading-relaxed">Ini adalah login pertama Anda. Demi keamanan akun, buat password baru yang kuat sebelum melanjutkan.</p>
 
             @if ($errors->any())
-                <div class="mb-4 flex items-start gap-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 px-3.5 py-2.5 text-sm">
+                <div class="mb-4 flex items-start gap-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 px-3.5 py-2.5 text-xs">
                     <svg class="w-4 h-4 flex-shrink-0 mt-0.5 text-rose-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     <span class="font-medium">{{ $errors->first() }}</span>
                 </div>
@@ -314,21 +314,72 @@
             <form method="POST" action="{{ route('password.force-change.submit') }}" class="space-y-4" id="forceChangeForm">
                 @csrf
                 <div>
-                    <label class="block text-[13px] font-semibold mb-1.5 text-slate-700">Password Baru</label>
-                    <input type="password" name="password" required minlength="8"
-                           class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm font-medium focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500 transition outline-none">
+                    <label class="block text-xs font-semibold mb-1 text-slate-700">Password Baru</label>
+                    <div class="relative">
+                        <input type="password" name="password" id="force_password" required
+                               placeholder="Minimal 8 karakter kombinasi"
+                               class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-slate-900 text-xs font-medium focus:bg-white focus:border-[#114E84] focus:ring-2 focus:ring-[#114E84]/20 transition outline-none">
+                        <button type="button" onclick="togglePasswordVisibility('force_password', this)" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none" title="Lihat/Sembunyikan password">
+                            <svg class="w-4 h-4 icon-eye" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                            <svg class="w-4 h-4 icon-eye-off hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"></path></svg>
+                        </button>
+                    </div>
+
+                    {{-- Strength Meter Bar & Label --}}
+                    <div class="mt-2 space-y-1">
+                        <div class="flex items-center justify-between text-[11px]">
+                            <span class="text-slate-500 font-medium">Kekuatan Password:</span>
+                            <span id="force_strength_label" class="font-bold text-slate-400">Belum diisi</span>
+                        </div>
+                        <div class="grid grid-cols-4 gap-1.5 h-1.5 w-full">
+                            <div id="force_bar_1" class="h-full rounded-full bg-slate-200 transition-all duration-300"></div>
+                            <div id="force_bar_2" class="h-full rounded-full bg-slate-200 transition-all duration-300"></div>
+                            <div id="force_bar_3" class="h-full rounded-full bg-slate-200 transition-all duration-300"></div>
+                            <div id="force_bar_4" class="h-full rounded-full bg-slate-200 transition-all duration-300"></div>
+                        </div>
+                    </div>
+
+                    {{-- Syarat Password Checklist --}}
+                    <div class="mt-2.5 p-2.5 bg-slate-50 rounded-xl border border-slate-200/70 space-y-1 text-[11px]">
+                        <div id="force_rule_len" class="flex items-center gap-2 text-slate-500 transition-colors">
+                            <span class="w-3.5 h-3.5 rounded-full flex items-center justify-center bg-slate-200 text-white flex-shrink-0 text-[9px] font-bold">✕</span>
+                            <span>Minimal 8 karakter</span>
+                        </div>
+                        <div id="force_rule_case" class="flex items-center gap-2 text-slate-500 transition-colors">
+                            <span class="w-3.5 h-3.5 rounded-full flex items-center justify-center bg-slate-200 text-white flex-shrink-0 text-[9px] font-bold">✕</span>
+                            <span>Huruf besar (A-Z) &amp; huruf kecil (a-z)</span>
+                        </div>
+                        <div id="force_rule_num" class="flex items-center gap-2 text-slate-500 transition-colors">
+                            <span class="w-3.5 h-3.5 rounded-full flex items-center justify-center bg-slate-200 text-white flex-shrink-0 text-[9px] font-bold">✕</span>
+                            <span>Mengandung angka (0-9)</span>
+                        </div>
+                        <div id="force_rule_sym" class="flex items-center gap-2 text-slate-500 transition-colors">
+                            <span class="w-3.5 h-3.5 rounded-full flex items-center justify-center bg-slate-200 text-white flex-shrink-0 text-[9px] font-bold">✕</span>
+                            <span>Mengandung simbol khusus (contoh: @#$!%*)</span>
+                        </div>
+                    </div>
                 </div>
+
                 <div>
-                    <label class="block text-[13px] font-semibold mb-1.5 text-slate-700">Konfirmasi Password</label>
-                    <input type="password" name="password_confirmation" required minlength="8"
-                           class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm font-medium focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500 transition outline-none">
+                    <label class="block text-xs font-semibold mb-1 text-slate-700">Konfirmasi Password Baru</label>
+                    <div class="relative">
+                        <input type="password" name="password_confirmation" id="force_password_confirmation" required
+                               placeholder="Ketik ulang password baru"
+                               class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-10 py-2.5 text-slate-900 text-xs font-medium focus:bg-white focus:border-[#114E84] focus:ring-2 focus:ring-[#114E84]/20 transition outline-none">
+                        <button type="button" onclick="togglePasswordVisibility('force_password_confirmation', this)" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none" title="Lihat/Sembunyikan password">
+                            <svg class="w-4 h-4 icon-eye" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                            <svg class="w-4 h-4 icon-eye-off hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"></path></svg>
+                        </button>
+                    </div>
+                    <div id="force_match_indicator" class="mt-1 text-[11px] font-medium hidden"></div>
                 </div>
-                <button type="submit" id="forceChangeSubmitBtn" class="btn-sulteng w-full rounded-xl py-3.5 mt-2 text-sm font-bold text-white tracking-wide shadow-md flex items-center justify-center gap-2">
+
+                <button type="submit" id="forceChangeSubmitBtn" disabled class="btn-sulteng w-full rounded-xl py-3 mt-2 text-xs font-bold text-white tracking-wide shadow-md flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:brightness-100 transition">
                     <span>Simpan &amp; Lanjutkan</span>
                 </button>
             </form>
             
-            <form method="POST" action="{{ route('logout') }}" class="mt-5 text-center">
+            <form method="POST" action="{{ route('logout') }}" class="mt-4 text-center">
                 @csrf
                 <button type="submit" class="text-xs text-slate-500 font-medium hover:text-slate-800 transition underline underline-offset-2">
                     Batalkan &amp; Keluar
@@ -345,8 +396,130 @@
     </style>
     
     <script>
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const eyeOpen = btn.querySelector('.icon-eye');
+            const eyeOff = btn.querySelector('.icon-eye-off');
+            if (input.type === 'password') {
+                input.type = 'text';
+                eyeOpen.classList.add('hidden');
+                eyeOff.classList.remove('hidden');
+            } else {
+                input.type = 'password';
+                eyeOpen.classList.remove('hidden');
+                eyeOff.classList.add('hidden');
+            }
+        }
+
         const forceForm = document.getElementById('forceChangeForm');
         const forceSubmitBtn = document.getElementById('forceChangeSubmitBtn');
+        const forcePwd = document.getElementById('force_password');
+        const forceConfirm = document.getElementById('force_password_confirmation');
+        const forceMatchInd = document.getElementById('force_match_indicator');
+
+        function updateRequirement(elId, isValid) {
+            const el = document.getElementById(elId);
+            const badge = el.querySelector('span');
+            if (isValid) {
+                el.classList.remove('text-slate-500');
+                el.classList.add('text-emerald-700', 'font-semibold');
+                badge.classList.remove('bg-slate-200');
+                badge.classList.add('bg-emerald-500');
+                badge.textContent = '✓';
+            } else {
+                el.classList.remove('text-emerald-700', 'font-semibold');
+                el.classList.add('text-slate-500');
+                badge.classList.remove('bg-emerald-500');
+                badge.classList.add('bg-slate-200');
+                badge.textContent = '✕';
+            }
+        }
+
+        function evaluateForcePassword() {
+            if (!forcePwd) return;
+            const val = forcePwd.value;
+            const confirmVal = forceConfirm ? forceConfirm.value : '';
+
+            const hasLen = val.length >= 8;
+            const hasCase = /[a-z]/.test(val) && /[A-Z]/.test(val);
+            const hasNum = /[0-9]/.test(val);
+            const hasSym = /[^A-Za-z0-9]/.test(val);
+
+            updateRequirement('force_rule_len', hasLen);
+            updateRequirement('force_rule_case', hasCase);
+            updateRequirement('force_rule_num', hasNum);
+            updateRequirement('force_rule_sym', hasSym);
+
+            const score = (hasLen ? 1 : 0) + (hasCase ? 1 : 0) + (hasNum ? 1 : 0) + (hasSym ? 1 : 0);
+
+            const bars = [
+                document.getElementById('force_bar_1'),
+                document.getElementById('force_bar_2'),
+                document.getElementById('force_bar_3'),
+                document.getElementById('force_bar_4')
+            ];
+            const label = document.getElementById('force_strength_label');
+
+            bars.forEach(b => {
+                b.className = 'h-full rounded-full bg-slate-200 transition-all duration-300';
+            });
+
+            if (val.length === 0) {
+                label.textContent = 'Belum diisi';
+                label.className = 'font-bold text-slate-400';
+            } else if (score === 1) {
+                label.textContent = 'Sangat Lemah';
+                label.className = 'font-bold text-rose-600';
+                bars[0].className = 'h-full rounded-full bg-rose-500 transition-all duration-300';
+            } else if (score === 2) {
+                label.textContent = 'Lemah';
+                label.className = 'font-bold text-amber-600';
+                bars[0].className = 'h-full rounded-full bg-amber-500 transition-all duration-300';
+                bars[1].className = 'h-full rounded-full bg-amber-500 transition-all duration-300';
+            } else if (score === 3) {
+                label.textContent = 'Sedang';
+                label.className = 'font-bold text-yellow-500';
+                bars[0].className = 'h-full rounded-full bg-yellow-400 transition-all duration-300';
+                bars[1].className = 'h-full rounded-full bg-yellow-400 transition-all duration-300';
+                bars[2].className = 'h-full rounded-full bg-yellow-400 transition-all duration-300';
+            } else if (score === 4) {
+                label.textContent = 'Kuat (Sesuai Standar)';
+                label.className = 'font-bold text-emerald-600';
+                bars.forEach(b => b.className = 'h-full rounded-full bg-emerald-500 transition-all duration-300');
+            }
+
+            // Validasi kecocokan konfirmasi
+            let match = false;
+            if (confirmVal.length > 0) {
+                forceMatchInd.classList.remove('hidden');
+                if (val === confirmVal) {
+                    forceMatchInd.textContent = '✓ Konfirmasi password cocok';
+                    forceMatchInd.className = 'mt-1 text-[11px] font-semibold text-emerald-600';
+                    match = true;
+                } else {
+                    forceMatchInd.textContent = '✕ Konfirmasi password tidak cocok';
+                    forceMatchInd.className = 'mt-1 text-[11px] font-semibold text-rose-600';
+                    match = false;
+                }
+            } else {
+                forceMatchInd.classList.add('hidden');
+                match = false;
+            }
+
+            if (score === 4 && match) {
+                forceSubmitBtn.disabled = false;
+            } else {
+                forceSubmitBtn.disabled = true;
+            }
+        }
+
+        if (forcePwd) {
+            forcePwd.addEventListener('input', evaluateForcePassword);
+        }
+        if (forceConfirm) {
+            forceConfirm.addEventListener('input', evaluateForcePassword);
+        }
+
         if (forceForm && forceSubmitBtn) {
             forceForm.addEventListener('submit', function() {
                 forceSubmitBtn.disabled = true;

@@ -39,6 +39,22 @@ class User extends Authenticatable
 
     protected $hidden = ['password', 'rememberToken'];
 
+    /**
+     * Mendapatkan format password default untuk user ini.
+     */
+    public function getDefaultPassword(): string
+    {
+        return self::defaultPasswordFor($this->username);
+    }
+
+    /**
+     * Mendapatkan format password default berdasarkan username.
+     */
+    public static function defaultPasswordFor(string $username): string
+    {
+        return $username . '2026';
+    }
+
     public function role()
     {
         return $this->belongsTo(Role::class);

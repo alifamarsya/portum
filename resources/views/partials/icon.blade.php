@@ -50,6 +50,8 @@
         'send'         => '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
         'alert-triangle' => '<path d="M12 4.2 21 19.5H3L12 4.2Z"/><path d="M12 10v4.2"/><circle cx="12" cy="17" r=".15" fill="currentColor" stroke-width="2.6"/>',
         'alert-circle' => '<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>',
+        'copy'         => '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+        'clipboard'    => '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>',
     ];
     $svg = $icons[$name] ?? $icons['file-text'];
 @endphp

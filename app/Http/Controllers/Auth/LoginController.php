@@ -6,6 +6,7 @@ use App\Concerns\LogsAudit;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rules\Password;
 
 // Login berbasis username (bukan email), setara auth session sederhana
 // di portum.py -- dipertahankan supaya user tidak perlu diberi email
@@ -57,7 +58,18 @@ class LoginController extends Controller
 
     public function forceChange(Request $request)
     {
-        $request->validate(['password' => 'required|string|min:8|confirmed']);
+        $request->validate([
+            'password' => [
+                'required',
+                'string',
+                'confirmed',
+                Password::min(8)->mixedCase()->numbers()->symbols()
+            ]
+        ], [
+            'password.required'  => 'Password baru wajib diisi.',
+            'password.confirmed' => 'Konfirmasi password tidak cocok.',
+            'password.min'       => 'Password baru minimal 8 karakter.',
+        ]);
         $user = auth()->user();
         $user->update([
             'password' => bcrypt($request->password),

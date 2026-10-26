@@ -38,7 +38,7 @@ class ProfileController extends Controller
     {
         $request->validate([
             'password_lama'          => ['required', 'string'],
-            'password_baru'          => ['required', 'string', 'min:8', 'confirmed', Password::min(8)],
+            'password_baru'          => ['required', 'string', 'confirmed', Password::min(8)->mixedCase()->numbers()->symbols()],
         ], [
             'password_lama.required'          => 'Password lama wajib diisi.',
             'password_baru.required'          => 'Password baru wajib diisi.',

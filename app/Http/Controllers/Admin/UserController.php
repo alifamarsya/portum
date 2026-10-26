@@ -66,7 +66,7 @@ class UserController extends Controller
             };
         }
 
-        $plain = Str::random(12);
+        $plain = User::defaultPasswordFor($data['username']);
         $data['password'] = bcrypt($plain);
         $data['must_change_pwd'] = true;
         $data['is_active'] = true;
@@ -77,7 +77,18 @@ class UserController extends Controller
         // Otomatis sinkronkan ke hardcode UserSeeder.php
         SeederSyncService::syncUsers();
 
-        return back()->with('status', "User {$user->username} berhasil dibuat. Password sementara: {$plain}");
+        return back()->with([
+            'status' => "User {$user->username} berhasil dibuat dengan password default.",
+            'credential_modal' => [
+                'title' => 'Akun Pengguna Berhasil Dibuat',
+                'subtitle' => 'Akun baru telah didaftarkan dan password default siap digunakan.',
+                'username' => $user->username,
+                'nama_lengkap' => $user->nama_lengkap,
+                'password' => $plain,
+                'role_label' => $role->label,
+                'is_reset' => false,
+            ]
+        ]);
     }
 
     public function update(Request $request, User $user)
@@ -131,11 +142,22 @@ class UserController extends Controller
 
     public function resetPassword(User $user)
     {
-        $plain = Str::random(12);
+        $plain = $user->getDefaultPassword();
         $user->update(['password' => bcrypt($plain), 'must_change_pwd' => true]);
         $this->audit('UPDATE', 'Manajemen User', 'User', $user->id, "Reset password user {$user->username}");
 
-        return back()->with('status', "Password {$user->username} direset. Password sementara: {$plain}");
+        return back()->with([
+            'status' => "Password {$user->username} berhasil direset ke password default ({$plain}).",
+            'credential_modal' => [
+                'title' => 'Password Berhasil Direset',
+                'subtitle' => "Password untuk akun {$user->username} telah dikembalikan ke password default.",
+                'username' => $user->username,
+                'nama_lengkap' => $user->nama_lengkap,
+                'password' => $plain,
+                'role_label' => $user->role?->label ?? '-',
+                'is_reset' => true,
+            ]
+        ]);
     }
 
     public function destroy(User $user)
