@@ -52,14 +52,14 @@ class CustomFieldSeeder extends Seeder
             [
                 'module_key'   => 'mutasi',
                 'field_name'   => 'dokumen',
-                'label'        => 'Dokumen Pendukung / SK Mutasi',
+                'label'        => 'Dokumen SK Mutasi dari SDM',
                 'field_type'   => 'file',
                 'options'      => null,
                 'is_system'    => true,
-                'is_required'  => false,
+                'is_required'  => true,
                 'show_in_list' => false,
                 'sort_order'   => 4,
-                'help_text'    => 'Format file: PDF, JPG, PNG, DOC/DOCX (Maksimal 10MB).',
+                'help_text'    => 'Wajib melampirkan Dokumen SK Mutasi dari SDM. Format file: PDF, JPG, PNG, DOC/DOCX (Maksimal 10MB).',
                 'is_active'    => true,
             ],
         ];

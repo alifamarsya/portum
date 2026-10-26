@@ -187,12 +187,14 @@
                             @continue(!$df->is_active || in_array($df->field_name, ['ke_lokasi', 'ke_penanggung_jawab']))
                             @php
                                 $isFullWidth = in_array($df->field_type, ['textarea', 'file']);
+                                $isRequired = (bool) $df->is_required || $df->field_name === 'dokumen';
+                                $fieldLabel = $df->field_name === 'dokumen' ? 'Dokumen SK Mutasi dari SDM' : $df->label;
                             @endphp
 
                             <div class="{{ $isFullWidth ? 'md:col-span-2' : 'md:col-span-1' }}">
                                 <label for="{{ $df->field_name }}" class="block text-xs font-semibold text-slate-700 mb-1.5">
-                                    {{ $df->label }}
-                                    @if ($df->is_required)
+                                    {{ $fieldLabel }}
+                                    @if ($isRequired)
                                         <span class="text-rose-500">*</span>
                                     @else
                                         <span class="text-slate-400 font-normal text-[11px]">(Opsional)</span>
@@ -201,9 +203,9 @@
 
                                 @if ($df->field_type === 'select')
                                     <select id="{{ $df->field_name }}" name="{{ $df->field_name }}"
-                                            {{ $df->is_required ? 'required' : '' }}
+                                            {{ $isRequired ? 'required' : '' }}
                                             class="w-full py-2.5 px-3 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white transition">
-                                        <option value="">-- Pilih {{ $df->label }} --</option>
+                                        <option value="">-- Pilih {{ $fieldLabel }} --</option>
                                         @if (!empty($df->options) && is_array($df->options))
                                             @foreach ($df->options as $opt)
                                                 <option value="{{ $opt }}" {{ old($df->field_name) == $opt ? 'selected' : '' }}>
@@ -214,24 +216,24 @@
                                     </select>
                                 @elseif ($df->field_type === 'textarea')
                                     <textarea id="{{ $df->field_name }}" name="{{ $df->field_name }}" rows="3"
-                                              {{ $df->is_required ? 'required' : '' }}
-                                              placeholder="{{ $df->help_text ?? 'Isi ' . strtolower($df->label) . '...' }}"
+                                              {{ $isRequired ? 'required' : '' }}
+                                              placeholder="{{ $df->help_text ?? 'Isi ' . strtolower($fieldLabel) . '...' }}"
                                               class="w-full py-2.5 px-3 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition">{{ old($df->field_name) }}</textarea>
                                 @elseif ($df->field_type === 'file')
                                     <input type="file" id="{{ $df->field_name }}" name="{{ $df->field_name }}"
                                            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                                           {{ $df->is_required ? 'required' : '' }}
+                                           {{ $isRequired ? 'required' : '' }}
                                            class="w-full text-xs text-slate-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-[#114E84] hover:file:bg-blue-100 transition border border-slate-200 rounded-xl p-1 bg-slate-50/50">
                                 @elseif ($df->field_type === 'date')
                                     <input type="date" id="{{ $df->field_name }}" name="{{ $df->field_name }}"
                                            value="{{ old($df->field_name) }}"
-                                           {{ $df->is_required ? 'required' : '' }}
+                                           {{ $isRequired ? 'required' : '' }}
                                            class="w-full py-2.5 px-3 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white transition">
                                 @elseif (in_array($df->field_type, ['number', 'money']))
                                     <input type="number" id="{{ $df->field_name }}" name="{{ $df->field_name }}"
                                            step="{{ $df->field_type === 'money' ? '1' : '0.01' }}"
                                            value="{{ old($df->field_name) }}"
-                                           {{ $df->is_required ? 'required' : '' }}
+                                           {{ $isRequired ? 'required' : '' }}
                                            placeholder="{{ $df->field_type === 'money' ? '0 (Nominal Rupiah)' : '0' }}"
                                            class="w-full py-2.5 px-3 text-sm font-mono border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition">
                                 @elseif ($df->field_type === 'checkbox')
@@ -244,14 +246,17 @@
                                 @else
                                     <input type="text" id="{{ $df->field_name }}" name="{{ $df->field_name }}"
                                            value="{{ old($df->field_name) }}"
-                                           {{ $df->is_required ? 'required' : '' }}
-                                           placeholder="{{ $df->help_text ?? 'Masukkan ' . strtolower($df->label) . '...' }}"
+                                           {{ $isRequired ? 'required' : '' }}
+                                           placeholder="{{ $df->help_text ?? 'Masukkan ' . strtolower($fieldLabel) . '...' }}"
                                            class="w-full py-2.5 px-3 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition">
                                 @endif
 
                                 @if ($df->help_text && $df->field_type !== 'textarea')
                                     <span class="text-[11px] text-slate-400 mt-1 block">{{ $df->help_text }}</span>
                                 @endif
+                                @error($df->field_name)
+                                    <span class="text-[11px] text-rose-500 mt-1 block font-medium">{{ $message }}</span>
+                                @enderror
                             </div>
                         @endforeach
                     </div>

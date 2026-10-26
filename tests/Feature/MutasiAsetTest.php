@@ -10,7 +10,9 @@ use App\Models\Role;
 use App\Models\RolePermission;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class MutasiAsetTest extends TestCase
@@ -131,12 +133,16 @@ class MutasiAsetTest extends TestCase
     public function test_user_can_submit_mutation_request(): void
     {
         Notification::fake();
+        Storage::fake('public');
+
+        $file = UploadedFile::fake()->create('sk_mutasi_sdm.pdf', 200, 'application/pdf');
 
         $response = $this->actingAs($this->user)->post(route('mutasi-aset.store'), [
             'aset_id'             => $this->aset->id,
             'ke_lokasi'           => 'KC Palu Barat',
             'ke_penanggung_jawab' => 'Rahmat Hidayat (Pimpinan Cabang)',
             'alasan'              => 'Pemindahan unit server untuk backup operasional cabang.',
+            'dokumen'             => $file,
         ]);
 
         $response->assertRedirect();
@@ -148,6 +154,44 @@ class MutasiAsetTest extends TestCase
         $this->assertEquals('KC Palu Barat', $mutasi->ke_lokasi);
         $this->assertEquals('Rahmat Hidayat (Pimpinan Cabang)', $mutasi->ke_penanggung_jawab);
         $this->assertEquals($this->user->id, $mutasi->pengaju_id);
+        $this->assertNotNull($mutasi->dokumen);
+        Storage::disk('public')->assertExists($mutasi->dokumen);
+    }
+
+    public function test_pengajuan_mutasi_gagal_jika_sk_sdm_tidak_dilampirkan(): void
+    {
+        Notification::fake();
+
+        $response = $this->actingAs($this->user)->post(route('mutasi-aset.store'), [
+            'aset_id'             => $this->aset->id,
+            'ke_lokasi'           => 'KC Palu Barat',
+            'ke_penanggung_jawab' => 'Rahmat Hidayat (Pimpinan Cabang)',
+            'alasan'              => 'Pemindahan unit server tanpa melampirkan dokumen SK SDM.',
+        ]);
+
+        $response->assertSessionHasErrors(['dokumen']);
+        $this->assertEquals(
+            'Dokumen SK Mutasi dari SDM wajib dilampirkan.',
+            session('errors')->first('dokumen')
+        );
+
+        $this->assertNull(AsMutasiAset::where('aset_id', $this->aset->id)->first());
+    }
+
+    public function test_pengajuan_mutasi_via_api_gagal_tanpa_sk_sdm(): void
+    {
+        $response = $this->actingAs($this->user)->postJson(route('mutasi-aset.store'), [
+            'aset_id'             => $this->aset->id,
+            'ke_lokasi'           => 'KC Palu Barat',
+            'ke_penanggung_jawab' => 'Rahmat Hidayat (Pimpinan Cabang)',
+            'alasan'              => 'Request mutasi langsung via API/JSON.',
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['dokumen']);
+        $response->assertJsonFragment([
+            'dokumen' => ['Dokumen SK Mutasi dari SDM wajib dilampirkan.'],
+        ]);
     }
 
     public function test_operator_can_check_form(): void

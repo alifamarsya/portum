@@ -258,7 +258,12 @@ class MutasiAsetController extends Controller
                 continue;
             }
 
-            $rule = $field->is_required ? 'required' : 'nullable';
+            $isRequired = $field->is_required;
+            if ($fn === 'dokumen') {
+                $isRequired = true; // Lampiran SK Mutasi dari SDM wajib diunggah sesuai dokumen hasil assistensi
+            }
+
+            $rule = $isRequired ? 'required' : 'nullable';
 
             $rule .= match ($field->field_type) {
                 'file' => '|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:10240',
@@ -271,10 +276,26 @@ class MutasiAsetController extends Controller
             };
 
             $rules[$fn] = $rule;
-            $messages["{$fn}.required"] = "{$field->label} wajib diisi.";
-            $messages["{$fn}.in"]       = "Pilihan {$field->label} tidak valid.";
-            $messages["{$fn}.mimes"]    = "Format berkas {$field->label} harus berupa PDF, JPG, PNG, atau Word.";
-            $messages["{$fn}.max"]      = "Ukuran berkas {$field->label} maksimal 10MB.";
+            if ($fn === 'dokumen') {
+                $messages["{$fn}.required"] = 'Dokumen SK Mutasi dari SDM wajib dilampirkan.';
+                $messages["{$fn}.file"]     = 'Dokumen SK Mutasi dari SDM harus berupa berkas yang valid.';
+                $messages["{$fn}.mimes"]    = 'Dokumen SK Mutasi dari SDM harus berupa berkas PDF, JPG, PNG, atau Word.';
+                $messages["{$fn}.max"]      = 'Ukuran Dokumen SK Mutasi dari SDM maksimal 10MB.';
+            } else {
+                $messages["{$fn}.required"] = "{$field->label} wajib diisi.";
+                $messages["{$fn}.in"]       = "Pilihan {$field->label} tidak valid.";
+                $messages["{$fn}.mimes"]    = "Format berkas {$field->label} harus berupa PDF, JPG, PNG, atau Word.";
+                $messages["{$fn}.max"]      = "Ukuran berkas {$field->label} maksimal 10MB.";
+            }
+        }
+
+        // Jaminan backend / API: Lampiran SK Mutasi dari SDM selalu wajib ada meskipun request dikirim langsung ke API atau tanpa custom fields
+        if (!isset($rules['dokumen']) || !str_contains($rules['dokumen'], 'required')) {
+            $rules['dokumen'] = 'required|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:10240';
+            $messages['dokumen.required'] = 'Dokumen SK Mutasi dari SDM wajib dilampirkan.';
+            $messages['dokumen.file']     = 'Dokumen SK Mutasi dari SDM harus berupa berkas yang valid.';
+            $messages['dokumen.mimes']    = 'Dokumen SK Mutasi dari SDM harus berupa berkas PDF, JPG, PNG, atau Word.';
+            $messages['dokumen.max']      = 'Ukuran Dokumen SK Mutasi dari SDM maksimal 10MB.';
         }
 
         $validated = $request->validate($rules, $messages);

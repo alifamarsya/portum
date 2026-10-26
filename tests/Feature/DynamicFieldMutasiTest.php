@@ -9,6 +9,7 @@ use App\Models\Role;
 use App\Models\RolePermission;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 class DynamicFieldMutasiTest extends TestCase
@@ -157,6 +158,7 @@ class DynamicFieldMutasiTest extends TestCase
             'ke_penanggung_jawab' => 'Siti Nurhaliza',
             'alasan'              => 'Pemenuhan kebutuhan workstation cabang baru.',
             'alasan_kategori'     => 'Opsi Sembarangan Tidak Terdaftar',
+            'dokumen'             => UploadedFile::fake()->create('sk_sdm.pdf', 100, 'application/pdf'),
         ]);
         $invalidResponse->assertSessionHasErrors(['alasan_kategori']);
 
@@ -170,6 +172,7 @@ class DynamicFieldMutasiTest extends TestCase
             'ke_penanggung_jawab' => 'Siti Nurhaliza',
             'alasan'              => 'Pemenuhan kebutuhan workstation cabang baru.',
             'alasan_kategori'     => 'Kebutuhan Proyek',
+            'dokumen'             => UploadedFile::fake()->create('sk_sdm.pdf', 100, 'application/pdf'),
         ]);
 
         $response->assertSessionHasNoErrors();

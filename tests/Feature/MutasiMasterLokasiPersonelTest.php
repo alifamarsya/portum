@@ -12,7 +12,9 @@ use App\Models\RolePermission;
 use App\Models\User;
 use Database\Seeders\MasterLokasiPersonelSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class MutasiMasterLokasiPersonelTest extends TestCase
@@ -29,6 +31,7 @@ class MutasiMasterLokasiPersonelTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Storage::fake('public');
 
         $roleUser = Role::create(['nama' => 'user', 'label' => 'User']);
         $roleOperator = Role::create(['nama' => 'operator', 'label' => 'Operator']);
@@ -141,6 +144,7 @@ class MutasiMasterLokasiPersonelTest extends TestCase
             'lokasi_tujuan_id'    => $lokasiTujuan->id,
             'penanggung_jawab_id' => $pjTujuan->id,
             'alasan'              => 'Pemindahan unit workstation ke Divisi IT.',
+            'dokumen'             => UploadedFile::fake()->create('sk_sdm.pdf', 100, 'application/pdf'),
         ]);
 
         $response->assertSessionHasNoErrors();
@@ -179,6 +183,7 @@ class MutasiMasterLokasiPersonelTest extends TestCase
             'lokasi_tujuan_id'    => $lokasiTujuan->id,
             'penanggung_jawab_id' => '__pemohon_pindah__',
             'alasan'              => 'Mutasi personel dan aset ke unit SKAI.',
+            'dokumen'             => UploadedFile::fake()->create('sk_sdm.pdf', 100, 'application/pdf'),
         ]);
 
         $response->assertSessionHasNoErrors();
@@ -214,6 +219,7 @@ class MutasiMasterLokasiPersonelTest extends TestCase
             'lokasi_tujuan_id'    => $lokasiTujuan->id,
             'penanggung_jawab_id' => '__pemohon_pindah__',
             'alasan'              => 'Mutasi personel ke SKAI.',
+            'dokumen'             => UploadedFile::fake()->create('sk_sdm.pdf', 100, 'application/pdf'),
         ]);
 
         $mutasi = AsMutasiAset::where('aset_id', $this->aset->id)->latest('id')->first();
@@ -263,6 +269,7 @@ class MutasiMasterLokasiPersonelTest extends TestCase
             'lokasi_tujuan_id'    => $lokasiTujuan->id,
             'penanggung_jawab_id' => '__pemohon_pindah__',
             'alasan'              => 'Mutasi personel ke SKAI.',
+            'dokumen'             => UploadedFile::fake()->create('sk_sdm.pdf', 100, 'application/pdf'),
         ]);
 
         $mutasi = AsMutasiAset::where('aset_id', $this->aset->id)->latest('id')->first();
@@ -308,6 +315,7 @@ class MutasiMasterLokasiPersonelTest extends TestCase
             'lokasi_tujuan_id'    => $lokasiTujuan->id,
             'penanggung_jawab_id' => '__pemohon_pindah__',
             'alasan'              => 'Mutasi personel ke SKAI.',
+            'dokumen'             => UploadedFile::fake()->create('sk_sdm.pdf', 100, 'application/pdf'),
         ]);
 
         $mutasi = AsMutasiAset::where('aset_id', $this->aset->id)->latest('id')->first();
@@ -347,6 +355,7 @@ class MutasiMasterLokasiPersonelTest extends TestCase
             'lokasi_tujuan_id'    => $lokasiTujuan->id,
             'penanggung_jawab_id' => '__pemohon_pindah__',
             'alasan'              => 'Mutasi personel ke SKAI.',
+            'dokumen'             => UploadedFile::fake()->create('sk_sdm.pdf', 100, 'application/pdf'),
         ]);
 
         $mutasi = AsMutasiAset::where('aset_id', $this->aset->id)->latest('id')->first();
@@ -378,6 +387,7 @@ class MutasiMasterLokasiPersonelTest extends TestCase
             'lokasi_tujuan_id'    => $lokasiTujuan->id,
             'penanggung_jawab_id' => '__pemohon_pindah__',
             'alasan'              => 'Tes validasi integritas lokasi.',
+            'dokumen'             => UploadedFile::fake()->create('sk_sdm.pdf', 100, 'application/pdf'),
         ]);
 
         $response->assertSessionHasErrors('pemohon_personel_id');
@@ -414,6 +424,7 @@ class MutasiMasterLokasiPersonelTest extends TestCase
             'lokasi_tujuan_id'    => $lokasiTujuan->id,
             'penanggung_jawab_id' => '__pemohon_pindah__',
             'alasan'              => 'Pemohon pindah ke Divisi IT.',
+            'dokumen'             => UploadedFile::fake()->create('sk_sdm.pdf', 100, 'application/pdf'),
         ]);
 
         $response->assertSessionHasNoErrors();
