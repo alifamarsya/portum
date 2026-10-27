@@ -845,6 +845,13 @@
             </div>
         @endif
 
+        @if (session('success'))
+            <div class="mb-5 flex items-center gap-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 px-4 py-3 text-sm animate-enter">
+                @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-5 h-5 text-emerald-600 flex-shrink-0', 'stroke' => 2])
+                <span class="font-medium">{{ session('success') }}</span>
+            </div>
+        @endif
+
         @if (session('error'))
             <div class="mb-5 flex items-center gap-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 px-4 py-3 text-sm animate-enter">
                 @include('partials.icon', ['name' => 'alert-triangle', 'class' => 'w-5 h-5 text-rose-600 flex-shrink-0', 'stroke' => 2])

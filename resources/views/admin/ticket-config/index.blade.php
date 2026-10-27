@@ -46,28 +46,6 @@
         </div>
     </div>
 
-    {{-- Alert Notifikasi Status & Error Validasi --}}
-    @if (session('status'))
-        <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2.5 shadow-2xs">
-            @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-4 h-4 text-emerald-600 shrink-0'])
-            <span class="font-medium">{{ session('status') }}</span>
-        </div>
-    @endif
-
-    @if ($errors->any())
-        <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs space-y-1.5 shadow-2xs">
-            <div class="flex items-center gap-2 font-bold text-rose-900">
-                @include('partials.icon', ['name' => 'alert-triangle', 'class' => 'w-4 h-4 text-rose-600 shrink-0'])
-                <span>Terdapat kesalahan pada formulir:</span>
-            </div>
-            <ul class="list-disc list-inside space-y-0.5 text-rose-700 pl-2">
-                @foreach ($errors->all() as $err)
-                    <li>{{ $err }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-
     {{-- Tab Switcher --}}
     <div class="flex items-center gap-2 border-b border-slate-200 pb-3">
         <a href="{{ route('konfigurasi.tiket.index', ['tab' => 'kategori']) }}"

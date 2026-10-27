@@ -24,13 +24,6 @@
             @endif
         </div>
 
-        @if(session('status'))
-            <div class="mb-4 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
-                @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-4 h-4 text-emerald-600'])
-                {{ session('status') }}
-            </div>
-        @endif
-
         {{-- Notifications List --}}
         <div class="bg-white rounded-2xl border border-slate-200 shadow-card overflow-hidden">
             <div class="divide-y divide-slate-100">

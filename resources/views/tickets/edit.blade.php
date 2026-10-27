@@ -149,17 +149,6 @@
                     @endif
                 </p>
 
-                @if ($errors->any())
-                    <div class="bg-rose-50 border border-rose-200 rounded-xl p-4 mb-5">
-                        <p class="text-xs font-bold text-rose-700 mb-1">Terdapat kesalahan validasi:</p>
-                        <ul class="list-disc pl-4 space-y-0.5">
-                            @foreach ($errors->all() as $error)
-                                <li class="text-xs text-rose-600">{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
-
                 <form method="POST" action="{{ route('tickets.update', $ticket) }}" class="space-y-5">
                     @csrf
                     @method('PUT')
