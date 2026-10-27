@@ -492,6 +492,13 @@ class TicketController extends Controller
             'feedback' => $validated['feedback'] ?? null,
         ], fn ($v) => !is_null($v)));
 
+        // Tandai notifikasi "pekerjaan selesai" untuk tiket ini sebagai sudah dibaca,
+        // supaya card konfirmasi tidak muncul lagi di dashboard pemohon.
+        $user->unreadNotifications()->get()->filter(function ($n) use ($ticket) {
+            return ($n->data['type'] ?? '') === 'ticket_completed'
+                && (int) ($n->data['ticket_id'] ?? 0) === (int) $ticket->id;
+        })->markAsRead();
+
         $this->audit(
             'CONFIRM_CLOSE',
             'Ticketing',
