@@ -15,8 +15,8 @@
         </a>
     </div>
 
-    {{-- 4 Stat Cards --}}
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    {{-- 4 Stat Cards + Mutasi --}}
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         {{-- Tiket Baru Masuk --}}
         <div class="relative bg-gradient-to-br from-rose-500 to-orange-500 text-white p-5 rounded-2xl shadow-lg overflow-hidden">
             <div class="relative">
@@ -62,6 +62,18 @@
             </div>
             <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
                 @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-5 h-5'])
+            </div>
+        </div>
+
+        {{-- Mutasi Baru Menunggu Pengecekan --}}
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-card flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Mutasi Baru</p>
+                <p class="text-3xl font-extrabold text-amber-700">{{ $mutasiBaru }}</p>
+                <p class="text-[11px] text-slate-400 mt-1">Menunggu pengecekan operator</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                @include('partials.icon', ['name' => 'layers', 'class' => 'w-5 h-5'])
             </div>
         </div>
     </div>
@@ -159,7 +171,87 @@
             </div>
         </div>
 
-        {{-- 2. Beban per Departemen (Full Width Grid di Bawah) --}}
+        {{-- 2. Antrean Mutasi Belum Dicek (Full-Width) --}}
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-card overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                    <h2 class="text-base font-bold text-ink flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-500 {{ $mutasiBaru > 0 ? 'animate-pulse' : '' }}"></span>
+                        Antrean Mutasi Belum Dicek
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-0.5">Segera cek kelengkapan dan teruskan ke Bagian Aset</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    @if ($mutasiBaru > 0)
+                        <span class="bg-amber-100 text-amber-700 border border-amber-200 text-xs font-bold px-3 py-1 rounded-full">
+                            {{ $mutasiBaru }} mutasi menunggu
+                        </span>
+                    @endif
+                    <a href="{{ route('mutasi-aset.index') }}" class="text-xs font-bold text-[#114E84] hover:underline whitespace-nowrap">
+                        Lihat Semua Mutasi &rarr;
+                    </a>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-slate-50/80 border-b border-slate-200 text-left text-[11px] uppercase tracking-wider text-slate-500">
+                            <th class="px-5 py-3.5 font-semibold">No. Mutasi</th>
+                            <th class="px-5 py-3.5 font-semibold">Tanggal Diajukan</th>
+                            <th class="px-5 py-3.5 font-semibold">Pemohon</th>
+                            <th class="px-5 py-3.5 font-semibold">Aset</th>
+                            <th class="px-5 py-3.5 font-semibold">Lokasi Tujuan</th>
+                            <th class="px-5 py-3.5 font-semibold text-right">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @forelse ($antrianMutasi as $m)
+                            <tr class="hover:bg-slate-50/80 transition">
+                                <td class="px-5 py-3.5">
+                                    <a href="{{ route('mutasi-aset.show', $m) }}" class="font-mono font-bold text-[#114E84] hover:underline text-xs">
+                                        {{ $m->no_mutasi }}
+                                    </a>
+                                </td>
+                                <td class="px-5 py-3.5 text-xs text-slate-600 whitespace-nowrap">
+                                    <span class="font-medium">{{ $m->created_at->format('d M, H:i') }}</span>
+                                    <span class="text-slate-400 text-[11px]">({{ $m->created_at->diffForHumans() }})</span>
+                                </td>
+                                <td class="px-5 py-3.5">
+                                    <div class="text-xs font-semibold text-ink">{{ $m->pengaju?->nama_lengkap ?? '-' }}</div>
+                                    <div class="text-[11px] text-slate-400">{{ $m->pengaju?->bagian ?? '-' }}</div>
+                                </td>
+                                <td class="px-5 py-3.5 text-xs text-slate-700">
+                                    {{ $m->aset?->nama_aset ?? '-' }}
+                                </td>
+                                <td class="px-5 py-3.5 text-xs text-slate-700">
+                                    {{ $m->lokasiTujuan?->nama_lokasi ?? '-' }}
+                                </td>
+                                <td class="px-5 py-3.5 text-right whitespace-nowrap">
+                                    <a href="{{ route('mutasi-aset.show', $m) }}"
+                                       class="inline-flex items-center gap-1.5 bg-[#114E84] hover:bg-[#0E4272] text-white text-xs font-bold px-3.5 py-1.5 rounded-lg transition shadow-2xs">
+                                        @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-3.5 h-3.5 text-white'])
+                                        Cek &amp; Teruskan &rarr;
+                                    </a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="px-5 py-8 text-center">
+                                    <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-2">
+                                        @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-5 h-5'])
+                                    </div>
+                                    <p class="text-xs font-bold text-slate-700">Semua mutasi telah dicek</p>
+                                    <p class="text-[11px] text-slate-400 mt-0.5">Tidak ada antrean mutasi yang menunggu saat ini.</p>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {{-- 3. Beban per Departemen (Full Width Grid di Bawah) --}}
         <div class="bg-white rounded-2xl border border-slate-200 shadow-card p-6">
             <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
                 <div>
