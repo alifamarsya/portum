@@ -68,7 +68,7 @@
                 <tbody class="divide-y divide-slate-100">
                     @foreach ($items as $u)
                         @php
-                            $isMutlak = in_array($u->role?->nama, ['admin', 'pimpinan', 'kabag_umum', 'kabag_aset', 'kabag_pengadaan']);
+                            $isMutlak = in_array($u->role?->nama, ['admin', 'pimpinan', 'operator', 'kabag_umum', 'kabag_aset', 'kabag_pengadaan']);
                         @endphp
                         <tr class="hover:bg-slate-50/60 transition">
                             <td class="px-4 py-3">
@@ -275,7 +275,7 @@
                     <select name="role_id" id="edit_role_id" required class="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-ink focus:border-[#114E84] focus:ring-1 focus:ring-[#114E84] transition bg-white">
                         @foreach ($roles as $r)
                             @php
-                                $isMutlak = in_array($r->nama, ['admin', 'pimpinan', 'kepala_bagian', 'kepala_divisi']);
+                                $isMutlak = in_array($r->nama, ['admin', 'pimpinan', 'operator', 'kepala_bagian', 'kepala_divisi']);
                             @endphp
                             <option value="{{ $r->id }}" data-nama="{{ $r->nama }}" data-is-mutlak="{{ $isMutlak ? '1' : '0' }}" data-count="{{ $r->users_count }}" data-base-label="{{ $r->label }}">
                                 {{ $r->label }} {{ $isMutlak ? '(Peran Mutlak)' : '' }}
@@ -431,7 +431,7 @@
         document.getElementById('edit_is_active').checked = Boolean(user.is_active);
 
         const selectRole = document.getElementById('edit_role_id');
-        const mutlakRoles = ['admin', 'pimpinan', 'kepala_bagian', 'kepala_divisi'];
+        const mutlakRoles = ['admin', 'pimpinan', 'operator', 'kepala_bagian', 'kepala_divisi'];
 
         Array.from(selectRole.options).forEach(opt => {
             const roleNama = opt.getAttribute('data-nama');

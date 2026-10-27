@@ -14,7 +14,7 @@ class UserController extends Controller
 {
     use LogsAudit;
 
-    const MUTLAK_ROLES = ['admin', 'pimpinan', 'kepala_bagian', 'kepala_divisi'];
+    const MUTLAK_ROLES = ['admin', 'pimpinan', 'operator', 'kepala_bagian', 'kepala_divisi'];
 
     public function index()
     {
