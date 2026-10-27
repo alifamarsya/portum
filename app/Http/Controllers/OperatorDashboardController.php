@@ -26,7 +26,7 @@ class OperatorDashboardController extends Controller
             'terlambat'   => Ticket::where('status', 'Menunggu Verifikasi')
                                 ->where('sla_response_due_at', '<', $now)
                                 ->count(),
-            'selesai_bulan_ini' => Ticket::where('status', 'Selesai')
+            'selesai_bulan_ini' => Ticket::whereIn('status', ['Ditutup Pemohon', 'Ditutup Otomatis (Sistem)'])
                                 ->whereYear('updated_at', $now->year)
                                 ->whereMonth('updated_at', $now->month)
                                 ->count(),
