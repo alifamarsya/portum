@@ -190,7 +190,7 @@
                                 <td class="py-3.5 px-4 text-right">
                                     <div class="inline-flex items-center gap-2">
                                         <button type="button"
-                                                data-cat="{{ htmlspecialchars(json_encode([
+                                                data-cat="{{ json_encode([
                                                     'id' => $cat->id,
                                                     'name' => $cat->name,
                                                     'jenis_pengajuan' => $cat->jenis_pengajuan,
@@ -198,7 +198,7 @@
                                                     'department_id' => $cat->department_id,
                                                     'sort_order' => $cat->sort_order,
                                                     'is_active' => (bool)$cat->is_active,
-                                                ]), ENT_QUOTES, 'UTF-8') }}"
+                                                ]) }}"
                                                 onclick="openEditCategoryModal(JSON.parse(this.dataset.cat))"
                                                 class="text-xs text-amber-700 hover:text-amber-800 font-semibold px-2 py-1 rounded bg-amber-50 hover:bg-amber-100 border border-amber-200 transition">
                                             Edit
@@ -354,7 +354,7 @@
                                 <td class="py-3 px-4 text-right">
                                     <div class="inline-flex items-center gap-1.5">
                                         <button type="button"
-                                                data-field="{{ htmlspecialchars(json_encode([
+                                                data-field="{{ json_encode([
                                                     'id' => $field->id,
                                                     'field_name' => $field->field_name,
                                                     'label' => $field->label,
@@ -367,7 +367,7 @@
                                                     'help_text' => $field->help_text ?? '',
                                                     'is_active' => (bool)$field->is_active,
                                                     'is_system' => (bool)$field->is_system,
-                                                ]), ENT_QUOTES, 'UTF-8') }}"
+                                                ]) }}"
                                                 onclick="openEditFieldModal(JSON.parse(this.dataset.field))"
                                                 class="text-xs text-amber-700 hover:text-amber-800 font-semibold px-2 py-1 rounded bg-amber-50 hover:bg-amber-100 border border-amber-200 transition">
                                             Edit
