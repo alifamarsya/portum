@@ -31,11 +31,25 @@ class UserDashboardController extends Controller
         app(\App\Services\TicketService::class)->autoCloseExpiredTickets();
 
         // 4. Notifikasi penting belum dibaca untuk modal popup ringkasan
+        // Card konfirmasi hanya ditampilkan untuk tiket yang masih berstatus Selesai,
+        // supaya card basi (tiket sudah ditutup/dikonfirmasi) tidak menawarkan tombol
+        // konfirmasi yang pasti ditolak endpoint.
         $importantNotifications = $user->unreadNotifications()
             ->get()
             ->filter(function ($n) {
                 $type = $n->data['type'] ?? '';
-                return in_array($type, ['ticket_rejected', 'ticket_completed', 'ticket_auto_closed']);
+                if (!in_array($type, ['ticket_rejected', 'ticket_completed', 'ticket_auto_closed'])) {
+                    return false;
+                }
+                if ($type === 'ticket_completed') {
+                    $ticketId = $n->data['ticket_id'] ?? null;
+                    if (!$ticketId) {
+                        return false;
+                    }
+                    $ticket = \App\Models\Ticket::find($ticketId);
+                    return $ticket && $ticket->status === 'Selesai';
+                }
+                return true;
             })
             ->values();
 
