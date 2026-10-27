@@ -26,21 +26,6 @@
         </div>
     </div>
 
-    {{-- Flash Notifications --}}
-    @if(session('status'))
-        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
-            @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-4 h-4 text-emerald-600'])
-            {{ session('status') }}
-        </div>
-    @endif
-
-    @if(session('error'))
-        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
-            @include('partials.icon', ['name' => 'alert-triangle', 'class' => 'w-4 h-4 text-rose-600'])
-            {{ session('error') }}
-        </div>
-    @endif
-
     {{-- Filter & Search Form --}}
     <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-card">
         <form method="GET" action="{{ route('disposal-aset.approval') }}" class="flex flex-col sm:flex-row gap-3">

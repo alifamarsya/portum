@@ -16,14 +16,6 @@
         </div>
     </div>
 
-    {{-- Flash success --}}
-    @if (session('status'))
-        <div class="flex items-center gap-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 px-4 py-3 text-sm animate-enter">
-            @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-5 h-5 text-emerald-600 flex-shrink-0', 'stroke' => 2])
-            <span class="font-medium">{{ session('status') }}</span>
-        </div>
-    @endif
-
     {{-- Form Card --}}
     <div class="bg-white rounded-2xl shadow-card border border-slate-100 overflow-hidden">
         {{-- Top Banner --}}
