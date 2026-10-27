@@ -439,6 +439,12 @@
                 </select>
             </div>
 
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Urutan (Opsional)</label>
+                <input type="number" name="sort_order" min="0" max="999" placeholder="Otomatis"
+                       class="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:border-[#114E84] font-mono">
+            </div>
+
             <div class="flex items-center gap-2">
                 <input type="checkbox" name="is_active" id="create_cat_active" value="1" checked class="rounded text-[#114E84]">
                 <label for="create_cat_active" class="text-xs text-slate-700 cursor-pointer">Kategori Langsung Aktif</label>
@@ -491,6 +497,12 @@
                         <option value="{{ $dept->id }}">{{ $dept->name }}</option>
                     @endforeach
                 </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Urutan</label>
+                <input type="number" name="sort_order" id="edit_cat_order" min="0" max="999"
+                       class="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:border-[#114E84] font-mono">
             </div>
 
             <div class="flex items-center gap-2">
@@ -683,6 +695,7 @@
         document.getElementById('edit_cat_sla').value = cat.sla_resolution_hours;
         document.getElementById('edit_cat_dept').value = cat.department_id || '';
         document.getElementById('edit_cat_active').checked = !!cat.is_active;
+        document.getElementById('edit_cat_order').value = cat.sort_order ?? '';
 
         document.getElementById('editCategoryModal').classList.remove('hidden');
         document.getElementById('editCategoryModal').classList.add('flex');

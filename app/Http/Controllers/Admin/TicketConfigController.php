@@ -108,7 +108,13 @@ class TicketConfigController extends Controller
 
         $validated['is_active'] = $request->has('is_active');
         $validated['default_sla_hours'] = $validated['sla_resolution_hours'];
-        $validated['sort_order'] = $validated['sort_order'] ?? 0;
+        if (($validated['sort_order'] ?? null) === null) {
+            $deptId = $validated['department_id'] ?? null;
+            $maxOrder = TicketCategory::when($deptId,
+                fn($q) => $q->where('department_id', $deptId),
+                fn($q) => $q->whereNull('department_id'))->max('sort_order');
+            $validated['sort_order'] = ($maxOrder ?? -1) + 1;
+        }
 
         $category = TicketCategory::create($validated);
 
@@ -139,7 +145,9 @@ class TicketConfigController extends Controller
 
         $validated['is_active'] = $request->has('is_active');
         $validated['default_sla_hours'] = $validated['sla_resolution_hours'];
-        $validated['sort_order'] = $validated['sort_order'] ?? 0;
+        if (($validated['sort_order'] ?? null) === null) {
+            unset($validated['sort_order']);
+        }
 
         $category->update($validated);
 
