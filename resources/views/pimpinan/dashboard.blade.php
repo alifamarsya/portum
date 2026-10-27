@@ -157,9 +157,6 @@
                 <span class="font-semibold text-emerald-600">100% Layanan tepat waktu</span>
             @endif
         </div>
-        <p class="mt-1 text-[11px] text-slate-500">Resolusi: {{ number_format($totalOverdue) }} · Respons: {{ number_format($totalOverdueResponseGlobal) }}</p>
-        <p class="mt-0.5 text-[11px] text-slate-400">termasuk tiket yang sudah selesai — angka tidak berkurang saat tiket ditutup</p>
-        <p class="mt-0.5 text-[11px] {{ $nearDeadlineCount > 0 ? 'text-amber-700 font-semibold' : 'text-slate-500' }}">Mendekati deadline (≤2 jam): {{ number_format($nearDeadlineCount) }}</p>
         <span class="block mt-2 text-[11px] font-bold text-[#114E84]">Lihat →</span>
     </a>
 
@@ -172,7 +169,6 @@
             </div>
         </div>
         <div class="text-2xl sm:text-3xl font-black text-ink">{{ number_format($kadivPendingMutasi) }}</div>
-        <p class="mt-1 text-[11px] text-slate-400">total menunggu — semua waktu</p>
         <div class="mt-1 flex items-center justify-between text-xs">
             @if($kadivPendingMutasi > 0)
                 <span class="inline-flex items-center gap-1 font-bold text-amber-700 text-[11px]">
@@ -227,7 +223,6 @@
                         </div>
                         <div>
                             <h3 class="font-bold text-ink text-sm leading-tight">{{ $dc['name'] }}</h3>
-                            <p class="text-[11px] text-slate-400">Divisi Umum</p>
                         </div>
                     </div>
                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border {{ $dc['badge_class'] }}">
