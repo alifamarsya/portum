@@ -79,7 +79,7 @@
                 </span>
             </div>
             <p class="text-3xl font-extrabold text-ink tracking-tight">{{ $stats['total'] }}</p>
-            <p class="text-[11px] text-slate-400 mt-2 font-medium">Tiket dialokasikan ke {{ $department->name ?? 'bagian' }}</p>
+            <p class="text-[11px] text-slate-400 mt-2 font-medium">Tiket masuk ke {{ $department->name ?? 'bagian' }}</p>
         </div>
     </div>
 
@@ -178,7 +178,7 @@
                                     <div class="flex items-center gap-2 flex-wrap mb-1">
                                         <span class="font-mono font-bold text-xs text-[#114E84]">{{ $tb->ticket_number }}</span>
                                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-semibold border {{ $tb->status_badge }}">
-                                            {{ $tb->status }}
+                                            {{ $tb->status_label }}
                                         </span>
                                     </div>
                                     <p class="text-xs text-slate-700 line-clamp-1">{{ $tb->description }}</p>

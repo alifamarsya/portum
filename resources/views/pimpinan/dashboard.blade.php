@@ -263,7 +263,7 @@
                                 <div class="flex items-center gap-1.5 font-semibold text-ink">
                                     <span class="font-mono text-[#114E84]">{{ $ot->ticket_number }}</span>
                                     <span class="text-slate-300">•</span>
-                                    <span class="truncate">{{ $ot->department?->name ?? 'Belum dialokasikan' }}</span>
+                                    <span class="truncate">{{ $ot->department?->name ?? 'Belum ditentukan' }}</span>
                                 </div>
                                 <p class="text-[11px] text-slate-400 mt-0.5 truncate">
                                     Pemohon: {{ $ot->user?->nama_lengkap }} ({{ $ot->user?->bagian ?? 'Unit Kerja' }})

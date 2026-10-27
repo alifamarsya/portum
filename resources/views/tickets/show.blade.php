@@ -12,12 +12,7 @@
                 <div class="flex flex-wrap items-center gap-3">
                     <h1 class="text-2xl font-bold font-mono text-[#114E84]">{{ $ticket->ticket_number }}</h1>
                     <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border {{ $ticket->status_badge }}">
-                        {{-- Tampilkan label ramah untuk pemohon, istilah internal untuk operator/bagian --}}
-                        @if (auth()->user()->isUser())
-                            {{ $ticket->pemohon_status_label }}
-                        @else
-                            {{ $ticket->status }}
-                        @endif
+                        {{ $ticket->status_label }}
                     </span>
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold {{ $ticket->priority_badge }}">
                         Prioritas: {{ $ticket->priority }}
@@ -30,7 +25,7 @@
                     <a href="{{ route('tickets.edit', $ticket) }}"
                        class="inline-flex items-center gap-2 bg-[#114E84] hover:bg-[#0E4272] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-md transition">
                         @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-4 h-4 text-white'])
-                        Verifikasi &amp; Alokasikan Tiket &rarr;
+                        Verifikasi &amp; Teruskan Tiket &rarr;
                     </a>
                 </div>
             @endif
@@ -547,7 +542,7 @@
                                         Wewenang {{ $ticket->department?->name ?? 'Bagian' }}
                                     </span>
                                     <h3 class="text-base font-bold text-ink mt-0.5">Penerimaan &amp; Tindak Lanjut Tiket</h3>
-                                    <p class="text-xs text-slate-500">Tiket telah diverifikasi &amp; dialokasikan ke bagian Anda. Anda dapat menerima untuk langsung memproses tiket atau menolaknya jika tidak sesuai.</p>
+                                    <p class="text-xs text-slate-500">Tiket telah diverifikasi oleh Operator dan diteruskan ke bagian Anda. Anda dapat menerima untuk langsung memproses tiket atau menolaknya jika tidak sesuai.</p>
                                 </div>
                             </div>
                         </div>
@@ -801,7 +796,7 @@
 
                             <div>
                                 <div class="flex items-baseline justify-between gap-2">
-                                    <span class="text-xs font-bold text-ink">{{ $h->new_status }}</span>
+                                    <span class="text-xs font-bold text-ink">{{ $h->status_label }}</span>
                                     <span class="text-[11px] text-slate-400 font-mono whitespace-nowrap">{{ $h->created_at->format('d M, H:i') }}</span>
                                 </div>
 
@@ -812,7 +807,7 @@
 
                                 @if ($h->notes)
                                     <div class="text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100 mt-2 leading-relaxed">
-                                        {{ $h->notes }}
+                                        {{ $h->display_notes ?? $h->notes }}
                                     </div>
                                 @endif
                             </div>

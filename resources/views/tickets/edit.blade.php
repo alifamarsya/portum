@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'Verifikasi & Distribusi Tiket ' . $ticket->ticket_number)
+@section('title', 'Verifikasi & Teruskan Tiket ' . $ticket->ticket_number)
 
 @section('content')
     <div class="mb-6">
@@ -10,7 +10,7 @@
             <div>
                 <p class="text-[12px] font-semibold uppercase tracking-wider text-gold mb-0.5">
                     @if (auth()->user()->isOperator())
-                        Verifikasi &amp; Distribusi Tiket
+                        Verifikasi &amp; Teruskan Tiket
                     @else
                         Update Status Tiket
                     @endif
@@ -18,7 +18,7 @@
                 <div class="flex flex-wrap items-center gap-3">
                     <h1 class="text-2xl font-bold font-mono text-[#114E84]">{{ $ticket->ticket_number }}</h1>
                     <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border {{ $ticket->status_badge }}">
-                        {{ $ticket->status }}
+                        {{ $ticket->status_label }}
                     </span>
                 </div>
             </div>
@@ -136,14 +136,14 @@
             <div class="bg-white rounded-2xl border border-slate-200 shadow-card p-6">
                 <h2 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1 pb-2 border-b border-slate-100">
                     @if (auth()->user()->isOperator())
-                        Form Verifikasi &amp; Distribusi
+                        Form Verifikasi &amp; Teruskan Tiket
                     @else
                         Perbarui Status Tiket
                     @endif
                 </h2>
                 <p class="text-xs text-slate-400 mb-5">
                     @if (auth()->user()->isOperator())
-                        Tetapkan kategori yang tepat, tingkat prioritas, dan delegasikan ke departemen yang bertanggung jawab.
+                        Tetapkan kategori yang tepat, tingkat prioritas, dan teruskan ke departemen yang bertanggung jawab.
                     @else
                         Perbarui status pengerjaan tiket ini untuk pemohon.
                     @endif
@@ -279,7 +279,7 @@
                         <button type="submit" id="btnDistribute"
                                 class="w-full sm:w-auto bg-gradient-to-r from-[#114E84] to-[#0E4272] hover:from-[#0E4272] hover:to-[#0A335A] text-white text-sm font-bold px-8 py-3 rounded-xl shadow-md transition duration-200 flex items-center justify-center gap-2">
                             @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-4 h-4'])
-                            Verifikasi &amp; Alokasikan ke Bagian
+                            Verifikasi &amp; Teruskan ke Bagian
                         </button>
                         <a href="{{ route('tickets.show', $ticket) }}"
                            class="text-sm text-slate-500 hover:text-slate-800 font-medium transition">

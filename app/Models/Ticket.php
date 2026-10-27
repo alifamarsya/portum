@@ -232,22 +232,105 @@ class Ticket extends Model
     }
 
     /**
+     * Map internal status to role-friendly status label based on viewer's role.
+     */
+    public static function mapStatusLabel(?string $status, ?User $user = null): string
+    {
+        if (!$status) {
+            return '-';
+        }
+
+        $user = $user ?? auth()->user();
+
+        // 1. Role Pemohon (User): gunakan label sederhana ramah pengguna
+        if (!$user || $user->isUser()) {
+            return match ($status) {
+                'Menunggu Verifikasi'                             => 'Diajukan',
+                'Dialokasikan', 'Diverifikasi', 'Didistribusikan' => 'Sedang Ditangani',
+                'Dalam Proses'                                    => 'Sedang Dikerjakan',
+                'Selesai'                                         => 'Selesai (Menunggu Konfirmasi)',
+                'Ditutup Pemohon'                                 => 'Ditutup (Dikonfirmasi)',
+                'Ditutup Otomatis (Sistem)'                        => 'Ditutup Otomatis (Kedaluwarsa)',
+                'Ditolak'                                         => 'Tidak Dapat Diproses',
+                default                                           => $status,
+            };
+        }
+
+        // 2. Role Operator: menggambarkan penerimaan & verifikasi oleh operator
+        if ($user->isOperator()) {
+            return match ($status) {
+                'Menunggu Verifikasi'                             => 'Menunggu Verifikasi',
+                'Dialokasikan', 'Diverifikasi'                    => 'Diterima Operator',
+                'Didistribusikan'                                 => 'Sedang Ditangani',
+                'Dalam Proses'                                    => 'Sedang Dikerjakan',
+                'Selesai'                                         => 'Selesai (Menunggu Konfirmasi)',
+                'Ditutup Pemohon'                                 => 'Ditutup (Dikonfirmasi)',
+                'Ditutup Otomatis (Sistem)'                        => 'Ditutup Otomatis (Kedaluwarsa)',
+                'Ditolak'                                         => 'Ditolak',
+                default                                           => $status,
+            };
+        }
+
+        // 3. Role Kabag dan Staf Unit Kerja / Bagian: tindak lanjut di tingkat unit kerja
+        if ($user->isBagian() || $user->isKabag() || $user->isUnitKerjaStaf() || $user->isInternalStaff()) {
+            return match ($status) {
+                'Menunggu Verifikasi'                             => 'Menunggu Verifikasi',
+                'Dialokasikan', 'Diverifikasi'                    => 'Sedang Ditindaklanjuti Kabag',
+                'Didistribusikan'                                 => 'Sedang Ditindaklanjuti',
+                'Dalam Proses'                                    => 'Sedang Dikerjakan',
+                'Selesai'                                         => 'Selesai (Menunggu Konfirmasi)',
+                'Ditutup Pemohon'                                 => 'Ditutup (Dikonfirmasi)',
+                'Ditutup Otomatis (Sistem)'                        => 'Ditutup Otomatis (Kedaluwarsa)',
+                'Ditolak'                                         => 'Ditolak',
+                default                                           => $status,
+            };
+        }
+
+        // 4. Default / Pimpinan / Admin
+        return match ($status) {
+            'Menunggu Verifikasi'                             => 'Menunggu Verifikasi',
+            'Dialokasikan', 'Diverifikasi'                    => 'Sedang Ditindaklanjuti Kabag',
+            'Didistribusikan'                                 => 'Sedang Ditangani',
+            'Dalam Proses'                                    => 'Sedang Dikerjakan',
+            'Selesai'                                         => 'Selesai (Menunggu Konfirmasi)',
+            'Ditutup Pemohon'                                 => 'Ditutup (Dikonfirmasi)',
+            'Ditutup Otomatis (Sistem)'                        => 'Ditutup Otomatis (Kedaluwarsa)',
+            'Ditolak'                                         => 'Ditolak',
+            default                                           => $status,
+        };
+    }
+
+    /**
+     * Get role-friendly status label for this ticket instance based on given or authenticated user.
+     */
+    public function getRoleStatusLabel(?User $user = null): string
+    {
+        return self::mapStatusLabel($this->status, $user);
+    }
+
+    /**
+     * Dynamic status label attribute for Blade views ($ticket->status_label).
+     */
+    public function getStatusLabelAttribute(): string
+    {
+        return $this->getRoleStatusLabel();
+    }
+
+    /**
      * Get a user-friendly status label for the ticket requester (pemohon).
      * Translates internal status names to terms that are meaningful to the end user.
      */
     public function getPemohonStatusLabelAttribute(): string
     {
         return match ($this->status) {
-            'Menunggu Verifikasi'      => 'Diajukan',
-            'Dialokasikan'             => 'Dialokasikan',
-            'Diverifikasi'             => 'Diverifikasi',
-            'Didistribusikan'          => 'Sedang Ditangani',
-            'Dalam Proses'             => 'Sedang Dikerjakan',
-            'Selesai'                  => 'Selesai (Menunggu Konfirmasi)',
-            'Ditutup Pemohon'          => 'Ditutup (Dikonfirmasi)',
-            'Ditutup Otomatis (Sistem)' => 'Ditutup Otomatis (Kedaluwarsa)',
-            'Ditolak'                  => 'Tidak Dapat Diproses',
-            default                    => $this->status,
+            'Menunggu Verifikasi'                             => 'Diajukan',
+            'Dialokasikan', 'Diverifikasi', 'Didistribusikan' => 'Sedang Ditangani',
+            'Dalam Proses'                                    => 'Sedang Dikerjakan',
+            'Selesai'                                         => 'Selesai (Menunggu Konfirmasi)',
+            'Ditutup Pemohon'                                 => 'Ditutup (Dikonfirmasi)',
+            'Ditutup Otomatis (Sistem)'                        => 'Ditutup Otomatis (Kedaluwarsa)',
+            'Ditolak'                                         => 'Tidak Dapat Diproses',
+            default                                           => $this->status,
         };
     }
 

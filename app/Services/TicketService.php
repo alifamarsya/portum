@@ -268,7 +268,7 @@ class TicketService
                         }
                         if ($isDepartmentChanged) {
                             $deptName = $ticket->fresh()->department?->name ?? 'Belum Ditugaskan';
-                            $changes[] = "Departemen dialokasikan ke '{$deptName}'";
+                            $changes[] = "Departemen diteruskan ke '{$deptName}'";
                         }
                         $notes = implode('. ', $changes);
                     }
@@ -417,7 +417,7 @@ class TicketService
                 'user_id' => $kabag->id,
                 'old_status' => $oldStatus,
                 'new_status' => $newStatus,
-                'notes' => "Disposisi ke {$staff->nama_lengkap} ({$staff->username}). Catatan: {$notes}",
+                'notes' => "Ditugaskan ke {$staff->nama_lengkap} ({$staff->username}). Catatan: {$notes}",
             ]);
 
             return $ticket;

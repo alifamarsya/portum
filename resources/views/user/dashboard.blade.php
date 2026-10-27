@@ -109,8 +109,7 @@
                             </td>
                             <td class="px-5 py-4 whitespace-nowrap">
                                 <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11.5px] font-medium border {{ $t->status_badge }}">
-                                    {{-- Gunakan label ramah pemohon alih-alih istilah internal sistem --}}
-                                    {{ $t->pemohon_status_label }}
+                                    {{ $t->status_label }}
                                 </span>
                             </td>
                             <td class="px-5 py-4 whitespace-nowrap">

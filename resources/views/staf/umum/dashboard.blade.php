@@ -221,7 +221,7 @@
                                                 {{ $t->priority }}
                                             </span>
                                             <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold {{ $t->status_badge }}">
-                                                {{ $t->status }}
+                                                {{ $t->status_label }}
                                             </span>
                                         </div>
                                         <h3 class="text-sm font-bold text-slate-800">

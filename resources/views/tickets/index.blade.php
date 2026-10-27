@@ -62,14 +62,7 @@
                     <option value="">-- Semua Status --</option>
                     @foreach (['Menunggu Verifikasi', 'Diverifikasi', 'Dalam Proses', 'Selesai', 'Ditutup Pemohon', 'Ditolak'] as $st)
                         <option value="{{ $st }}" {{ request('status') === $st ? 'selected' : '' }}>
-                            {{ auth()->user()->isUser() ? match($st) {
-                                'Menunggu Verifikasi' => 'Diajukan',
-                                'Diverifikasi' => 'Diverifikasi',
-                                'Dalam Proses' => 'Sedang Diproses',
-                                'Ditutup Pemohon' => 'Ditutup (Dikonfirmasi)',
-                                'Ditolak' => 'Tidak Dapat Diproses',
-                                default => $st
-                            } : $st }}
+                            {{ \App\Models\Ticket::mapStatusLabel($st) }}
                         </option>
                     @endforeach
                 </select>
@@ -142,7 +135,7 @@
                                 @elseif ($f->field_name === 'status')
                                     <td class="px-4 py-3.5 whitespace-nowrap">
                                         <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11.5px] font-medium border {{ $t->status_badge }}">
-                                            {{ auth()->user()->isUser() ? $t->pemohon_status_label : $t->status }}
+                                            {{ $t->status_label }}
                                         </span>
                                     </td>
                                 @elseif ($f->field_name === 'jenis_pengajuan')
@@ -167,7 +160,7 @@
                                                 {{ $t->department->name }}
                                             </span>
                                         @else
-                                            <span class="text-slate-400 italic">Belum dialokasikan</span>
+                                            <span class="text-slate-400 italic">Belum ditentukan</span>
                                         @endif
                                     </td>
                                 @elseif ($f->field_name === 'sla')
@@ -213,7 +206,7 @@
                             </td>
                             <td class="px-4 py-3.5 whitespace-nowrap">
                                 <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11.5px] font-medium border {{ $t->status_badge }}">
-                                    {{ auth()->user()->isUser() ? $t->pemohon_status_label : $t->status }}
+                                    {{ $t->status_label }}
                                 </span>
                             </td>
                             <td class="px-4 py-3.5 whitespace-nowrap">
@@ -232,7 +225,7 @@
                                         {{ $t->department->name }}
                                     </span>
                                 @else
-                                    <span class="text-slate-400 italic">Belum dialokasikan</span>
+                                    <span class="text-slate-400 italic">Belum ditentukan</span>
                                 @endif
                             </td>
                             <td class="px-4 py-3.5 whitespace-nowrap">

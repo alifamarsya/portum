@@ -267,7 +267,7 @@
                                             {{ $t->priority }}
                                         </span>
                                         <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold {{ $t->status_badge }}">
-                                            {{ $t->status }}
+                                            {{ $t->status_label }}
                                         </span>
                                     </div>
                                     <h3 class="text-sm font-bold text-slate-800">
@@ -505,7 +505,7 @@
                             </td>
                             <td class="px-5 py-3">
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold {{ $ts->status_badge }}">
-                                    {{ $ts->status }}
+                                    {{ $ts->status_label }}
                                 </span>
                             </td>
                             <td class="px-5 py-3 text-right">
