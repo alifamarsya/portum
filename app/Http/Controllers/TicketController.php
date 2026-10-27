@@ -48,6 +48,14 @@ class TicketController extends Controller
             $query->where('status', $request->status);
         }
 
+        // Filter tiket overdue SLA resolusi (dipakai dashboard pimpinan):
+        // tiket aktif yang batas waktu penyelesaiannya telah lewat.
+        if ($request->filled('overdue') && $request->overdue == '1') {
+            $query->whereIn('status', ['Menunggu Verifikasi', 'Dialokasikan', 'Diverifikasi', 'Didistribusikan', 'Dalam Proses'])
+                ->whereNotNull('sla_resolution_due_at')
+                ->where('sla_resolution_due_at', '<', now());
+        }
+
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->category_id);
         }
