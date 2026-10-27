@@ -50,8 +50,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/staf-aset/dashboard', [App\Http\Controllers\StafAsetDashboardController::class, 'index'])->name('staf-aset.dashboard');
     Route::get('/staf-pengadaan/dashboard', [App\Http\Controllers\StafPengadaanDashboardController::class, 'index'])->name('staf-pengadaan.dashboard');
     Route::get('/analitik', [App\Http\Controllers\AnalyticsController::class, 'index'])->name('analitik');
-    Route::get('/analitik/biaya/{kategori}', [App\Http\Controllers\AnalyticsController::class, 'detailKategori'])
-    ->name('analitik.detail-kategori');
 
     // Mesin CRUD generik untuk 20 modul (lihat config/modules.php) --
     // setara routing dinamis {resource}?action=... di portum.py.
@@ -72,7 +70,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/ticket-categories', [TicketCategoryController::class, 'getCategoriesByJenis'])->name('api.ticket-categories');
 
     // Sistem Tiket
-    Route::resource('tickets', TicketController::class);
+    Route::resource('tickets', TicketController::class)->except(['destroy']);
     Route::get('/tickets/{ticket}/attachment', [TicketController::class, 'viewAttachment'])->name('tickets.attachment');
     Route::get('/tickets/{ticket}/attachment/download', [TicketController::class, 'downloadAttachment'])->name('tickets.attachment.download');
     Route::get('/tickets/attachments/{attachment}/view', [TicketController::class, 'viewAttachmentFile'])->name('tickets.attachment.view-file');
