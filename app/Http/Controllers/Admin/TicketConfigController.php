@@ -113,7 +113,7 @@ class TicketConfigController extends Controller
             $maxOrder = TicketCategory::when($deptId,
                 fn($q) => $q->where('department_id', $deptId),
                 fn($q) => $q->whereNull('department_id'))->max('sort_order');
-            $validated['sort_order'] = ($maxOrder ?? -1) + 1;
+            $validated['sort_order'] = ($maxOrder ?? 0) + 1;
         }
 
         $category = TicketCategory::create($validated);
