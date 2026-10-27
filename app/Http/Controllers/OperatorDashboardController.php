@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AsMutasiAset;
 use App\Models\InternalDepartment;
 use App\Models\Ticket;
 use Illuminate\Http\Request;
@@ -46,6 +47,15 @@ class OperatorDashboardController extends Controller
             'tickets as total_selesai' => fn ($q) => $q->where('status', 'Selesai'),
         ])->get();
 
-        return view('operator.dashboard', compact('stats', 'antrian', 'distribusi'));
+        // 4. Antrean mutasi belum dicek operator (status Diajukan saja,
+        // diurutkan dari yang paling lama menunggu)
+        $mutasiBaru = AsMutasiAset::where('status', 'Diajukan')->count();
+        $antrianMutasi = AsMutasiAset::where('status', 'Diajukan')
+            ->with(['pengaju', 'aset', 'lokasiTujuan'])
+            ->orderBy('created_at')
+            ->take(15)
+            ->get();
+
+        return view('operator.dashboard', compact('stats', 'antrian', 'distribusi', 'mutasiBaru', 'antrianMutasi'));
     }
 }
