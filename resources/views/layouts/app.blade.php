@@ -224,6 +224,17 @@
                                     @else
                                         <span class="{{ request()->routeIs('tickets.*') ? 'text-[#114E84]' : 'text-white/40' }} text-xs">▸</span>
                                     @endif
+                                @elseif ($user?->isUser())
+                                    @php
+                                        $pemohonAntri = \App\Models\Ticket::where('user_id', $user->id)->where('status', 'Selesai')->count();
+                                    @endphp
+                                    @if ($pemohonAntri > 0)
+                                        <span class="bg-amber-400 text-[#0E1726] text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center" title="{{ $pemohonAntri }} tiket menunggu konfirmasimu">
+                                            {{ $pemohonAntri }}
+                                        </span>
+                                    @else
+                                        <span class="{{ request()->routeIs('tickets.*') ? 'text-[#114E84]' : 'text-white/40' }} text-xs">▸</span>
+                                    @endif
                                 @else
                                     <span class="{{ request()->routeIs('tickets.*') ? 'text-[#114E84]' : 'text-white/40' }} text-xs">▸</span>
                                 @endif
@@ -640,6 +651,15 @@
                                 @if ($bagianAntriMobile > 0)
                                     <span class="bg-amber-400 text-[#0E1726] text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center">
                                         {{ $bagianAntriMobile }}
+                                    </span>
+                                @endif
+                            @elseif ($user?->isUser())
+                                @php
+                                    $pemohonAntriMobile = \App\Models\Ticket::where('user_id', $user->id)->where('status', 'Selesai')->count();
+                                @endphp
+                                @if ($pemohonAntriMobile > 0)
+                                    <span class="bg-amber-400 text-[#0E1726] text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center">
+                                        {{ $pemohonAntriMobile }}
                                     </span>
                                 @endif
                             @endif
