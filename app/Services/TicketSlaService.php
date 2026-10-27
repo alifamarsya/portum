@@ -586,6 +586,16 @@ class TicketSlaService
         $skippedNotStaff = 0;
         $skippedNotInWarning = 0;
 
+        // Pimpinan Divisi yang ikut menerima peringatan yang sama, sekali
+        // per tiket per pimpinan (dedupe mandiri — tidak bergantung pada
+        // dedupe staf di bawah, agar pimpinan tetap menerima peringatan
+        // meski staf sudah pernah dinotifikasi sebelumnya). Penerima =
+        // definisi pimpinan yang sama dengan dashboard pimpinan
+        // (role pimpinan/kepala_divisi dengan department_id null).
+        $pimpinanUsers = User::whereNull('department_id')
+            ->whereHas('role', fn ($q) => $q->whereIn('nama', ['pimpinan', 'kepala_divisi']))
+            ->get();
+
         foreach ($activeTickets as $ticket) {
             $staff = $ticket->assignedStaff;
             if (!$staff) {
@@ -621,6 +631,31 @@ class TicketSlaService
             if (!$isInWarning) {
                 $skippedNotInWarning++;
                 continue;
+            }
+
+            // Notifikasi yang sama untuk Pimpinan Divisi — dedupe persis
+            // seperti dedupe staf (sekali per tiket per user), dihitung
+            // per pimpinan secara mandiri. Ditempatkan sebelum dedupe staf
+            // agar tidak ikut ter-skip saat staf sudah pernah dinotifikasi.
+            foreach ($pimpinanUsers as $pimpinan) {
+                $alreadyNotifiedPimpinan = \Illuminate\Support\Facades\DB::table('notifications')
+                    ->where('notifiable_type', User::class)
+                    ->where('notifiable_id', $pimpinan->id)
+                    ->where(function ($q) {
+                        $q->where('type', 'sla_warning')
+                          ->orWhere('type', \App\Notifications\TicketSlaWarningNotification::class);
+                    })
+                    ->where(function ($q) use ($ticket) {
+                        $q->whereJsonContains('data->ticket_id', $ticket->id)
+                          ->orWhere('data', 'like', '%"ticket_id":' . $ticket->id . '%')
+                          ->orWhere('data', 'like', '%"ticket_id": ' . $ticket->id . '%')
+                          ->orWhere('data', 'like', '%"ticket_id":"' . $ticket->id . '"%');
+                    })
+                    ->exists();
+
+                if (!$alreadyNotifiedPimpinan) {
+                    $pimpinan->notify(new \App\Notifications\TicketSlaWarningNotification($ticket, $slaRes['remaining_formatted']));
+                }
             }
 
             // Cek deduplikasi: pastikan notifikasi sla_warning belum pernah dikirim untuk tiket ini ke staf ini

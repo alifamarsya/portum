@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AsDisposalAset;
 use App\Models\AsMutasiAset;
 use App\Models\DimKategori;
 use App\Models\DimVendor;
@@ -11,7 +12,9 @@ use App\Models\FactBiayaBulanan;
 use App\Models\FactPengadaan;
 use App\Models\InternalDepartment;
 use App\Models\Ticket;
+use App\Models\TicketHistory;
 use App\Models\UnitKerja;
+use App\Services\TicketSlaService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -73,6 +76,31 @@ class PimpinanDashboardController extends Controller
             ->whereNotNull('sla_resolution_due_at')
             ->where('sla_resolution_due_at', '<', now())
             ->count();
+
+        // Tiket mendekati deadline SLA resolusi — aturan SAMA dengan
+        // TicketSlaService::checkAndNotifyStaffSlaWarning(): timer sudah
+        // berjalan, belum selesai, belum overdue, sisa > 0 dan <= 120 menit
+        // (SLA_WARNING_THRESHOLD_MINUTES). Global (tanpa filter periode /
+        // bagian), persis seperti service-nya.
+        $nearDeadlineCount = 0;
+        $slaService = app(TicketSlaService::class);
+        $warningCandidates = Ticket::whereIn('status', ['Didistribusikan', 'Dalam Proses'])
+            ->whereNotNull('assigned_to')
+            ->where(function ($q) {
+                $q->whereNotNull('sla_resolution_start_at')
+                  ->orWhereNotNull('disposed_at');
+            })
+            ->get();
+        foreach ($warningCandidates as $candidate) {
+            $slaInfo = $slaService->getSlaResolutionInfo($candidate);
+            if ($slaInfo['is_started']
+                && !$slaInfo['is_resolved']
+                && !$slaInfo['is_overdue']
+                && $slaInfo['remaining_minutes'] > 0
+                && $slaInfo['remaining_minutes'] <= TicketSlaService::SLA_WARNING_THRESHOLD_MINUTES) {
+                $nearDeadlineCount++;
+            }
+        }
 
         /* ──────────────────────────────────────────────
          * 3. MONITORING BEBAN KERJA & OVERDUE PER BAGIAN
@@ -211,6 +239,7 @@ class PimpinanDashboardController extends Controller
                 'badge_class'     => $statusBadgeClass,
                 'status_icon'     => $statusIcon,
                 'status_desc'     => $statusDesc,
+                'unit_kerja'      => $ukBreakdown,
             ];
 
             $workload[] = [
@@ -273,6 +302,12 @@ class PimpinanDashboardController extends Controller
         $mutasiPending = $mutasiStats['diajukan'] + $mutasiStats['diproses'];
         $mutasiSelesai = $mutasiStats['selesai'];
 
+        // Antrean approval disposal — kriteria SAMA dengan
+        // DisposalAsetController::approvalQueue().
+        $disposalPending = Schema::hasTable('as_disposal_aset')
+            ? AsDisposalAset::where('approval_status', 'Diajukan')->count()
+            : 0;
+
         /* ──────────────────────────────────────────────
          * 6. GRAFIK & ANALITIK DATA WAREHOUSE (CPMK DW)
          * ────────────────────────────────────────────── */
@@ -329,9 +364,33 @@ class PimpinanDashboardController extends Controller
         }
 
         // Data Chart 3: Tren Tiket Masuk vs Selesai (Periode Aktif)
+        //
+        // DEFINISI "SELESAI" (dikoreksi — sebelumnya seri ini memakai
+        // created_at, sehingga tiket yang dibuat di satu bulan tapi selesai
+        // di bulan lain tercatat selesai di bulan pembuatannya):
+        // - Tanggal selesai sebuah tiket = created_at dari riwayat
+        //   ticket_histories PERTAMA kali new_status masuk ke DONE_STATUSES.
+        // - Fallback: bila tidak ada riwayat penyelesaian, pakai
+        //   tickets.updated_at.
+        // - Satu tiket dihitung tepat sekali, pada bucket tanggal selesainya.
+        // - Seri ini TIDAK memakai filter created_at dari $base (tiket boleh
+        //   dibuat di luar periode asal selesai di dalam periode); filter
+        //   bagian (department_id) tetap berlaku; populasi dibatasi pada
+        //   tiket yang saat ini berstatus DONE (sama seperti sebelumnya).
+        // Seri Masuk tidak berubah: tetap memakai created_at dari $base.
         $chartTrenLabels = [];
         $chartTrenMasuk  = [];
         $chartTrenSelesai = [];
+
+        $resolvedDates = $this->resolveCompletedDates($deptFilter);
+        $selesaiPerHari = [];
+        $selesaiPerBulan = [];
+        foreach ($resolvedDates as $resolvedDate) {
+            $keyHari = $resolvedDate->format('Y-m-d');
+            $keyBulan = $resolvedDate->format('Y-m');
+            $selesaiPerHari[$keyHari] = ($selesaiPerHari[$keyHari] ?? 0) + 1;
+            $selesaiPerBulan[$keyBulan] = ($selesaiPerBulan[$keyBulan] ?? 0) + 1;
+        }
 
         $diffDays = $startDate->diffInDays($endDate);
         if ($diffDays <= 31) {
@@ -339,10 +398,7 @@ class PimpinanDashboardController extends Controller
             while ($cursor->lte($endDate)) {
                 $chartTrenLabels[] = $cursor->translatedFormat('d M');
                 $chartTrenMasuk[]   = (clone $base)->whereDate('created_at', $cursor->toDateString())->count();
-                $chartTrenSelesai[] = (clone $base)
-                    ->whereDate('created_at', $cursor->toDateString())
-                    ->whereIn('status', self::DONE_STATUSES)
-                    ->count();
+                $chartTrenSelesai[] = $selesaiPerHari[$cursor->format('Y-m-d')] ?? 0;
                 $cursor->addDay();
             }
         } else {
@@ -353,11 +409,7 @@ class PimpinanDashboardController extends Controller
                     ->whereYear('created_at', $cursor->year)
                     ->whereMonth('created_at', $cursor->month)
                     ->count();
-                $chartTrenSelesai[] = (clone $base)
-                    ->whereYear('created_at', $cursor->year)
-                    ->whereMonth('created_at', $cursor->month)
-                    ->whereIn('status', self::DONE_STATUSES)
-                    ->count();
+                $chartTrenSelesai[] = $selesaiPerBulan[$cursor->format('Y-m')] ?? 0;
                 $cursor->addMonth();
             }
         }
@@ -381,6 +433,7 @@ class PimpinanDashboardController extends Controller
             'overdueTickets',
             'mutasiPending', 'mutasiSelesai',
             'mutasiStats', 'recentMutations',
+            'disposalPending', 'nearDeadlineCount',
             'dwTotalBiaya', 'dwTotalPengadaan', 'dwTotalNilaiBuku',
             'dwBiayaLabels', 'dwBiayaData',
             'dwVendorLabels', 'dwVendorData',
@@ -388,6 +441,145 @@ class PimpinanDashboardController extends Controller
             'chartStatusLabels', 'chartStatusData',
             'chartDeptLabels', 'chartDeptAktif', 'chartDeptSelesai', 'chartDeptOverdue'
         ));
+    }
+
+    /**
+     * Unduh rekap dashboard pimpinan sebagai CSV.
+     * Menghormati filter periode + department_id yang sama dengan index().
+     */
+    public function export(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user->isKepalaDivisi() && !$user->isSuperAdmin()) {
+            abort(403, 'Akses ditolak. Halaman ini khusus untuk Pimpinan Divisi.');
+        }
+
+        $periode    = $request->get('periode', 'this_month');
+        $deptFilter = $request->get('department_id');
+        $dateFrom   = $request->get('date_from');
+        $dateTo     = $request->get('date_to');
+
+        [$startDate, $endDate] = $this->resolveDateRange($periode, $dateFrom, $dateTo);
+
+        $base = Ticket::whereBetween('created_at', [$startDate, $endDate]);
+        if ($deptFilter) {
+            $base->where('department_id', $deptFilter);
+        }
+
+        $totalMasuk   = (clone $base)->count();
+        $totalAktif   = (clone $base)->whereIn('status', self::ACTIVE_STATUSES)->count();
+        $totalSelesai = (clone $base)->whereIn('status', self::DONE_STATUSES)->count();
+        $totalOverdue = (clone $base)
+            ->whereIn('status', self::ACTIVE_STATUSES)
+            ->whereNotNull('sla_resolution_due_at')
+            ->where('sla_resolution_due_at', '<', now())
+            ->count();
+
+        $deptRows = [];
+        foreach (InternalDepartment::orderBy('id')->get() as $dept) {
+            if ($deptFilter && (int) $deptFilter !== (int) $dept->id) {
+                continue;
+            }
+            $deptQ = (clone $base)->where('department_id', $dept->id);
+            $deptRows[] = [
+                $dept->name,
+                (clone $deptQ)->count(),
+                (clone $deptQ)->whereIn('status', self::ACTIVE_STATUSES)->count(),
+                (clone $deptQ)->whereIn('status', self::DONE_STATUSES)->count(),
+                (clone $deptQ)
+                    ->whereIn('status', self::ACTIVE_STATUSES)
+                    ->whereNotNull('sla_resolution_due_at')
+                    ->where('sla_resolution_due_at', '<', now())
+                    ->count(),
+            ];
+        }
+
+        // Daftar overdue lengkap (tanpa batas 10 seperti di halaman).
+        $overdueTickets = (clone $base)
+            ->whereIn('status', self::ACTIVE_STATUSES)
+            ->whereNotNull('sla_resolution_due_at')
+            ->where('sla_resolution_due_at', '<', now())
+            ->with(['department', 'user'])
+            ->orderBy('sla_resolution_due_at', 'asc')
+            ->get();
+
+        $filename = 'rekap-dashboard-pimpinan-' . now()->format('Y-m-d') . '.csv';
+
+        return response()->streamDownload(function () use (
+            $periode, $startDate, $endDate,
+            $totalMasuk, $totalAktif, $totalSelesai, $totalOverdue,
+            $deptRows, $overdueTickets
+        ) {
+            $out = fopen('php://output', 'w');
+            // BOM UTF-8 agar dibuka dengan benar di Excel.
+            fwrite($out, "\xEF\xBB\xBF");
+
+            fputcsv($out, ['Rekap Dashboard Pimpinan Divisi']);
+            fputcsv($out, ['Periode', $periode, $startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
+            fputcsv($out, []);
+            fputcsv($out, ['Ringkasan KPI']);
+            fputcsv($out, ['Total Tiket Masuk', $totalMasuk]);
+            fputcsv($out, ['Tiket Aktif Berjalan', $totalAktif]);
+            fputcsv($out, ['Tiket Selesai', $totalSelesai]);
+            fputcsv($out, ['Overdue SLA (Resolusi)', $totalOverdue]);
+            fputcsv($out, []);
+            fputcsv($out, ['Per Bagian']);
+            fputcsv($out, ['Bagian', 'Total', 'Aktif', 'Selesai', 'Overdue Resolusi']);
+            foreach ($deptRows as $row) {
+                fputcsv($out, $row);
+            }
+            fputcsv($out, []);
+            fputcsv($out, ['Daftar Tiket Overdue']);
+            fputcsv($out, ['Nomor Tiket', 'Bagian', 'Pemohon', 'Batas SLA Resolusi', 'Keterlambatan (jam)']);
+            foreach ($overdueTickets as $ticket) {
+                $due = Carbon::parse($ticket->sla_resolution_due_at);
+                fputcsv($out, [
+                    $ticket->ticket_number,
+                    $ticket->department?->name ?? '-',
+                    $ticket->user?->nama_lengkap ?? '-',
+                    $due->format('Y-m-d H:i'),
+                    abs($due->diffInHours(now(), false)),
+                ]);
+            }
+
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    /**
+     * Peta ticket_id => tanggal selesai (Carbon, awal hari) untuk tiket
+     * yang saat ini berstatus DONE.
+     *
+     * Tanggal selesai = created_at riwayat ticket_histories pertama kali
+     * new_status masuk ke DONE_STATUSES; fallback tickets.updated_at bila
+     * tidak ada riwayat penyelesaian. Filter bagian (department_id) tetap
+     * berlaku; filter periode TIDAK dipakai di sini — pemanggil yang
+     * mem-bucket tanggal ke dalam rentang periode.
+     */
+    private function resolveCompletedDates(?string $deptFilter): array
+    {
+        $doneQuery = fn ($q) => $q->whereIn('status', self::DONE_STATUSES)
+            ->when($deptFilter, fn ($qq) => $qq->where('department_id', $deptFilter));
+
+        $resolved = [];
+        $historyRows = TicketHistory::select('ticket_id', DB::raw('MIN(created_at) as resolved_at'))
+            ->whereIn('new_status', self::DONE_STATUSES)
+            ->whereHas('ticket', $doneQuery)
+            ->groupBy('ticket_id')
+            ->get();
+        foreach ($historyRows as $row) {
+            $resolved[$row->ticket_id] = Carbon::parse($row->resolved_at)->startOfDay();
+        }
+
+        $fallbackTickets = Ticket::whereNotIn('id', array_keys($resolved))
+            ->where($doneQuery)
+            ->select('id', 'updated_at')
+            ->get();
+        foreach ($fallbackTickets as $ticket) {
+            $resolved[$ticket->id] = Carbon::parse($ticket->updated_at)->startOfDay();
+        }
+
+        return $resolved;
     }
 
     private function resolveDateRange(string $periode, ?string $dateFrom, ?string $dateTo): array

@@ -46,6 +46,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/operator/dashboard', [OperatorDashboardController::class, 'index'])->name('operator.dashboard');
     Route::get('/kabag/dashboard', [App\Http\Controllers\KabagDashboardController::class, 'index'])->name('kabag.dashboard');
     Route::get('/pimpinan/dashboard', [PimpinanDashboardController::class, 'index'])->name('pimpinan.dashboard');
+    Route::get('/pimpinan/dashboard/export', [PimpinanDashboardController::class, 'export'])->name('pimpinan.dashboard.export');
     Route::get('/staf-umum/dashboard', [App\Http\Controllers\StafUmumDashboardController::class, 'index'])->name('staf-umum.dashboard');
     Route::get('/staf-aset/dashboard', [App\Http\Controllers\StafAsetDashboardController::class, 'index'])->name('staf-aset.dashboard');
     Route::get('/staf-pengadaan/dashboard', [App\Http\Controllers\StafPengadaanDashboardController::class, 'index'])->name('staf-pengadaan.dashboard');

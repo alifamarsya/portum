@@ -2,6 +2,15 @@
 @section('title', 'Dashboard Pimpinan Divisi — Bank Sulteng')
 
 @section('content')
+{{-- Print: sembunyikan chrome layout + elemen .no-print, sisakan isi dashboard --}}
+<style media="print">
+    .no-print,
+    aside.portum-sidebar-rail,
+    header.glass-header,
+    #mobileDrawer {
+        display: none !important;
+    }
+</style>
 @php
     $periodeOptions = [
         'today'      => 'Hari Ini',
@@ -40,12 +49,10 @@
         <div class="flex flex-wrap items-center gap-2.5">
             <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
                 @foreach($periodeOptions as $key => $label)
-                    @if($key !== 'custom')
-                        <a href="{{ route('pimpinan.dashboard', array_filter(['periode' => $key, 'department_id' => $deptFilter])) }}"
-                           class="px-3 py-1.5 rounded-lg font-semibold transition {{ $periode === $key ? 'bg-white text-[#114E84] shadow-xs' : 'text-slate-600 hover:text-ink' }}">
-                            {{ $label }}
-                        </a>
-                    @endif
+                    <a href="{{ route('pimpinan.dashboard', array_filter(['periode' => $key, 'department_id' => $deptFilter])) }}"
+                       class="px-3 py-1.5 rounded-lg font-semibold transition {{ $periode === $key ? 'bg-white text-[#114E84] shadow-xs' : 'text-slate-600 hover:text-ink' }}">
+                        {{ $label }}
+                    </a>
                 @endforeach
             </div>
 
@@ -65,8 +72,38 @@
                     @endforeach
                 </select>
             </form>
+
+            {{-- Aksi kecil: cetak & unduh rekap (disembunyikan saat print) --}}
+            <div class="no-print flex items-center gap-2">
+                <button type="button" onclick="window.print()"
+                        class="border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white shadow-2xs hover:border-[#114E84] transition">
+                    Cetak
+                </button>
+                <a href="{{ route('pimpinan.dashboard.export', array_filter(['periode' => $periode, 'department_id' => $deptFilter, 'date_from' => $dateFrom, 'date_to' => $dateTo])) }}"
+                   class="border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white shadow-2xs hover:border-[#114E84] transition">
+                    Unduh Rekap (CSV)
+                </a>
+            </div>
         </div>
     </div>
+
+    @if($periode === 'custom')
+        <form method="GET" action="{{ route('pimpinan.dashboard') }}" class="no-print mt-4 flex flex-wrap items-center gap-2 text-xs">
+            <input type="hidden" name="periode" value="custom">
+            <input type="hidden" name="department_id" value="{{ $deptFilter }}">
+            <label class="font-semibold text-slate-600">Dari
+                <input type="date" name="date_from" value="{{ $dateFrom }}"
+                       class="border border-slate-200 rounded-lg px-2 py-1.5 font-semibold text-slate-700 bg-white">
+            </label>
+            <label class="font-semibold text-slate-600">Sampai
+                <input type="date" name="date_to" value="{{ $dateTo }}"
+                       class="border border-slate-200 rounded-lg px-2 py-1.5 font-semibold text-slate-700 bg-white">
+            </label>
+            <button type="submit" class="px-3 py-1.5 rounded-lg font-bold bg-[#114E84] text-white hover:bg-[#0E4272] transition">
+                Terapkan
+            </button>
+        </form>
+    @endif
 </div>
 
 {{-- ========================================================================= --}}
@@ -74,7 +111,7 @@
 {{-- ========================================================================= --}}
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     {{-- Card 1: Total Tiket Masuk --}}
-    <div class="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-card hover:border-[#114E84]/30 transition">
+    <a href="{{ route('tickets.index') }}" class="block bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-card hover:border-[#114E84]/30 transition">
         <div class="flex items-center justify-between mb-2">
             <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Tiket Masuk</span>
             <div class="w-8 h-8 rounded-lg bg-[#114E84]/10 text-[#114E84] flex items-center justify-center">
@@ -86,10 +123,11 @@
             <span class="font-semibold text-emerald-600">{{ number_format($totalSelesai) }} selesai</span>
             <span>({{ $totalMasuk > 0 ? round(($totalSelesai / $totalMasuk) * 100) : 0 }}%)</span>
         </div>
-    </div>
+        <span class="block mt-2 text-[11px] font-bold text-[#114E84]">Lihat →</span>
+    </a>
 
     {{-- Card 2: Tiket Aktif Berjalan --}}
-    <div class="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-card hover:border-[#114E84]/30 transition">
+    <a href="{{ route('tickets.index') }}" class="block bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-card hover:border-[#114E84]/30 transition">
         <div class="flex items-center justify-between mb-2">
             <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tiket Aktif Berjalan</span>
             <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
@@ -98,10 +136,11 @@
         </div>
         <div class="text-2xl sm:text-3xl font-black text-blue-700">{{ number_format($totalAktif) }}</div>
         <p class="text-xs text-slate-500 mt-1">Dalam pengerjaan 3 Bagian</p>
-    </div>
+        <span class="block mt-2 text-[11px] font-bold text-[#114E84]">Lihat →</span>
+    </a>
 
     {{-- Card 3: Overdue SLA (Peringatan / Normal) --}}
-    <div class="bg-white rounded-2xl border {{ $totalOverdue > 0 ? 'border-rose-200 bg-rose-50/20' : 'border-slate-200/80' }} p-4 sm:p-5 shadow-card hover:shadow-hover transition">
+    <a href="{{ route('tickets.index', ['overdue' => 1]) }}" class="block bg-white rounded-2xl border {{ $totalOverdue > 0 ? 'border-rose-200 bg-rose-50/20' : 'border-slate-200/80' }} p-4 sm:p-5 shadow-card hover:shadow-hover transition">
         <div class="flex items-center justify-between mb-2">
             <span class="text-[11px] font-bold uppercase tracking-wider {{ $totalOverdue > 0 ? 'text-rose-600' : 'text-slate-400' }}">Overdue SLA</span>
             <div class="w-8 h-8 rounded-lg {{ $totalOverdue > 0 ? 'bg-rose-100 text-rose-700 animate-pulse' : 'bg-emerald-50 text-emerald-600' }} flex items-center justify-center">
@@ -118,7 +157,10 @@
                 <span class="font-semibold text-emerald-600">100% Layanan tepat waktu</span>
             @endif
         </div>
-    </div>
+        <p class="mt-1 text-[11px] text-slate-500">Resolusi: {{ number_format($totalOverdue) }} · Respons: {{ number_format($totalOverdueResponseGlobal) }}</p>
+        <p class="mt-0.5 text-[11px] {{ $nearDeadlineCount > 0 ? 'text-amber-700 font-semibold' : 'text-slate-500' }}">Mendekati deadline (≤2 jam): {{ number_format($nearDeadlineCount) }}</p>
+        <span class="block mt-2 text-[11px] font-bold text-[#114E84]">Lihat →</span>
+    </a>
 
     {{-- Card 4: Persetujuan Menunggu Tindakan --}}
     <div class="bg-white rounded-2xl border {{ $kadivPendingMutasi > 0 ? 'border-amber-200 bg-amber-50/20' : 'border-slate-200/80' }} p-4 sm:p-5 shadow-card hover:border-[#114E84]/30 transition">
@@ -129,6 +171,7 @@
             </div>
         </div>
         <div class="text-2xl sm:text-3xl font-black text-ink">{{ number_format($kadivPendingMutasi) }}</div>
+        <p class="mt-1 text-[11px] text-slate-400">total menunggu — semua waktu</p>
         <div class="mt-1 flex items-center justify-between text-xs">
             @if($kadivPendingMutasi > 0)
                 <span class="inline-flex items-center gap-1 font-bold text-amber-700 text-[11px]">
@@ -158,7 +201,16 @@
 
 <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
     @foreach($deptCards as $dc)
+        @php
+            $deptUrl = route('pimpinan.dashboard', array_filter([
+                'periode' => $periode,
+                'department_id' => $dc['id'],
+                'date_from' => $periode === 'custom' ? $dateFrom : null,
+                'date_to' => $periode === 'custom' ? $dateTo : null,
+            ]));
+        @endphp
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-card p-5 flex flex-col justify-between hover:border-[#114E84]/40 transition">
+            <a href="{{ $deptUrl }}" class="block">
             <div>
                 {{-- Bagian Header & Status Badge --}}
                 <div class="flex items-start justify-between gap-3 mb-3">
@@ -197,6 +249,7 @@
                         <p class="text-base font-extrabold {{ $dc['overdue_res'] > 0 ? 'text-rose-600' : 'text-slate-400' }}">
                             {{ $dc['overdue_res'] }}
                         </p>
+                        <p class="text-[10px] text-slate-400">Res {{ $dc['overdue_res'] }} · Resp {{ $dc['overdue_resp'] }}</p>
                     </div>
                 </div>
 
@@ -211,14 +264,31 @@
                     </div>
                 </div>
             </div>
+            </a>
 
             {{-- Footer Avg Time --}}
             <div class="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
                 <span>Total: <strong class="text-slate-700">{{ $dc['total'] }}</strong> tiket</span>
+                <a href="{{ $deptUrl }}" class="text-[#114E84] font-bold hover:underline">Lihat →</a>
                 @if($dc['avg_hours'])
                     <span>Rata-rata: ~{{ $dc['avg_hours'] }} jam</span>
                 @endif
             </div>
+
+            {{-- Beban unit kerja: tertutup secara default agar tidak menambah kepadatan --}}
+            <details class="mt-3 pt-3 border-t border-slate-100 text-xs">
+                <summary class="cursor-pointer font-semibold text-slate-600 hover:text-[#114E84]">Beban unit kerja</summary>
+                <div class="mt-2 space-y-1">
+                    @forelse(collect($dc['unit_kerja'])->filter(fn ($uk) => $uk['total'] > 0) as $uk)
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-slate-600 truncate">{{ $uk['nama'] }}</span>
+                            <span class="text-slate-500 flex-shrink-0">Aktif {{ $uk['aktif'] }} · Overdue {{ $uk['overdue'] }}</span>
+                        </div>
+                    @empty
+                        <p class="text-slate-400">Belum ada aktivitas pada periode ini</p>
+                    @endforelse
+                </div>
+            </details>
         </div>
     @endforeach
 </div>
@@ -286,8 +356,8 @@
 
         <div class="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
             <span>SLA Monitoring System</span>
-            <a href="{{ route('tickets.index', ['status' => 'Dalam Proses']) }}" class="text-[#114E84] font-semibold hover:underline">
-                Lihat Seluruh Tiket Berjalan →
+            <a href="{{ route('tickets.index', ['overdue' => 1]) }}" class="text-[#114E84] font-semibold hover:underline">
+                Lihat Seluruh Tiket Overdue →
             </a>
         </div>
     </div>
@@ -332,6 +402,14 @@
                     <span class="text-[10px] font-semibold text-slate-400">Selesai</span>
                     <p class="text-base font-extrabold text-emerald-700">{{ $mutasiStats['selesai'] ?? 0 }}</p>
                 </div>
+            </div>
+
+            {{-- Antrean approval disposal (satu baris ringkas) --}}
+            <div class="mb-3 flex items-center justify-between text-xs">
+                <span class="text-slate-500">Antrean approval disposal</span>
+                <a href="{{ route('disposal-aset.approval') }}" class="font-bold text-[#114E84] hover:underline">
+                    {{ $disposalPending }} menunggu →
+                </a>
             </div>
 
             {{-- Daftar Mutasi Terkini --}}
@@ -412,6 +490,7 @@
             <div class="mb-3">
                 <h3 class="font-bold text-ink text-sm">Ringkasan Finansial Divisi</h3>
                 <p class="text-xs text-slate-400">Realisasi biaya &amp; pengadaan terverifikasi</p>
+                <p class="text-[11px] text-slate-400 italic">akumulasi s.d. saat ini — tidak mengikuti filter periode</p>
             </div>
 
             <div class="space-y-3">
