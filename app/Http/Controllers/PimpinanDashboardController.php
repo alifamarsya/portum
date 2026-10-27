@@ -70,12 +70,9 @@ class PimpinanDashboardController extends Controller
         $totalAktif = (clone $base)->whereIn('status', self::ACTIVE_STATUSES)->count();
         $totalSelesai = (clone $base)->whereIn('status', self::DONE_STATUSES)->count();
 
-        // Total Overdue Global (Resolution SLA)
-        $totalOverdue = (clone $base)
-            ->whereIn('status', self::ACTIVE_STATUSES)
-            ->whereNotNull('sla_resolution_due_at')
-            ->where('sla_resolution_due_at', '<', now())
-            ->count();
+        // Total Overdue Global (Resolution SLA) — KUMULATIF dalam periode:
+        // tiket yang pernah overdue tetap terhitung meski sudah ditutup.
+        $totalOverdue = $this->everOverdueResolution(clone $base)->count();
 
         // Tiket mendekati deadline SLA resolusi — aturan SAMA dengan
         // TicketSlaService::checkAndNotifyStaffSlaWarning(): timer sudah
@@ -124,12 +121,10 @@ class PimpinanDashboardController extends Controller
             $aktifDept     = (clone $deptQ)->whereIn('status', self::ACTIVE_STATUSES)->count();
             $selesaiDept   = (clone $deptQ)->whereIn('status', self::DONE_STATUSES)->count();
 
-            // Overdue Resolution (Tiket aktif yang batas waktu penyelesaiannya telah lewat)
-            $overdueRes = (clone $deptQ)
-                ->whereIn('status', self::ACTIVE_STATUSES)
-                ->whereNotNull('sla_resolution_due_at')
-                ->where('sla_resolution_due_at', '<', now())
-                ->count();
+            // Overdue Resolution — KUMULATIF dalam periode (lihat
+            // everOverdueResolution()): tiket yang pernah overdue tetap
+            // terhitung meski sudah Selesai/Ditutup.
+            $overdueRes = $this->everOverdueResolution(clone $deptQ)->count();
 
             // Overdue Response (Tiket belum diverifikasi dan batas respon terlewati, ATAU respon terlambat)
             $overdueResp = (clone $deptQ)
@@ -177,11 +172,9 @@ class PimpinanDashboardController extends Controller
                 $ukTotal   = (clone $ukQ)->count();
                 $ukAktif   = (clone $ukQ)->whereIn('status', self::ACTIVE_STATUSES)->count();
                 $ukSelesai = (clone $ukQ)->whereIn('status', self::DONE_STATUSES)->count();
-                $ukOverdue = (clone $ukQ)
-                    ->whereIn('status', self::ACTIVE_STATUSES)
-                    ->whereNotNull('sla_resolution_due_at')
-                    ->where('sla_resolution_due_at', '<', now())
-                    ->count();
+                // Overdue per unit kerja memakai definisi kumulatif yang sama
+                // dengan kartu bagian (lihat everOverdueResolution()).
+                $ukOverdue = $this->everOverdueResolution(clone $ukQ)->count();
                 $ukBreakdown[] = [
                     'nama'    => $uk->nama,
                     'kode'    => $uk->kode,
@@ -444,6 +437,32 @@ class PimpinanDashboardController extends Controller
     }
 
     /**
+     * Terapkan filter "pernah overdue resolusi" (KUMULATIF dalam periode).
+     *
+     * Sebuah tiket terhitung overdue resolusi bila:
+     * - sla_resolution_status = 'Terlambat' (flag sticky: di-set oleh job
+     *   terjadwal saat tiket aktif melewati deadline, atau oleh
+     *   recordResolution() saat tiket diselesaikan terlambat; tidak pernah
+     *   dikembalikan), ATAU
+     * - status masih aktif DAN sla_resolution_due_at terisi DAN sudah lewat
+     *   (menutup jeda sebelum job terjadwal berikutnya berjalan).
+     *
+     * Karena mengandalkan flag, angka TIDAK turun saat tiket ditutup —
+     * tiket yang pernah overdue tetap terhitung dalam periodenya.
+     */
+    private function everOverdueResolution($query)
+    {
+        return $query->where(function ($q) {
+            $q->where('sla_resolution_status', 'Terlambat')
+                ->orWhere(function ($sub) {
+                    $sub->whereIn('status', self::ACTIVE_STATUSES)
+                        ->whereNotNull('sla_resolution_due_at')
+                        ->where('sla_resolution_due_at', '<', now());
+                });
+        });
+    }
+
+    /**
      * Unduh rekap dashboard pimpinan sebagai CSV.
      * Menghormati filter periode + department_id yang sama dengan index().
      */
@@ -469,11 +488,7 @@ class PimpinanDashboardController extends Controller
         $totalMasuk   = (clone $base)->count();
         $totalAktif   = (clone $base)->whereIn('status', self::ACTIVE_STATUSES)->count();
         $totalSelesai = (clone $base)->whereIn('status', self::DONE_STATUSES)->count();
-        $totalOverdue = (clone $base)
-            ->whereIn('status', self::ACTIVE_STATUSES)
-            ->whereNotNull('sla_resolution_due_at')
-            ->where('sla_resolution_due_at', '<', now())
-            ->count();
+        $totalOverdue = $this->everOverdueResolution(clone $base)->count();
 
         $deptRows = [];
         foreach (InternalDepartment::orderBy('id')->get() as $dept) {
@@ -486,21 +501,15 @@ class PimpinanDashboardController extends Controller
                 (clone $deptQ)->count(),
                 (clone $deptQ)->whereIn('status', self::ACTIVE_STATUSES)->count(),
                 (clone $deptQ)->whereIn('status', self::DONE_STATUSES)->count(),
-                (clone $deptQ)
-                    ->whereIn('status', self::ACTIVE_STATUSES)
-                    ->whereNotNull('sla_resolution_due_at')
-                    ->where('sla_resolution_due_at', '<', now())
-                    ->count(),
+                $this->everOverdueResolution(clone $deptQ)->count(),
             ];
         }
 
-        // Daftar overdue lengkap (tanpa batas 10 seperti di halaman).
-        $overdueTickets = (clone $base)
-            ->whereIn('status', self::ACTIVE_STATUSES)
-            ->whereNotNull('sla_resolution_due_at')
-            ->where('sla_resolution_due_at', '<', now())
+        // Daftar tiket yang PERNAH overdue (kumulatif, tanpa batas 10
+        // seperti di halaman). Diurutkan batas SLA menaik, NULL terakhir.
+        $overdueTickets = $this->everOverdueResolution(clone $base)
             ->with(['department', 'user'])
-            ->orderBy('sla_resolution_due_at', 'asc')
+            ->orderByRaw('sla_resolution_due_at IS NULL, sla_resolution_due_at ASC')
             ->get();
 
         $filename = 'rekap-dashboard-pimpinan-' . now()->format('Y-m-d') . '.csv';
@@ -530,15 +539,33 @@ class PimpinanDashboardController extends Controller
             }
             fputcsv($out, []);
             fputcsv($out, ['Daftar Tiket Overdue']);
-            fputcsv($out, ['Nomor Tiket', 'Bagian', 'Pemohon', 'Batas SLA Resolusi', 'Keterlambatan (jam)']);
+            fputcsv($out, ['Nomor Tiket', 'Bagian', 'Pemohon', 'Batas SLA Resolusi', 'Status saat ini', 'Keterlambatan (jam)']);
             foreach ($overdueTickets as $ticket) {
-                $due = Carbon::parse($ticket->sla_resolution_due_at);
+                // due_at bisa NULL untuk tiket yang ditandai Terlambat lewat
+                // recordResolution tanpa due_at tersimpan — tampilkan '-'
+                // dan jangan sampai error.
+                $due = $ticket->sla_resolution_due_at
+                    ? Carbon::parse($ticket->sla_resolution_due_at)
+                    : null;
+                if (! $due) {
+                    $batas = '-';
+                    $late = '-';
+                } else {
+                    $batas = $due->format('Y-m-d H:i');
+                    if (in_array($ticket->status, self::ACTIVE_STATUSES, true)) {
+                        $late = abs($due->diffInHours(now(), false));
+                    } else {
+                        $end = $ticket->resolved_at ?? $ticket->completed_at ?? $ticket->updated_at;
+                        $late = abs($due->diffInHours(Carbon::parse($end), false));
+                    }
+                }
                 fputcsv($out, [
                     $ticket->ticket_number,
                     $ticket->department?->name ?? '-',
                     $ticket->user?->nama_lengkap ?? '-',
-                    $due->format('Y-m-d H:i'),
-                    abs($due->diffInHours(now(), false)),
+                    $batas,
+                    $ticket->status,
+                    $late,
                 ]);
             }
 

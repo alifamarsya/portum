@@ -158,6 +158,7 @@
             @endif
         </div>
         <p class="mt-1 text-[11px] text-slate-500">Resolusi: {{ number_format($totalOverdue) }} · Respons: {{ number_format($totalOverdueResponseGlobal) }}</p>
+        <p class="mt-0.5 text-[11px] text-slate-400">termasuk tiket yang sudah selesai — angka tidak berkurang saat tiket ditutup</p>
         <p class="mt-0.5 text-[11px] {{ $nearDeadlineCount > 0 ? 'text-amber-700 font-semibold' : 'text-slate-500' }}">Mendekati deadline (≤2 jam): {{ number_format($nearDeadlineCount) }}</p>
         <span class="block mt-2 text-[11px] font-bold text-[#114E84]">Lihat →</span>
     </a>

@@ -195,12 +195,26 @@ class PimpinanDashboardTest extends TestCase
             'created_at'            => now(),
         ]);
 
-        // Buat tiket yang sudah selesai (bukan overdue walaupun due_at lewat)
+        // Buat tiket yang sudah selesai TEPAT WAKTU (flag bukan Terlambat):
+        // tidak terhitung meski due_at lewat — yang mengikat adalah flag.
         Ticket::factory()->create([
             'user_id'               => $this->userBiasa->id,
             'department_id'         => 1,
             'status'                => 'Selesai',
             'sla_resolution_due_at' => now()->subDays(1),
+            'sla_resolution_status' => 'Tepat Waktu',
+            'created_at'            => now()->subDays(3),
+        ]);
+
+        // Buat tiket yang sudah selesai tapi PERNAH overdue (flag Terlambat):
+        // tetap terhitung — overdue bersifat kumulatif dalam periode dan
+        // tidak turun saat tiket ditutup.
+        Ticket::factory()->create([
+            'user_id'               => $this->userBiasa->id,
+            'department_id'         => 1,
+            'status'                => 'Selesai',
+            'sla_resolution_due_at' => now()->subDays(1),
+            'sla_resolution_status' => 'Terlambat',
             'created_at'            => now()->subDays(3),
         ]);
 
@@ -208,7 +222,8 @@ class PimpinanDashboardTest extends TestCase
             ->get(route('pimpinan.dashboard', ['periode' => '30_days']));
 
         $response->assertStatus(200);
-        $this->assertEquals(1, $response->viewData('totalOverdue'));
+        $this->assertEquals(2, $response->viewData('totalOverdue'));
+        // Widget eskalasi TIDAK berubah: hanya tiket yang MASIH overdue.
         $this->assertEquals(1, $response->viewData('overdueTickets')->count());
     }
 
