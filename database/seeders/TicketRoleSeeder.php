@@ -245,40 +245,5 @@ class TicketRoleSeeder extends Seeder
         User::where('username', 'umum')->update(['department_id' => 1]);
         User::where('username', 'aset')->update(['department_id' => 2]);
         User::where('username', 'pengadaan')->update(['department_id' => 3]);
-
-        // 7. Akun Pemohon & Operator
-        $userRole = Role::where('nama', 'user')->first();
-        $operatorRole = Role::where('nama', 'operator')->first();
-
-        $additionalUsers = [
-            [
-                'username'     => 'pemohon_user',
-                'nama_lengkap' => 'Staff Pemohon Layanan',
-                'email'        => 'pemohon@banksulteng.co.id',
-                'jabatan'      => 'Staff Cabang',
-                'bagian'       => 'Cabang Utama',
-                'department_id'=> null,
-                'unit_kerja_id'=> null,
-                'role_id'      => $userRole?->id ?? 6,
-            ],
-            [
-                'username'     => 'operator_helpdesk',
-                'nama_lengkap' => 'Operator Helpdesk',
-                'email'        => 'operator@banksulteng.co.id',
-                'jabatan'      => 'Helpdesk Operator',
-                'bagian'       => 'Divisi Umum',
-                'department_id'=> null,
-                'unit_kerja_id'=> null,
-                'role_id'      => $operatorRole?->id ?? 7,
-            ],
-        ];
-
-        foreach ($additionalUsers as $u) {
-            $plain = $u['username'] . '2026';
-            User::updateOrCreate(
-                ['username' => $u['username']],
-                [...$u, 'password' => Hash::make($plain), 'must_change_pwd' => false, 'is_active' => true]
-            );
-        }
     }
 }
