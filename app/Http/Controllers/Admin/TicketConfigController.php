@@ -108,11 +108,10 @@ class TicketConfigController extends Controller
         $validated['is_active'] = $request->has('is_active');
         $validated['default_sla_hours'] = $validated['sla_resolution_hours'];
         if (($validated['sort_order'] ?? null) === null) {
-            $deptId = $validated['department_id'] ?? null;
-            $maxOrder = TicketCategory::when($deptId,
-                fn($q) => $q->where('department_id', $deptId),
-                fn($q) => $q->whereNull('department_id'))->max('sort_order');
-            $validated['sort_order'] = ($maxOrder ?? 0) + 1;
+            $validated['sort_order'] = ((TicketCategory::max('sort_order') ?? 0) + 1);
+        } else {
+            // Geser kategori yang sudah ada dengan urutan >= nomor yang diminta agar tidak ada nomor yang sama
+            TicketCategory::where('sort_order', '>=', (int) $validated['sort_order'])->increment('sort_order');
         }
 
         $category = TicketCategory::create($validated);
@@ -146,6 +145,22 @@ class TicketConfigController extends Controller
         $validated['default_sla_hours'] = $validated['sla_resolution_hours'];
         if (($validated['sort_order'] ?? null) === null) {
             unset($validated['sort_order']);
+        } else {
+            $oldOrder = (int) $category->sort_order;
+            $newOrder = (int) $validated['sort_order'];
+            if ($newOrder !== $oldOrder) {
+                if ($newOrder < $oldOrder) {
+                    TicketCategory::where('id', '!=', $category->id)
+                        ->where('sort_order', '>=', $newOrder)
+                        ->where('sort_order', '<', $oldOrder)
+                        ->increment('sort_order');
+                } else {
+                    TicketCategory::where('id', '!=', $category->id)
+                        ->where('sort_order', '>', $oldOrder)
+                        ->where('sort_order', '<=', $newOrder)
+                        ->decrement('sort_order');
+                }
+            }
         }
 
         $category->update($validated);
