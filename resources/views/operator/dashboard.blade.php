@@ -8,11 +8,6 @@
             <h1 class="text-2xl font-bold text-ink">Dashboard Operator</h1>
             <p class="text-xs text-slate-500 mt-1">Pantau tiket baru dan verifikasi untuk diteruskan ke bagian penanggung jawab</p>
         </div>
-        <a href="{{ route('tickets.index') }}"
-           class="inline-flex items-center gap-2 bg-[#114E84] hover:bg-[#0E4272] text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-md transition duration-200">
-            @include('partials.icon', ['name' => 'inbox', 'class' => 'w-4 h-4'])
-            Semua Tiket
-        </a>
     </div>
 
     {{-- 4 Stat Cards + Mutasi --}}
@@ -91,11 +86,16 @@
                     </h2>
                     <p class="text-xs text-slate-400 mt-0.5">Segera verifikasi dan teruskan ke bagian yang sesuai</p>
                 </div>
-                @if ($stats['baru_masuk'] > 0)
-                    <span class="bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold px-3 py-1 rounded-full">
-                        {{ $stats['baru_masuk'] }} tiket menunggu
-                    </span>
-                @endif
+                <div class="flex items-center gap-2">
+                    @if ($stats['baru_masuk'] > 0)
+                        <span class="bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold px-3 py-1 rounded-full">
+                            {{ $stats['baru_masuk'] }} tiket menunggu
+                        </span>
+                    @endif
+                    <a href="{{ route('tickets.index') }}" class="text-xs font-bold text-[#114E84] hover:underline whitespace-nowrap">
+                        Lihat Semua Tiket &rarr;
+                    </a>
+                </div>
             </div>
 
             <div class="overflow-x-auto">
