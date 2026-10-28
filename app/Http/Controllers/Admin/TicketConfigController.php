@@ -45,7 +45,6 @@ class TicketConfigController extends Controller
 
         // Data untuk Tab Kategori
         $categoryQuery = TicketCategory::with('department')
-            ->orderBy('department_id')
             ->orderBy('sort_order')
             ->orderBy('name');
 
