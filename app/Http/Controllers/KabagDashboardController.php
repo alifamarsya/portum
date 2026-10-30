@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AsAset;
+use App\Models\AsMutasiAset;
 use App\Models\AsPks;
 use App\Models\FactPengadaan;
 use App\Models\InternalDepartment;
@@ -93,9 +94,26 @@ class KabagDashboardController extends Controller
                 ->count();
         }
 
+        // Antrean mutasi khusus Kabag/Staf Bagian Aset (verifikasi Bagian Aset).
+        // Hanya ditampilkan untuk bagian aset agar dashboard bagian lain tetap bersih.
+        $showMutasiAset = in_array($roleNama, ['bagian_aset', 'kabag_aset']) || $deptId === 2;
+        $mutasiMenungguVerifikasi = 0;
+        $antreanMutasiVerifikasi = collect();
+        if ($showMutasiAset) {
+            $mutasiMenungguVerifikasi = AsMutasiAset::whereIn('status', ['Diajukan', 'Diproses', 'Menunggu Approval'])->count();
+            $antreanMutasiVerifikasi = AsMutasiAset::whereIn('status', ['Diajukan', 'Diproses', 'Menunggu Approval'])
+                ->with(['pengaju', 'aset', 'lokasiTujuan'])
+                ->oldest()
+                ->take(8)
+                ->get();
+        }
+
         return view('kabag.dashboard', compact(
             'department',
             'stats',
+            'showMutasiAset',
+            'mutasiMenungguVerifikasi',
+            'antreanMutasiVerifikasi',
             'antreanDisposisi',
             'tiketBerjalan',
             'staffMembers',
