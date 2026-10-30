@@ -31,7 +31,7 @@ return new class extends Migration
             [
                 'field_name'   => 'kode_aset',
                 'label'        => 'Kode Aset',
-                'field_type'   => 'text',
+                'field_type'   => 'select',
                 'options'      => null,
                 'is_system'    => true,
                 'is_required'  => false,
@@ -55,8 +55,8 @@ return new class extends Migration
             [
                 'field_name'   => 'kategori',
                 'label'        => 'Kategori',
-                'field_type'   => 'text',
-                'options'      => null,
+                'field_type'   => 'select',
+                'options'      => json_encode(['Aset TI', 'Aset Umum']),
                 'is_system'    => true,
                 'is_required'  => true,
                 'show_in_list' => true,
@@ -67,7 +67,7 @@ return new class extends Migration
             [
                 'field_name'   => 'lokasi',
                 'label'        => 'Lokasi',
-                'field_type'   => 'text',
+                'field_type'   => 'select',
                 'options'      => null,
                 'is_system'    => true,
                 'is_required'  => false,
@@ -89,6 +89,30 @@ return new class extends Migration
                 'is_active'    => true,
             ],
             [
+                'field_name'   => 'tahun_pembelian',
+                'label'        => 'Tahun Pembelian',
+                'field_type'   => 'number',
+                'options'      => null,
+                'is_system'    => true,
+                'is_required'  => false,
+                'show_in_list' => false,
+                'sort_order'   => 6,
+                'help_text'    => 'Tahun aset dibeli/diadakan',
+                'is_active'    => true,
+            ],
+            [
+                'field_name'   => 'tahun_penggunaan',
+                'label'        => 'Tahun Penggunaan',
+                'field_type'   => 'number',
+                'options'      => null,
+                'is_system'    => true,
+                'is_required'  => false,
+                'show_in_list' => false,
+                'sort_order'   => 7,
+                'help_text'    => 'Tahun aset mulai digunakan',
+                'is_active'    => true,
+            ],
+            [
                 'field_name'   => 'nilai_perolehan',
                 'label'        => 'Nilai Perolehan',
                 'field_type'   => 'money',
@@ -96,7 +120,7 @@ return new class extends Migration
                 'is_system'    => true,
                 'is_required'  => false,
                 'show_in_list' => true,
-                'sort_order'   => 6,
+                'sort_order'   => 8,
                 'help_text'    => 'Nominal harga perolehan aset',
                 'is_active'    => true,
             ],
@@ -108,7 +132,7 @@ return new class extends Migration
                 'is_system'    => true,
                 'is_required'  => false,
                 'show_in_list' => false,
-                'sort_order'   => 7,
+                'sort_order'   => 9,
                 'help_text'    => 'Masa manfaat dalam hitungan bulan',
                 'is_active'    => true,
             ],
@@ -116,24 +140,24 @@ return new class extends Migration
                 'field_name'   => 'kondisi',
                 'label'        => 'Kondisi',
                 'field_type'   => 'select',
-                'options'      => json_encode(['Baik', 'Rusak Ringan', 'Rusak Berat']),
+                'options'      => json_encode(['Baik', 'Rusak', 'Butuh Maintenance']),
                 'is_system'    => true,
                 'is_required'  => false,
                 'show_in_list' => true,
-                'sort_order'   => 8,
+                'sort_order'   => 10,
                 'help_text'    => 'Status kondisi fisik aset saat ini',
                 'is_active'    => true,
             ],
             [
                 'field_name'   => 'penanggung_jawab',
                 'label'        => 'Penanggung Jawab',
-                'field_type'   => 'text',
+                'field_type'   => 'select',
                 'options'      => null,
                 'is_system'    => true,
                 'is_required'  => false,
                 'show_in_list' => false,
-                'sort_order'   => 9,
-                'help_text'    => 'Nama pegawai atau unit yang bertanggung jawab',
+                'sort_order'   => 11,
+                'help_text'    => 'Pilih personel dari lokasi yang dipilih',
                 'is_active'    => true,
             ],
             [
@@ -144,7 +168,7 @@ return new class extends Migration
                 'is_system'    => true,
                 'is_required'  => false,
                 'show_in_list' => false,
-                'sort_order'   => 10,
+                'sort_order'   => 12,
                 'help_text'    => 'Catatan atau spesifikasi tambahan',
                 'is_active'    => true,
             ],
@@ -169,7 +193,7 @@ return new class extends Migration
         DB::table('as_custom_fields')
             ->where('module_key', 'aset')
             ->where('field_name', 'nomor_seri')
-            ->update(['sort_order' => 11, 'is_system' => false]);
+            ->update(['sort_order' => 13, 'is_system' => false]);
 
         // 4. Seeding field bawaan modul 'aset_history' (Riwayat Pergerakan Aset)
         $historyFields = [

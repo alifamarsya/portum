@@ -51,8 +51,8 @@ class StafAsetDashboardController extends Controller
         $totalAset = AsAset::count();
         $totalNilaiPerolehan = (float) AsAset::sum('nilai_perolehan');
         $asetBaik = AsAset::where('kondisi', 'Baik')->count();
-        $asetRusakRingan = AsAset::where('kondisi', 'Rusak Ringan')->count();
-        $asetRusakBerat = AsAset::where('kondisi', 'Rusak Berat')->count();
+        $asetButuhMaintenance = AsAset::where('kondisi', 'Butuh Maintenance')->count();
+        $asetRusak = AsAset::where('kondisi', 'Rusak')->count();
         $asetTerbaru = AsAset::latest('tanggal_perolehan')->latest('id')->take(5)->get();
 
         // B. PKS & Jatuh Tempo
@@ -79,8 +79,8 @@ class StafAsetDashboardController extends Controller
             'totalAset',
             'totalNilaiPerolehan',
             'asetBaik',
-            'asetRusakRingan',
-            'asetRusakBerat',
+            'asetButuhMaintenance',
+            'asetRusak',
             'asetTerbaru',
             'pksAktif',
             'pksJatuhTempo',

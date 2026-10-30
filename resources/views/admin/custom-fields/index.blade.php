@@ -21,6 +21,8 @@
             <p class="text-xs text-slate-500 mt-1">
                 @if ($moduleKey === 'lokasi_personel')
                     Kelola data master Divisi / Cabang dan Personel / Karyawan untuk dropdown bertingkat form Mutasi Aset tanpa hardcode.
+                @elseif ($moduleKey === 'kode_aset')
+                    Kelola data master kode aset general untuk dropdown form Inventarisasi Aset: satu kode dipakai banyak unit.
                 @else
                     Kelola seluruh field (bawaan &amp; kustom) yang muncul di formulir dan tabel modul Inventarisasi Aset, Riwayat Pergerakan, dan Form Mutasi Aset.
                 @endif
@@ -58,6 +60,8 @@
 
     @if ($moduleKey === 'lokasi_personel')
         @include('admin.custom-fields.partials.master-lokasi-personel')
+    @elseif ($moduleKey === 'kode_aset')
+        @include('admin.custom-fields.partials.master-kode-aset')
     @else
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {{-- Kolom Kiri: Tabel Field yang Ada --}}

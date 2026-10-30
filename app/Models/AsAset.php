@@ -13,10 +13,14 @@ class AsAset extends Model
 
     protected $fillable = [
         'kode_aset',
+        'kode_aset_id',
         'nama_aset',
         'kategori',
         'lokasi',
+        'lokasi_id',
         'tanggal_perolehan',
+        'tahun_pembelian',
+        'tahun_penggunaan',
         'nilai_perolehan',
         'umur_ekonomis',
         'kondisi',
@@ -30,6 +34,8 @@ class AsAset extends Model
     {
         return [
             'tanggal_perolehan' => 'date',
+            'tahun_pembelian'   => 'integer',
+            'tahun_penggunaan'  => 'integer',
             'nilai_perolehan'   => 'decimal:2',
             'custom_fields'     => 'array',
         ];
@@ -87,6 +93,16 @@ class AsAset extends Model
                 }
             }
         });
+    }
+
+    public function kodeAset()
+    {
+        return $this->belongsTo(AsMasterKodeAset::class, 'kode_aset_id');
+    }
+
+    public function lokasiMaster()
+    {
+        return $this->belongsTo(AsMasterLokasi::class, 'lokasi_id');
     }
 
     public function histories()

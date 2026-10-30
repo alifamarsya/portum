@@ -4,8 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Concerns\LogsAudit;
 use App\Models\AsCustomField;
+use App\Models\AsMasterKodeAset;
+use App\Models\AsMasterLokasi;
+use App\Models\AsMasterPersonel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use App\Services\AmortisasiCalculator;
 
 // Mesin CRUD generik untuk 20 modul transaksional Portum, setara "RES"
@@ -58,7 +62,69 @@ class ModuleController extends Controller
             }
         }
 
+        // Dropdown dinamis khusus modul aset: opsi kode & lokasi selalu
+        // diambil dari master yang aktif (bukan dari opsi statis config/DB),
+        // agar validasi in: generik otomatis membatasi ke nilai aktif.
+        // Dijaga Schema::hasTable agar modul tidak 500 bila tabel master
+        // belum ada (mis. kode branch baru sudah ditarik tapi migrasinya
+        // belum jalan) — dropdown tampil kosong sampai migrate dijalankan.
+        if ($key === 'aset') {
+            if (isset($cfg['fields']['kode_aset'])) {
+                $cfg['fields']['kode_aset']['type'] = 'select';
+                $cfg['fields']['kode_aset']['opts'] = $this->masterKodeAsetAktif()->pluck('kode')->all();
+            }
+            if (isset($cfg['fields']['lokasi'])) {
+                $cfg['fields']['lokasi']['type'] = 'select';
+                $cfg['fields']['lokasi']['opts'] = \Illuminate\Support\Facades\Schema::hasTable('as_master_lokasi')
+                    ? AsMasterLokasi::active()->orderBy('sort_order')->orderBy('nama_lokasi')->pluck('nama_lokasi')->all()
+                    : [];
+            }
+            if (isset($cfg['fields']['penanggung_jawab'])) {
+                $cfg['fields']['penanggung_jawab']['type'] = 'select';
+                $cfg['fields']['penanggung_jawab']['opts'] = \Illuminate\Support\Facades\Schema::hasTable('as_master_personel')
+                    ? AsMasterPersonel::active()->orderBy('nama_personel')->pluck('nama_personel')->unique()->values()->all()
+                    : [];
+            }
+        }
+
         return $cfg;
+    }
+
+    /**
+     * Daftar master kode aset aktif — koleksi kosong bila tabelnya belum
+     * ada (kode branch baru sudah ditarik tapi migrasinya belum jalan),
+     * agar halaman modul/form aset tidak 500.
+     */
+    private function masterKodeAsetAktif()
+    {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('as_master_kode_aset')) {
+            return collect();
+        }
+
+        return AsMasterKodeAset::active()->orderBy('sort_order')->orderBy('kode')->get();
+    }
+
+    /**
+     * Personel aktif dikelompokkan per nama lokasi (hanya lokasi aktif),
+     * untuk dropdown Penanggung Jawab yang mengikuti pilihan Lokasi.
+     * Array kosong bila tabel master belum ada.
+     */
+    private function personelAktifByLokasi(): array
+    {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('as_master_personel')
+            || !\Illuminate\Support\Facades\Schema::hasTable('as_master_lokasi')) {
+            return [];
+        }
+
+        return AsMasterPersonel::active()
+            ->whereHas('lokasi', fn($q) => $q->where('is_active', true))
+            ->with('lokasi')
+            ->orderBy('nama_personel')
+            ->get()
+            ->groupBy(fn($p) => $p->lokasi?->nama_lokasi)
+            ->filter(fn($g, $nama) => $nama !== null && $nama !== '')
+            ->map(fn($g) => $g->pluck('nama_personel')->unique()->values()->all())
+            ->all();
     }
 
     private function authorizeModule(string $key, string $mode = 'read'): array
@@ -106,7 +172,12 @@ class ModuleController extends Controller
     public function create(string $key)
     {
         $cfg = $this->authorizeModule($key, 'write');
-        return view('modules.form', ['cfg' => $cfg, 'key' => $key, 'item' => null]);
+        $viewData = ['cfg' => $cfg, 'key' => $key, 'item' => null];
+        if ($key === 'aset') {
+            $viewData['masterKodeAset'] = $this->masterKodeAsetAktif();
+            $viewData['personelByLokasi'] = $this->personelAktifByLokasi();
+        }
+        return view('modules.form', $viewData);
     }
 
     public function store(Request $request, string $key)
@@ -114,6 +185,9 @@ class ModuleController extends Controller
         $cfg = $this->authorizeModule($key, 'write');
         $data = $this->validated($request, $cfg);
         $data = $this->hitungAmortisasiJikaPerlu($key, $data);
+        $data = $this->resolveAsetMasterRefs($key, $data);
+        $this->validateAsetTahun($key, $data);
+        $this->validateAsetPenanggungJawab($key, $data);
 
         // Pisahkan kolom SQL asli dan custom JSON fields untuk modul aset
         if (in_array($key, ['aset', 'aset_history'])) {
@@ -189,7 +263,12 @@ class ModuleController extends Controller
         $cfg = $this->authorizeModule($key, 'write');
         $item = $cfg['model']::findOrFail($id);
 
-        return view('modules.form', ['cfg' => $cfg, 'key' => $key, 'item' => $item]);
+        $viewData = ['cfg' => $cfg, 'key' => $key, 'item' => $item];
+        if ($key === 'aset') {
+            $viewData['masterKodeAset'] = $this->masterKodeAsetAktif();
+            $viewData['personelByLokasi'] = $this->personelAktifByLokasi();
+        }
+        return view('modules.form', $viewData);
     }
 
     public function update(Request $request, string $key, int $id)
@@ -198,6 +277,9 @@ class ModuleController extends Controller
         $item = $cfg['model']::findOrFail($id);
         $data = $this->validated($request, $cfg);
         $data = $this->hitungAmortisasiJikaPerlu($key, $data);
+        $data = $this->resolveAsetMasterRefs($key, $data);
+        $this->validateAsetTahun($key, $data);
+        $this->validateAsetPenanggungJawab($key, $data);
 
         // Pisahkan kolom SQL asli dan custom JSON fields untuk modul aset
         if (in_array($key, ['aset', 'aset_history'])) {
@@ -329,6 +411,104 @@ class ModuleController extends Controller
         }
 
         return $data;
+    }
+
+    /**
+     * Resolusi FK master untuk modul aset: kode_aset (string dari dropdown)
+     * -> kode_aset_id, lokasi (string nama master) -> lokasi_id. Bila tidak
+     * ketemu di master, FK di-null-kan (string tetap tersimpan apa adanya).
+     */
+    private function resolveAsetMasterRefs(string $key, array $data): array
+    {
+        if ($key !== 'aset') {
+            return $data;
+        }
+
+        if (array_key_exists('kode_aset', $data)) {
+            $master = $data['kode_aset'] !== null && $data['kode_aset'] !== '' && \Illuminate\Support\Facades\Schema::hasTable('as_master_kode_aset')
+                ? AsMasterKodeAset::where('kode', $data['kode_aset'])->first()
+                : null;
+            $data['kode_aset_id'] = $master?->id;
+        }
+
+        if (array_key_exists('lokasi', $data)) {
+            $lokasi = $data['lokasi'] !== null && $data['lokasi'] !== '' && \Illuminate\Support\Facades\Schema::hasTable('as_master_lokasi')
+                ? AsMasterLokasi::where('nama_lokasi', $data['lokasi'])->first()
+                : null;
+            $data['lokasi_id'] = $lokasi?->id;
+        }
+
+        return $data;
+    }
+
+    /**
+     * Validasi tahun khusus modul aset. Aturan generik hanya numeric|min:0,
+     * jadi rentang tahun ditegakkan di sini: bilangan bulat 1900 s.d.
+     * tahun berjalan + 1. Nilai kosong dilewati (aturan required generik
+     * yang menentukan wajib/tidaknya).
+     */
+    private function validateAsetTahun(string $key, array $data): void
+    {
+        if ($key !== 'aset') {
+            return;
+        }
+
+        $maxTahun = (int) date('Y') + 1;
+        $errors = [];
+        foreach (['tahun_pembelian' => 'Tahun Pembelian', 'tahun_penggunaan' => 'Tahun Penggunaan'] as $field => $label) {
+            if (!array_key_exists($field, $data) || $data[$field] === null || $data[$field] === '') {
+                continue;
+            }
+            $value = $data[$field];
+            if (!is_numeric($value) || (float) $value != (int) $value) {
+                $errors[$field] = "{$label} harus berupa tahun (bilangan bulat).";
+                continue;
+            }
+            $tahun = (int) $value;
+            if ($tahun < 1900 || $tahun > $maxTahun) {
+                $errors[$field] = "{$label} harus antara 1900 dan {$maxTahun}.";
+            }
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
+    }
+
+    /**
+     * Pasangan Lokasi–Penanggung Jawab khusus modul aset: nama yang dipilih
+     * harus personel aktif dari lokasi yang dipilih. Dropdown PJ di form
+     * memang sudah difilter JS per lokasi; ini menegakkannya di server agar
+     * tidak bisa diloloskan lewat request buatan.
+     */
+    private function validateAsetPenanggungJawab(string $key, array $data): void
+    {
+        if ($key !== 'aset') {
+            return;
+        }
+
+        $lokasi = $data['lokasi'] ?? null;
+        $pj = $data['penanggung_jawab'] ?? null;
+        if ($lokasi === null || $lokasi === '' || $pj === null || $pj === '') {
+            return;
+        }
+
+        if (!\Illuminate\Support\Facades\Schema::hasTable('as_master_personel')
+            || !\Illuminate\Support\Facades\Schema::hasTable('as_master_lokasi')) {
+            return;
+        }
+
+        $lokasiIds = AsMasterLokasi::where('nama_lokasi', $lokasi)->pluck('id');
+        $ok = AsMasterPersonel::active()
+            ->where('nama_personel', $pj)
+            ->whereIn('lokasi_id', $lokasiIds)
+            ->exists();
+
+        if (!$ok) {
+            throw ValidationException::withMessages([
+                'penanggung_jawab' => 'Penanggung Jawab harus personel aktif dari lokasi yang dipilih.',
+            ]);
+        }
     }
 
     /**

@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Admin;
 
 use App\Concerns\LogsAudit;
 use App\Http\Controllers\Controller;
+use App\Models\AsAset;
 use App\Models\AsCustomField;
+use App\Models\AsMasterKodeAset;
 use App\Models\AsMasterLokasi;
 use App\Models\AsMasterPersonel;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class CustomFieldController extends Controller
 {
@@ -45,16 +48,24 @@ class CustomFieldController extends Controller
             'aset_history'    => 'Riwayat Pergerakan Aset',
             'mutasi'          => 'Form Mutasi Aset',
             'lokasi_personel' => 'Master Lokasi & Personel',
+            'kode_aset'       => 'Master Kode Aset',
         ];
 
         $fields = collect();
         $masterLokasi = collect();
+        $masterKodeAset = collect();
 
         if ($moduleKey === 'lokasi_personel') {
             $masterLokasi = AsMasterLokasi::with(['personels' => fn($q) => $q->orderBy('nama_personel')])
                 ->orderBy('sort_order')
                 ->orderBy('nama_lokasi')
                 ->get();
+        } elseif ($moduleKey === 'kode_aset') {
+            // Kosong bila tabel belum ada (migrasi branch belum jalan) —
+            // halaman tetap terbuka dengan state kosong, bukan 500.
+            $masterKodeAset = Schema::hasTable('as_master_kode_aset')
+                ? AsMasterKodeAset::orderBy('sort_order')->orderBy('kode')->get()
+                : collect();
         } else {
             $fields = AsCustomField::where('module_key', $moduleKey)
                 ->orderBy('sort_order')
@@ -62,7 +73,7 @@ class CustomFieldController extends Controller
                 ->get();
         }
 
-        return view('admin.custom-fields.index', compact('fields', 'modules', 'moduleKey', 'masterLokasi'));
+        return view('admin.custom-fields.index', compact('fields', 'modules', 'moduleKey', 'masterLokasi', 'masterKodeAset'));
     }
 
     /**
@@ -293,12 +304,13 @@ class CustomFieldController extends Controller
         $this->authorizeAccess();
 
         $validated = $request->validate([
-            'nama_lokasi' => 'required|string|max:150|unique:as_master_lokasi,nama_lokasi',
+            'nama_lokasi' => 'required|string|max:150|not_regex:/,/|unique:as_master_lokasi,nama_lokasi',
             'tipe'        => 'nullable|string|in:Divisi,Cabang,Unit Kerja',
             'kode_lokasi' => 'nullable|string|max:50',
         ], [
-            'nama_lokasi.required' => 'Nama lokasi / divisi wajib diisi.',
-            'nama_lokasi.unique'   => 'Lokasi / divisi dengan nama ini sudah terdaftar.',
+            'nama_lokasi.required'   => 'Nama lokasi / divisi wajib diisi.',
+            'nama_lokasi.not_regex'  => 'Nama lokasi / divisi tidak boleh mengandung koma, karena nama dipakai sebagai pilihan dropdown.',
+            'nama_lokasi.unique'     => 'Lokasi / divisi dengan nama ini sudah terdaftar.',
         ]);
 
         $maxOrder = AsMasterLokasi::max('sort_order') ?? 0;
@@ -322,12 +334,13 @@ class CustomFieldController extends Controller
         $this->authorizeAccess();
 
         $validated = $request->validate([
-            'nama_lokasi' => 'required|string|max:150|unique:as_master_lokasi,nama_lokasi,' . $lokasi->id,
+            'nama_lokasi' => 'required|string|max:150|not_regex:/,/|unique:as_master_lokasi,nama_lokasi,' . $lokasi->id,
             'tipe'        => 'nullable|string|in:Divisi,Cabang,Unit Kerja',
             'kode_lokasi' => 'nullable|string|max:50',
         ], [
-            'nama_lokasi.required' => 'Nama lokasi / divisi wajib diisi.',
-            'nama_lokasi.unique'   => 'Lokasi / divisi dengan nama ini sudah digunakan.',
+            'nama_lokasi.required'  => 'Nama lokasi / divisi wajib diisi.',
+            'nama_lokasi.not_regex' => 'Nama lokasi / divisi tidak boleh mengandung koma, karena nama dipakai sebagai pilihan dropdown.',
+            'nama_lokasi.unique'    => 'Lokasi / divisi dengan nama ini sudah digunakan.',
         ]);
 
         $lokasi->update([
@@ -449,5 +462,117 @@ class CustomFieldController extends Controller
 
         return redirect()->route('konfigurasi.field-aset.index', ['module' => 'lokasi_personel'])
             ->with('status', "Personel '{$nama}' berhasil dihapus.");
+    }
+
+    // ========================================================
+    // CRUD MASTER KODE ASET (data general produk)
+    // Satu kode general dipakai banyak unit aset; kode_aset di
+    // detail aset TIDAK unique, unique hanya di master ini.
+    // ========================================================
+
+    public function storeKodeAset(Request $request)
+    {
+        $this->authorizeAccess();
+
+        if (!Schema::hasTable('as_master_kode_aset')) {
+            return redirect()->route('konfigurasi.field-aset.index', ['module' => 'kode_aset'])
+                ->with('error', 'Tabel Master Kode Aset belum ada — jalankan php artisan migrate terlebih dahulu.');
+        }
+
+        $validated = $request->validate([
+            'kode'      => 'required|string|max:50|regex:/^[A-Za-z0-9\-_]+$/|unique:as_master_kode_aset,kode',
+            'nama'      => 'required|string|max:150',
+            'jenis'     => 'required|string|max:100',
+            'merek'     => 'nullable|string|max:100',
+            'tipe'      => 'nullable|string|max:100',
+            'kapasitas' => 'nullable|string|max:100',
+        ], [
+            'kode.required'  => 'Kode aset wajib diisi.',
+            'kode.regex'     => 'Kode aset hanya boleh huruf, angka, strip (-), dan underscore (_), tanpa spasi atau koma.',
+            'kode.unique'    => 'Kode aset ini sudah terdaftar di master.',
+            'nama.required'  => 'Nama produk aset wajib diisi.',
+            'jenis.required' => 'Jenis aset wajib diisi.',
+        ]);
+
+        $maxOrder = AsMasterKodeAset::max('sort_order') ?? 0;
+
+        $kodeAset = AsMasterKodeAset::create([
+            'kode'       => trim($validated['kode']),
+            'nama'       => trim($validated['nama']),
+            'jenis'      => trim($validated['jenis']),
+            'merek'      => $validated['merek'] ? trim($validated['merek']) : null,
+            'tipe'       => $validated['tipe'] ? trim($validated['tipe']) : null,
+            'kapasitas'  => $validated['kapasitas'] ? trim($validated['kapasitas']) : null,
+            'is_active'  => true,
+            'sort_order' => $maxOrder + 1,
+        ]);
+
+        $this->audit('CREATE', 'Master Kode Aset', 'AsMasterKodeAset', $kodeAset->id, "Menambahkan master kode aset baru: {$kodeAset->kode}");
+
+        return redirect()->route('konfigurasi.field-aset.index', ['module' => 'kode_aset'])
+            ->with('status', "Master kode aset '{$kodeAset->kode}' berhasil ditambahkan.");
+    }
+
+    public function updateKodeAset(Request $request, AsMasterKodeAset $kodeAset)
+    {
+        $this->authorizeAccess();
+
+        $validated = $request->validate([
+            'kode'      => 'required|string|max:50|regex:/^[A-Za-z0-9\-_]+$/|unique:as_master_kode_aset,kode,' . $kodeAset->id,
+            'nama'      => 'required|string|max:150',
+            'jenis'     => 'required|string|max:100',
+            'merek'     => 'nullable|string|max:100',
+            'tipe'      => 'nullable|string|max:100',
+            'kapasitas' => 'nullable|string|max:100',
+        ], [
+            'kode.required'  => 'Kode aset wajib diisi.',
+            'kode.regex'     => 'Kode aset hanya boleh huruf, angka, strip (-), dan underscore (_), tanpa spasi atau koma.',
+            'kode.unique'    => 'Kode aset ini sudah digunakan master lain.',
+            'nama.required'  => 'Nama produk aset wajib diisi.',
+            'jenis.required' => 'Jenis aset wajib diisi.',
+        ]);
+
+        $kodeAset->update([
+            'kode'      => trim($validated['kode']),
+            'nama'      => trim($validated['nama']),
+            'jenis'     => trim($validated['jenis']),
+            'merek'     => $validated['merek'] ? trim($validated['merek']) : null,
+            'tipe'      => $validated['tipe'] ? trim($validated['tipe']) : null,
+            'kapasitas' => $validated['kapasitas'] ? trim($validated['kapasitas']) : null,
+        ]);
+
+        $this->audit('UPDATE', 'Master Kode Aset', 'AsMasterKodeAset', $kodeAset->id, "Memperbarui master kode aset: {$kodeAset->kode}");
+
+        return redirect()->route('konfigurasi.field-aset.index', ['module' => 'kode_aset'])
+            ->with('status', "Master kode aset '{$kodeAset->kode}' berhasil diperbarui.");
+    }
+
+    public function toggleKodeAset(AsMasterKodeAset $kodeAset)
+    {
+        $this->authorizeAccess();
+
+        $kodeAset->update(['is_active' => !$kodeAset->is_active]);
+
+        $status = $kodeAset->is_active ? 'diaktifkan' : 'dinonaktifkan';
+        return redirect()->route('konfigurasi.field-aset.index', ['module' => 'kode_aset'])
+            ->with('status', "Status master kode aset '{$kodeAset->kode}' berhasil {$status}.");
+    }
+
+    public function destroyKodeAset(AsMasterKodeAset $kodeAset)
+    {
+        $this->authorizeAccess();
+
+        if (AsAset::where('kode_aset_id', $kodeAset->id)->exists()) {
+            return redirect()->route('konfigurasi.field-aset.index', ['module' => 'kode_aset'])
+                ->with('error', "Master kode aset '{$kodeAset->kode}' tidak bisa dihapus karena masih dipakai oleh unit aset yang terdaftar.");
+        }
+
+        $kode = $kodeAset->kode;
+        $kodeAset->delete();
+
+        $this->audit('DELETE', 'Master Kode Aset', 'AsMasterKodeAset', $kodeAset->id, "Menghapus master kode aset: {$kode}");
+
+        return redirect()->route('konfigurasi.field-aset.index', ['module' => 'kode_aset'])
+            ->with('status', "Master kode aset '{$kode}' berhasil dihapus.");
     }
 }

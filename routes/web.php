@@ -132,6 +132,12 @@ Route::middleware('auth')->group(function () {
             Route::patch('/lokasi/{lokasi}/toggle', [CustomFieldController::class, 'toggleLokasi'])->name('lokasi.toggle');
             Route::delete('/lokasi/{lokasi}', [CustomFieldController::class, 'destroyLokasi'])->name('lokasi.destroy');
 
+            // Master Kode Aset (Inventarisasi Aset)
+            Route::post('/kode-aset', [CustomFieldController::class, 'storeKodeAset'])->name('kode-aset.store');
+            Route::put('/kode-aset/{kodeAset}', [CustomFieldController::class, 'updateKodeAset'])->name('kode-aset.update');
+            Route::patch('/kode-aset/{kodeAset}/toggle', [CustomFieldController::class, 'toggleKodeAset'])->name('kode-aset.toggle');
+            Route::delete('/kode-aset/{kodeAset}', [CustomFieldController::class, 'destroyKodeAset'])->name('kode-aset.destroy');
+
             Route::post('/personel', [CustomFieldController::class, 'storePersonel'])->name('personel.store');
             Route::put('/personel/{personel}', [CustomFieldController::class, 'updatePersonel'])->name('personel.update');
             Route::patch('/personel/{personel}/toggle', [CustomFieldController::class, 'togglePersonel'])->name('personel.toggle');

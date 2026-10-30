@@ -126,9 +126,9 @@
                     </span>
                 </div>
                 <p class="text-xl sm:text-2xl font-black text-rose-700 tracking-tight">
-                    {{ $asetRusakRingan + $asetRusakBerat }} <span class="text-xs font-normal text-slate-500">Unit</span>
+                    {{ $asetButuhMaintenance + $asetRusak }} <span class="text-xs font-normal text-slate-500">Unit</span>
                 </p>
-                <p class="text-[11px] text-slate-400 mt-1 font-medium">{{ $asetRusakBerat }} rusak berat &bull; {{ $asetRusakRingan }} rusak ringan</p>
+                <p class="text-[11px] text-slate-400 mt-1 font-medium">{{ $asetRusak }} rusak &bull; {{ $asetButuhMaintenance }} butuh maintenance</p>
             </div>
 
             {{-- Card 4: Permohonan Sewa Cabang --}}
@@ -394,31 +394,31 @@
                         </div>
                     </div>
 
-                    {{-- Rusak Ringan --}}
+                    {{-- Butuh Maintenance --}}
                     <div>
                         <div class="flex justify-between text-xs font-semibold text-slate-700 mb-1">
                             <span class="flex items-center gap-1.5">
                                 <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                                Rusak Ringan (Bisa Diperbaiki)
+                                Butuh Maintenance (Bisa Diperbaiki)
                             </span>
-                            <span class="font-mono">{{ $asetRusakRingan }} unit ({{ round(($asetRusakRingan / $sumAset) * 100) }}%)</span>
+                            <span class="font-mono">{{ $asetButuhMaintenance }} unit ({{ round(($asetButuhMaintenance / $sumAset) * 100) }}%)</span>
                         </div>
                         <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div class="h-full bg-amber-500 rounded-full" style="width: {{ min(100, round(($asetRusakRingan / $sumAset) * 100)) }}%"></div>
+                            <div class="h-full bg-amber-500 rounded-full" style="width: {{ min(100, round(($asetButuhMaintenance / $sumAset) * 100)) }}%"></div>
                         </div>
                     </div>
 
-                    {{-- Rusak Berat --}}
+                    {{-- Rusak --}}
                     <div>
                         <div class="flex justify-between text-xs font-semibold text-slate-700 mb-1">
                             <span class="flex items-center gap-1.5">
                                 <span class="w-2 h-2 rounded-full bg-rose-500"></span>
-                                Rusak Berat (Usul Hapus)
+                                Rusak (Usul Hapus)
                             </span>
-                            <span class="font-mono">{{ $asetRusakBerat }} unit ({{ round(($asetRusakBerat / $sumAset) * 100) }}%)</span>
+                            <span class="font-mono">{{ $asetRusak }} unit ({{ round(($asetRusak / $sumAset) * 100) }}%)</span>
                         </div>
                         <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div class="h-full bg-rose-500 rounded-full" style="width: {{ min(100, round(($asetRusakBerat / $sumAset) * 100)) }}%"></div>
+                            <div class="h-full bg-rose-500 rounded-full" style="width: {{ min(100, round(($asetRusak / $sumAset) * 100)) }}%"></div>
                         </div>
                     </div>
                 </div>
@@ -451,7 +451,7 @@
                                 <p class="text-[11px] text-slate-400 truncate">{{ $a->kode_aset ?? 'Tanpa Kode' }} &bull; {{ $a->lokasi ?? 'Kantor Pusat' }}</p>
                             </div>
                             <span class="inline-flex items-center px-2 py-0.5 rounded text-[10.5px] font-semibold flex-shrink-0
-                                {{ $a->kondisi === 'Baik' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : ($a->kondisi === 'Rusak Ringan' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-rose-50 text-rose-700 border border-rose-200') }}">
+                                {{ $a->kondisi === 'Baik' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : ($a->kondisi === 'Butuh Maintenance' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-rose-50 text-rose-700 border border-rose-200') }}">
                                 {{ $a->kondisi }}
                             </span>
                         </div>

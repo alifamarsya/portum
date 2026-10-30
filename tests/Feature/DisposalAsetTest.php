@@ -65,7 +65,7 @@ class DisposalAsetTest extends TestCase
             'lokasi'             => 'Divisi Umum Lt. 2',
             'tanggal_perolehan'  => '2023-01-15',
             'nilai_perolehan'    => 15000000,
-            'kondisi'            => 'Rusak Berat',
+            'kondisi'            => 'Rusak',
             'status_penghapusan' => 'aktif',
         ]);
     }

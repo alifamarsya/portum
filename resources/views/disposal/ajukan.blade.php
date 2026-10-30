@@ -61,7 +61,7 @@
                 <span class="text-[11px] text-slate-500 mt-1 block">Kondisi:
                     <span class="px-2 py-0.5 rounded-md font-semibold text-[10px]
                         @if($aset->kondisi === 'Baik') bg-emerald-100 text-emerald-800
-                        @elseif($aset->kondisi === 'Rusak Ringan') bg-amber-100 text-amber-800
+                        @elseif($aset->kondisi === 'Butuh Maintenance') bg-amber-100 text-amber-800
                         @else bg-rose-100 text-rose-800 @endif">
                         {{ $aset->kondisi ?? 'Baik' }}
                     </span>
@@ -96,7 +96,7 @@
                 </label>
                 <select id="metode" name="metode"
                         class="w-full text-xs rounded-xl border-slate-300 focus:border-[#114E84] focus:ring focus:ring-blue-100 shadow-2xs p-2.5">
-                    <option value="Dimusnahkan" {{ old('metode') === 'Dimusnahkan' ? 'selected' : '' }}>Dimusnahkan (Rusak Berat / Tidak Bernilai)</option>
+                    <option value="Dimusnahkan" {{ old('metode') === 'Dimusnahkan' ? 'selected' : '' }}>Dimusnahkan (Rusak / Tidak Bernilai)</option>
                     <option value="Dihapusbukukan" {{ old('metode') === 'Dihapusbukukan' ? 'selected' : '' }}>Dihapusbukukan (Write-off Akuntansi)</option>
                     <option value="Dihibahkan" {{ old('metode') === 'Dihibahkan' ? 'selected' : '' }}>Dihibahkan (Pihak Ketiga / CSR)</option>
                     <option value="Dijual" {{ old('metode') === 'Dijual' ? 'selected' : '' }}>Dijual (Lelang / Scrap / Penjualan Terbuka)</option>
