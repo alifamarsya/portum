@@ -31,7 +31,7 @@
 </div>
 
 {{-- ================= 4 KPI METRIC CARDS ================= --}}
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
     {{-- Card 1: Total Pengguna --}}
     <a href="{{ route('admin.users.index') }}"
        class="group bg-white rounded-2xl p-5 border border-slate-200/80 shadow-card hover:border-[#114E84]/40 hover:shadow-hover transition-all flex flex-col justify-between">
@@ -136,6 +136,34 @@
                 </span>
             @endif
             <span class="text-[#114E84] group-hover:translate-x-0.5 transition-transform font-bold">Tiket ▸</span>
+        </div>
+    </a>
+
+    {{-- Card 5: Mutasi Aset --}}
+    <a href="{{ route('mutasi-aset.index') }}"
+       class="group bg-white rounded-2xl p-5 border border-slate-200/80 shadow-card hover:border-[#114E84]/50 hover:shadow-hover transition-all flex flex-col justify-between">
+        <div>
+            <div class="flex items-start justify-between mb-3">
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Mutasi Aset</p>
+                <div class="w-10 h-10 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                    @include('partials.icon', ['name' => 'layers', 'class' => 'w-5 h-5'])
+                </div>
+            </div>
+            <p class="text-3xl font-extrabold text-ink tracking-tight">{{ number_format($mutasiStats['total']) }}</p>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+            @if ($mutasiStats['menunggu_verifikasi'] > 0)
+                <span class="text-amber-600 font-bold flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                    {{ $mutasiStats['menunggu_verifikasi'] }} Menunggu verifikasi
+                </span>
+            @else
+                <span class="text-emerald-600 font-medium flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    Antrian terpantau lancar
+                </span>
+            @endif
+            <span class="text-[#114E84] group-hover:translate-x-0.5 transition-transform font-bold">Mutasi ▸</span>
         </div>
     </a>
 </div>
