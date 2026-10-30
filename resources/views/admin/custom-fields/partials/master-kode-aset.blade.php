@@ -25,7 +25,7 @@
         <div class="sm:col-span-2 flex items-center justify-end gap-2.5">
             <button type="button" onclick="openModalCustom('modalTambahKodeAset')"
                     class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-[#114E84] text-white hover:bg-[#0E4272] transition shadow-xs">
-                @include('partials.icon', ['name' => 'plus', 'class' => 'w-4 h-4 text-white']})
+                @include('partials.icon', ['name' => 'plus', 'class' => 'w-4 h-4 text-white'])
                 <span>Tambah Kode Aset</span>
             </button>
         </div>
@@ -82,7 +82,7 @@
                         <button type="button" onclick="editKodeAset({{ json_encode($ka) }})"
                                 class="p-1.5 rounded-lg text-slate-400 hover:text-[#114E84] hover:bg-blue-50 transition"
                                 title="Edit Master Kode Aset">
-                            @include('partials.icon', ['name' => 'edit', 'class' => 'w-3.5 h-3.5']})
+                            @include('partials.icon', ['name' => 'edit', 'class' => 'w-3.5 h-3.5'])
                         </button>
 
                         <form method="POST" action="{{ route('konfigurasi.field-aset.kode-aset.toggle', $ka) }}" class="inline">
@@ -91,7 +91,7 @@
                             <button type="submit"
                                     class="p-1.5 rounded-lg {{ $ka->is_active ? 'text-emerald-600 hover:bg-emerald-50' : 'text-slate-400 hover:bg-slate-100' }} transition"
                                     title="{{ $ka->is_active ? 'Nonaktifkan Kode Aset' : 'Aktifkan Kode Aset' }}">
-                                @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-3.5 h-3.5']})
+                                @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-3.5 h-3.5'])
                             </button>
                         </form>
 
@@ -102,7 +102,7 @@
                             @method('DELETE')
                             <button type="submit" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
                                     title="Hapus Master Kode Aset">
-                                @include('partials.icon', ['name' => 'trash', 'class' => 'w-3.5 h-3.5']})
+                                @include('partials.icon', ['name' => 'trash', 'class' => 'w-3.5 h-3.5'])
                             </button>
                         </form>
                     </div>
