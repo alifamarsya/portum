@@ -84,8 +84,9 @@
         @endif
     </div>
 
-    {{-- Main Content: full-width stack --}}
-    <div class="space-y-6 mb-6">
+    {{-- Main Content [TEST]: full-width untuk Bagian Aset, 2 kolom (sidebar) untuk lainnya --}}
+    <div class="grid grid-cols-1 gap-6 mb-6 {{ $showMutasiAset ? '' : 'lg:grid-cols-3' }}">
+        <div class="space-y-6 {{ $showMutasiAset ? '' : 'lg:col-span-2' }}">
         {{-- Antrean Disposisi Kabag --}}
             <div class="bg-white rounded-2xl border border-slate-200/90 shadow-card overflow-hidden">
                 <div class="p-5 border-b border-slate-100 flex items-center justify-between">
@@ -208,14 +209,16 @@
                     @endif
                 </div>
             @endif
+        </div>
 
-        {{-- Ringkasan Modul Operasional Sesuai Bagian (paling bawah, full-width) --}}
+        <div>
+            {{-- Ringkasan Modul Operasional Sesuai Bagian --}}
             @if (!empty($deptMetrics))
                 <div class="bg-white rounded-2xl border border-slate-200/90 shadow-card p-5 sm:p-6">
                     <h2 class="font-bold text-ink text-sm sm:text-base mb-1">{{ $deptMetrics['label'] }}</h2>
                     <p class="text-xs text-slate-500 mb-4">Pemantauan data operasional inti divisi</p>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div class="{{ $showMutasiAset ? 'grid grid-cols-1 sm:grid-cols-2 gap-3.5' : 'space-y-3.5' }}">
                         @if (isset($deptMetrics['biaya_bulan_ini']))
                             <div class="p-3 rounded-xl bg-blue-50/60 border border-blue-100 flex items-center justify-between">
                                 <span class="text-xs text-slate-600 font-medium">Beban Biaya Bulan Ini:</span>
@@ -260,5 +263,6 @@
                     </div>
                 </div>
             @endif
+        </div>
     </div>
 @endsection
