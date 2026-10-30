@@ -88,7 +88,7 @@
             @include('partials.icon', ['name' => 'layers', 'class' => 'w-4 h-4 text-emerald-600'])
             <span>Operasional Bagian Aset/Inventaris &amp; Logistik</span>
         </h2>
-        <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             {{-- Card 1: Nilai Aset Terdata --}}
             <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs group hover:border-blue-300 transition-all">
                 <div class="flex items-center justify-between mb-2">
@@ -143,20 +143,6 @@
                     {{ $memoSewaPending }} <span class="text-xs font-normal text-slate-500">Pengajuan</span>
                 </p>
                 <p class="text-[11px] text-slate-400 mt-1 font-medium">Pengajuan sewa kantor / ATM</p>
-            </div>
-
-            {{-- Card 5: Mutasi Menunggu Verifikasi --}}
-            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs group hover:border-amber-300 transition-all">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Mutasi Menunggu Verifikasi</span>
-                    <span class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
-                        @include('partials.icon', ['name' => 'clipboard', 'class' => 'w-4 h-4'])
-                    </span>
-                </div>
-                <p class="text-xl sm:text-2xl font-black text-amber-800 tracking-tight">
-                    {{ $mutasiMenungguVerifikasi }} <span class="text-xs font-normal text-slate-500">Pengajuan</span>
-                </p>
-                <p class="text-[11px] text-slate-400 mt-1 font-medium">Perlu verifikasi Bagian Aset</p>
             </div>
         </div>
     </div>
@@ -301,83 +287,6 @@
                         @endforeach
                     </div>
                 @endif
-            </div>
-
-            {{-- 1b. ANTREAN MUTASI MENUNGGU VERIFIKASI --}}
-            <div class="bg-white rounded-2xl border border-slate-200/90 shadow-card overflow-hidden">
-                <div class="p-5 border-b border-slate-100 flex items-center justify-between">
-                    <div class="flex items-center gap-2.5">
-                        <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                            @include('partials.icon', ['name' => 'clipboard', 'class' => 'w-5 h-5'])
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-ink text-sm">Antrean Mutasi Menunggu Verifikasi</h3>
-                            <p class="text-[11px] text-slate-400">Pengajuan yang perlu diverifikasi Bagian Aset &mdash; tertua di atas</p>
-                        </div>
-                    </div>
-                    <a href="{{ route('mutasi-aset.index') }}" class="text-xs font-semibold text-[#114E84] hover:underline flex items-center gap-1">
-                        Lihat Semua Mutasi &rarr;
-                    </a>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="bg-slate-50 border-b border-slate-200 text-left text-[11.5px] uppercase tracking-wider text-slate-500">
-                                <th class="px-5 py-3.5 font-semibold">No. Mutasi</th>
-                                <th class="px-5 py-3.5 font-semibold">Tanggal Diajukan</th>
-                                <th class="px-5 py-3.5 font-semibold">Pemohon</th>
-                                <th class="px-5 py-3.5 font-semibold">Aset</th>
-                                <th class="px-5 py-3.5 font-semibold">Lokasi Tujuan</th>
-                                <th class="px-5 py-3.5 font-semibold">Status</th>
-                                <th class="px-5 py-3.5 font-semibold text-right">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            @forelse ($antreanMutasiVerifikasi as $m)
-                                @php $badge = $m->status_badge; @endphp
-                                <tr class="hover:bg-slate-50/70 transition">
-                                    <td class="px-5 py-4 font-mono font-bold text-[#114E84] whitespace-nowrap">
-                                        <a href="{{ route('mutasi-aset.show', $m) }}" class="hover:underline">
-                                            {{ $m->no_mutasi }}
-                                        </a>
-                                    </td>
-                                    <td class="px-5 py-4 text-xs text-slate-500 whitespace-nowrap">
-                                        {{ $m->created_at->format('d M Y, H:i') }}
-                                    </td>
-                                    <td class="px-5 py-4 text-xs text-slate-600 whitespace-nowrap">
-                                        {{ $m->pengaju?->nama_lengkap ?? $m->nama_pemohon ?? '-' }}
-                                    </td>
-                                    <td class="px-5 py-4 whitespace-nowrap">
-                                        <span class="text-xs font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md">
-                                            {{ $m->aset?->nama_aset ?? '-' }}
-                                        </span>
-                                    </td>
-                                    <td class="px-5 py-4 text-xs text-slate-600 whitespace-nowrap">
-                                        {{ $m->lokasiTujuan?->nama_lokasi ?? $m->ke_lokasi ?? '-' }}
-                                    </td>
-                                    <td class="px-5 py-4 whitespace-nowrap">
-                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11.5px] font-medium border {{ $badge['class'] }}">
-                                            {{ $badge['label'] }}
-                                        </span>
-                                    </td>
-                                    <td class="px-5 py-4 text-right whitespace-nowrap">
-                                        <a href="{{ route('mutasi-aset.show', $m) }}"
-                                           class="inline-flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 text-xs font-semibold px-3 py-1.5 rounded-lg transition">
-                                            Verifikasi &rarr;
-                                        </a>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="7" class="px-5 py-8 text-center">
-                                        <p class="text-slate-500 font-semibold text-sm mb-1">Tidak ada mutasi yang menunggu verifikasi</p>
-                                        <p class="text-slate-400 text-xs">Semua pengajuan mutasi sudah diproses.</p>
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
             </div>
 
             {{-- 2. TABEL PKS MENDEKATI JATUH TEMPO --}}
