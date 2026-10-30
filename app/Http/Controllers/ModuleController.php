@@ -64,20 +64,37 @@ class ModuleController extends Controller
         // Dropdown dinamis khusus modul aset: opsi kode & lokasi selalu
         // diambil dari master yang aktif (bukan dari opsi statis config/DB),
         // agar validasi in: generik otomatis membatasi ke nilai aktif.
+        // Dijaga Schema::hasTable agar modul tidak 500 bila tabel master
+        // belum ada (mis. kode branch baru sudah ditarik tapi migrasinya
+        // belum jalan) — dropdown tampil kosong sampai migrate dijalankan.
         if ($key === 'aset') {
             if (isset($cfg['fields']['kode_aset'])) {
                 $cfg['fields']['kode_aset']['type'] = 'select';
-                $cfg['fields']['kode_aset']['opts'] = AsMasterKodeAset::active()
-                    ->orderBy('sort_order')->orderBy('kode')->pluck('kode')->all();
+                $cfg['fields']['kode_aset']['opts'] = $this->masterKodeAsetAktif()->pluck('kode')->all();
             }
             if (isset($cfg['fields']['lokasi'])) {
                 $cfg['fields']['lokasi']['type'] = 'select';
-                $cfg['fields']['lokasi']['opts'] = AsMasterLokasi::active()
-                    ->orderBy('sort_order')->orderBy('nama_lokasi')->pluck('nama_lokasi')->all();
+                $cfg['fields']['lokasi']['opts'] = \Illuminate\Support\Facades\Schema::hasTable('as_master_lokasi')
+                    ? AsMasterLokasi::active()->orderBy('sort_order')->orderBy('nama_lokasi')->pluck('nama_lokasi')->all()
+                    : [];
             }
         }
 
         return $cfg;
+    }
+
+    /**
+     * Daftar master kode aset aktif — koleksi kosong bila tabelnya belum
+     * ada (kode branch baru sudah ditarik tapi migrasinya belum jalan),
+     * agar halaman modul/form aset tidak 500.
+     */
+    private function masterKodeAsetAktif()
+    {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('as_master_kode_aset')) {
+            return collect();
+        }
+
+        return AsMasterKodeAset::active()->orderBy('sort_order')->orderBy('kode')->get();
     }
 
     private function authorizeModule(string $key, string $mode = 'read'): array
@@ -127,8 +144,7 @@ class ModuleController extends Controller
         $cfg = $this->authorizeModule($key, 'write');
         $viewData = ['cfg' => $cfg, 'key' => $key, 'item' => null];
         if ($key === 'aset') {
-            $viewData['masterKodeAset'] = AsMasterKodeAset::active()
-                ->orderBy('sort_order')->orderBy('kode')->get();
+            $viewData['masterKodeAset'] = $this->masterKodeAsetAktif();
         }
         return view('modules.form', $viewData);
     }
@@ -217,8 +233,7 @@ class ModuleController extends Controller
 
         $viewData = ['cfg' => $cfg, 'key' => $key, 'item' => $item];
         if ($key === 'aset') {
-            $viewData['masterKodeAset'] = AsMasterKodeAset::active()
-                ->orderBy('sort_order')->orderBy('kode')->get();
+            $viewData['masterKodeAset'] = $this->masterKodeAsetAktif();
         }
         return view('modules.form', $viewData);
     }
@@ -376,14 +391,14 @@ class ModuleController extends Controller
         }
 
         if (array_key_exists('kode_aset', $data)) {
-            $master = $data['kode_aset'] !== null && $data['kode_aset'] !== ''
+            $master = $data['kode_aset'] !== null && $data['kode_aset'] !== '' && \Illuminate\Support\Facades\Schema::hasTable('as_master_kode_aset')
                 ? AsMasterKodeAset::where('kode', $data['kode_aset'])->first()
                 : null;
             $data['kode_aset_id'] = $master?->id;
         }
 
         if (array_key_exists('lokasi', $data)) {
-            $lokasi = $data['lokasi'] !== null && $data['lokasi'] !== ''
+            $lokasi = $data['lokasi'] !== null && $data['lokasi'] !== '' && \Illuminate\Support\Facades\Schema::hasTable('as_master_lokasi')
                 ? AsMasterLokasi::where('nama_lokasi', $data['lokasi'])->first()
                 : null;
             $data['lokasi_id'] = $lokasi?->id;

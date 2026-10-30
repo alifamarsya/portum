@@ -10,6 +10,7 @@ use App\Models\AsMasterKodeAset;
 use App\Models\AsMasterLokasi;
 use App\Models\AsMasterPersonel;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class CustomFieldController extends Controller
 {
@@ -60,9 +61,11 @@ class CustomFieldController extends Controller
                 ->orderBy('nama_lokasi')
                 ->get();
         } elseif ($moduleKey === 'kode_aset') {
-            $masterKodeAset = AsMasterKodeAset::orderBy('sort_order')
-                ->orderBy('kode')
-                ->get();
+            // Kosong bila tabel belum ada (migrasi branch belum jalan) —
+            // halaman tetap terbuka dengan state kosong, bukan 500.
+            $masterKodeAset = Schema::hasTable('as_master_kode_aset')
+                ? AsMasterKodeAset::orderBy('sort_order')->orderBy('kode')->get()
+                : collect();
         } else {
             $fields = AsCustomField::where('module_key', $moduleKey)
                 ->orderBy('sort_order')
@@ -470,6 +473,11 @@ class CustomFieldController extends Controller
     public function storeKodeAset(Request $request)
     {
         $this->authorizeAccess();
+
+        if (!Schema::hasTable('as_master_kode_aset')) {
+            return redirect()->route('konfigurasi.field-aset.index', ['module' => 'kode_aset'])
+                ->with('error', 'Tabel Master Kode Aset belum ada — jalankan php artisan migrate terlebih dahulu.');
+        }
 
         $validated = $request->validate([
             'kode'      => 'required|string|max:50|regex:/^[A-Za-z0-9\-_]+$/|unique:as_master_kode_aset,kode',
