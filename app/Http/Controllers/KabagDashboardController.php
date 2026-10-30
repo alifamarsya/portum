@@ -96,12 +96,15 @@ class KabagDashboardController extends Controller
 
         // Antrean mutasi khusus Kabag/Staf Bagian Aset (verifikasi Bagian Aset).
         // Hanya ditampilkan untuk bagian aset agar dashboard bagian lain tetap bersih.
+        // Scope ketat: hanya status 'Diproses' yang memang giliran verifikasi
+        // Bagian Aset. 'Diajukan' = antrean operator, 'Menunggu Approval' =
+        // antrean Kadiv; keduanya bukan giliran Bagian Aset.
         $showMutasiAset = in_array($roleNama, ['bagian_aset', 'kabag_aset']) || $deptId === 2;
         $mutasiMenungguVerifikasi = 0;
         $antreanMutasiVerifikasi = collect();
         if ($showMutasiAset) {
-            $mutasiMenungguVerifikasi = AsMutasiAset::whereIn('status', ['Diajukan', 'Diproses', 'Menunggu Approval'])->count();
-            $antreanMutasiVerifikasi = AsMutasiAset::whereIn('status', ['Diajukan', 'Diproses', 'Menunggu Approval'])
+            $mutasiMenungguVerifikasi = AsMutasiAset::where('status', 'Diproses')->count();
+            $antreanMutasiVerifikasi = AsMutasiAset::where('status', 'Diproses')
                 ->with(['pengaju', 'aset', 'lokasiTujuan'])
                 ->oldest()
                 ->take(8)
