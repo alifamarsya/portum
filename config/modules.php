@@ -612,9 +612,12 @@ return array (
       'kode_aset' => 
       array (
         'label' => 'Kode Aset',
-        'type' => 'text',
+        'type' => 'select',
         'list' => true,
         'req' => true,
+        'opts' => 
+        array (
+        ),
       ),
       'nama_aset' => 
       array (
@@ -626,16 +629,24 @@ return array (
       'kategori' => 
       array (
         'label' => 'Kategori',
-        'type' => 'text',
+        'type' => 'select',
         'list' => true,
         'req' => true,
+        'opts' => 
+        array (
+          0 => 'Aset TI',
+          1 => 'Aset Umum',
+        ),
       ),
       'lokasi' => 
       array (
         'label' => 'Lokasi',
-        'type' => 'text',
+        'type' => 'select',
         'list' => true,
         'req' => true,
+        'opts' => 
+        array (
+        ),
       ),
       'tanggal_perolehan' => 
       array (
@@ -643,6 +654,20 @@ return array (
         'type' => 'date',
         'list' => false,
         'fmt' => 'date',
+        'req' => true,
+      ),
+      'tahun_pembelian' => 
+      array (
+        'label' => 'Tahun Pembelian',
+        'type' => 'number',
+        'list' => false,
+        'req' => true,
+      ),
+      'tahun_penggunaan' => 
+      array (
+        'label' => 'Tahun Penggunaan',
+        'type' => 'number',
+        'list' => false,
         'req' => true,
       ),
       'nilai_perolehan' => 
@@ -670,8 +695,8 @@ return array (
         'opts' => 
         array (
           0 => 'Baik',
-          1 => 'Rusak Ringan',
-          2 => 'Rusak Berat',
+          1 => 'Rusak',
+          2 => 'Butuh Maintenance',
         ),
       ),
       'penanggung_jawab' => 

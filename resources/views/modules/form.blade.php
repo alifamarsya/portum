@@ -73,6 +73,36 @@
                                class="w-full border @error($field) border-rose-400 focus:border-rose-500 focus:ring-rose-200 @else border-slate-300 focus:border-brand focus:ring-brand @enderror rounded-lg px-3.5 py-2.5 text-sm focus:ring-1 transition">
                     @endif
 
+                    @if ($field === 'kode_aset' && ($key ?? '') === 'aset' && isset($masterKodeAset))
+                        @if ($masterKodeAset->isEmpty())
+                            <div class="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                Belum ada master kode aset aktif. Inisialisasi dulu di
+                                <a href="{{ route('konfigurasi.field-aset.index', ['module' => 'kode_aset']) }}" class="font-semibold underline">Master Kode Aset</a>
+                                sebelum mendaftarkan unit aset.
+                            </div>
+                        @else
+                            @php
+                                $selectedKode = old($field, $item?->kode_aset);
+                                $selectedMaster = $selectedKode
+                                    ? $masterKodeAset->firstWhere('kode', $selectedKode)
+                                    : null;
+                                $hiddenMasterAttrs = ['id', 'kode', 'is_active', 'sort_order', 'created_at', 'updated_at'];
+                            @endphp
+                            <div id="master-kode-info" class="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                                @if ($selectedMaster)
+                                    <p class="font-semibold text-slate-700 mb-1">{{ $selectedMaster->nama }}</p>
+                                    @foreach ($selectedMaster->getAttributes() as $attr => $val)
+                                        @if (!in_array($attr, $hiddenMasterAttrs) && $attr !== 'nama' && $val !== null && $val !== '')
+                                            <p><span class="text-slate-400">{{ ucwords(str_replace('_', ' ', $attr)) }}:</span> {{ $val }}</p>
+                                        @endif
+                                    @endforeach
+                                @else
+                                    <p>Pilih kode aset untuk melihat detail master.</p>
+                                @endif
+                            </div>
+                        @endif
+                    @endif
+
                     @error($field)
                         <p class="text-xs text-rose-600 mt-1 font-medium">{{ $message }}</p>
                     @enderror
@@ -83,6 +113,49 @@
                 </div>
             @endforeach
         </div>
+
+        @if (($key ?? '') === 'aset' && isset($masterKodeAset) && $masterKodeAset->isNotEmpty())
+            <script>
+                (function () {
+                    const masters = @json($masterKodeAset->map(fn($m) => $m->getAttributes())->values());
+                    const hidden = ['id', 'kode', 'is_active', 'sort_order', 'created_at', 'updated_at', 'nama'];
+                    const infoBox = document.getElementById('master-kode-info');
+                    const select = document.querySelector('select[name="kode_aset"]');
+                    if (!infoBox || !select) return;
+                    function labelFor(attr) {
+                        return attr.replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+                    }
+                    function render(kode) {
+                        const master = masters.find(function (m) { return m.kode === kode; });
+                        infoBox.replaceChildren();
+                        if (!master) {
+                            const p = document.createElement('p');
+                            p.textContent = 'Pilih kode aset untuk melihat detail master.';
+                            infoBox.appendChild(p);
+                            return;
+                        }
+                        const title = document.createElement('p');
+                        title.className = 'font-semibold text-slate-700 mb-1';
+                        title.textContent = master.nama || '';
+                        infoBox.appendChild(title);
+                        Object.keys(master).forEach(function (attr) {
+                            if (hidden.includes(attr)) return;
+                            const val = master[attr];
+                            if (val === null || val === '') return;
+                            const p = document.createElement('p');
+                            const lbl = document.createElement('span');
+                            lbl.className = 'text-slate-400';
+                            lbl.textContent = labelFor(attr) + ': ';
+                            p.appendChild(lbl);
+                            p.appendChild(document.createTextNode(String(val)));
+                            infoBox.appendChild(p);
+                        });
+                    }
+                    select.addEventListener('change', function () { render(select.value); });
+                    render(select.value);
+                })();
+            </script>
+        @endif
 
         <div class="pt-6 mt-6 border-t border-slate-100 flex gap-3">
             <button type="submit" class="bg-brand text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-brand-light transition">Simpan</button>
