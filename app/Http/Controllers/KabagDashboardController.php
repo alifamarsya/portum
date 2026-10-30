@@ -32,7 +32,6 @@ class KabagDashboardController extends Controller
         $stats = [
             'total'            => (clone $baseQuery)->count(),
             'perlu_disposisi'  => (clone $baseQuery)->whereIn('status', ['Dialokasikan', 'Diverifikasi'])->count(),
-            'sedang_dikerjakan'=> (clone $baseQuery)->whereIn('status', ['Didistribusikan', 'Dalam Proses'])->count(),
             'selesai'          => (clone $baseQuery)->whereIn('status', ['Selesai', 'Ditutup Pemohon', 'Ditutup Otomatis (Sistem)'])->count(),
             'ditolak'          => (clone $baseQuery)->where('status', 'Ditolak')->count(),
         ];
@@ -43,14 +42,6 @@ class KabagDashboardController extends Controller
             ->with(['user', 'category'])
             ->latest()
             ->take(8)
-            ->get();
-
-        // Tiket yang sedang dikerjakan / dalam proses
-        $tiketBerjalan = (clone $baseQuery)
-            ->whereIn('status', ['Didistribusikan', 'Dalam Proses'])
-            ->with(['user', 'assignedStaff', 'category'])
-            ->latest()
-            ->take(6)
             ->get();
 
         // Rekan tim di bagian yang sama
@@ -118,7 +109,6 @@ class KabagDashboardController extends Controller
             'mutasiMenungguVerifikasi',
             'antreanMutasiVerifikasi',
             'antreanDisposisi',
-            'tiketBerjalan',
             'staffMembers',
             'deptMetrics'
         ));

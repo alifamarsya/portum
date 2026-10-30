@@ -30,7 +30,7 @@
     </div>
 
     {{-- Stats Grid --}}
-    <div class="grid grid-cols-2 {{ $showMutasiAset ? 'lg:grid-cols-5' : 'lg:grid-cols-4' }} gap-4 mb-6">
+    <div class="grid grid-cols-2 {{ $showMutasiAset ? 'lg:grid-cols-4' : 'lg:grid-cols-3' }} gap-4 mb-6">
         {{-- Card 1: Perlu Disposisi --}}
         <div class="bg-gradient-to-br from-amber-50 to-orange-50/40 rounded-2xl p-5 border border-amber-200/80 shadow-2xs relative overflow-hidden group hover:border-amber-400 transition-all">
             <div class="flex items-center justify-between mb-3">
@@ -45,19 +45,6 @@
                 <span>Pengecekan RBB &amp; Pagu Anggaran</span>
             </div>
         </div>
-
-        {{-- Card 2: Sedang Dikerjakan Staf --}}
-        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs group hover:border-blue-300 transition-all">
-            <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Dikerjakan Staf</span>
-                <span class="w-9 h-9 rounded-xl bg-blue-50 text-[#114E84] flex items-center justify-center font-bold">
-                    @include('partials.icon', ['name' => 'users', 'class' => 'w-4 h-4'])
-                </span>
-            </div>
-            <p class="text-3xl font-extrabold text-ink tracking-tight">{{ $stats['sedang_dikerjakan'] }}</p>
-            <p class="text-[11px] text-slate-400 mt-2 font-medium">Sedang diproses oleh staf tim</p>
-        </div>
-
         {{-- Card 3: Tiket Selesai --}}
         <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs group hover:border-emerald-300 transition-all">
             <div class="flex items-center justify-between mb-3">
@@ -222,53 +209,6 @@
                 </div>
             @endif
 
-            {{-- Tiket yang Sedang Ditangani Staf --}}
-            <div class="bg-white rounded-2xl border border-slate-200/90 shadow-card overflow-hidden">
-                <div class="p-5 border-b border-slate-100 flex items-center justify-between">
-                    <div class="flex items-center gap-2.5">
-                        <div class="w-9 h-9 rounded-xl bg-blue-500/10 text-[#114E84] flex items-center justify-center">
-                            @include('partials.icon', ['name' => 'activity', 'class' => 'w-4 h-4 text-[#114E84]'])
-                        </div>
-                        <div>
-                            <h2 class="font-bold text-ink text-base">Progress Tiket di Tim Staf</h2>
-                            <p class="text-xs text-slate-500">Tiket yang telah didisposisikan dan sedang ditangani oleh staf pelaksana</p>
-                        </div>
-                    </div>
-                </div>
-
-                @if ($tiketBerjalan->isEmpty())
-                    <div class="p-6 text-center text-xs text-slate-400">
-                        Belum ada tiket yang sedang berjalan di tim staf.
-                    </div>
-                @else
-                    <div class="divide-y divide-slate-100">
-                        @foreach ($tiketBerjalan as $tb)
-                            <div class="p-4 hover:bg-slate-50/60 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                <div class="min-w-0">
-                                    <div class="flex items-center gap-2 flex-wrap mb-1">
-                                        <span class="font-mono font-bold text-xs text-[#114E84]">{{ $tb->ticket_number }}</span>
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-semibold border {{ $tb->status_badge }}">
-                                            {{ $tb->status_label }}
-                                        </span>
-                                    </div>
-                                    <p class="text-xs text-slate-700 line-clamp-1">{{ $tb->description }}</p>
-                                    <div class="flex items-center gap-1.5 mt-1.5 text-[11px] text-slate-500">
-                                        <span>Staf Penanggung Jawab:</span>
-                                        <span class="font-bold text-ink">{{ $tb->assignedStaff?->nama_lengkap ?? 'Belum Ditunjuk' }}</span>
-                                        <span class="text-slate-400 font-mono">({{ $tb->assignedStaff?->username ?? '-' }})</span>
-                                    </div>
-                                </div>
-
-                                <a href="{{ route('tickets.show', $tb) }}"
-                                   class="text-xs font-semibold text-[#114E84] hover:underline flex items-center gap-1 flex-shrink-0">
-                                    <span>Lihat Detail</span>
-                                    @include('partials.icon', ['name' => 'chevron-right', 'class' => 'w-3 h-3'])
-                                </a>
-                            </div>
-                        @endforeach
-                    </div>
-                @endif
-            </div>
         {{-- Ringkasan Modul Operasional Sesuai Bagian (paling bawah, full-width) --}}
             @if (!empty($deptMetrics))
                 <div class="bg-white rounded-2xl border border-slate-200/90 shadow-card p-5 sm:p-6">
