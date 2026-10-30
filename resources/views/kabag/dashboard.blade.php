@@ -30,7 +30,7 @@
     </div>
 
     {{-- Stats Grid --}}
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-2 {{ $showMutasiAset ? 'lg:grid-cols-4' : 'lg:grid-cols-3' }} gap-4 mb-6">
         {{-- Card 1: Perlu Disposisi --}}
         <div class="bg-gradient-to-br from-amber-50 to-orange-50/40 rounded-2xl p-5 border border-amber-200/80 shadow-2xs relative overflow-hidden group hover:border-amber-400 transition-all">
             <div class="flex items-center justify-between mb-3">
@@ -45,19 +45,6 @@
                 <span>Pengecekan RBB &amp; Pagu Anggaran</span>
             </div>
         </div>
-
-        {{-- Card 2: Sedang Dikerjakan Staf --}}
-        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs group hover:border-blue-300 transition-all">
-            <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Dikerjakan Staf</span>
-                <span class="w-9 h-9 rounded-xl bg-blue-50 text-[#114E84] flex items-center justify-center font-bold">
-                    @include('partials.icon', ['name' => 'users', 'class' => 'w-4 h-4'])
-                </span>
-            </div>
-            <p class="text-3xl font-extrabold text-ink tracking-tight">{{ $stats['sedang_dikerjakan'] }}</p>
-            <p class="text-[11px] text-slate-400 mt-2 font-medium">Sedang diproses oleh staf tim</p>
-        </div>
-
         {{-- Card 3: Tiket Selesai --}}
         <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs group hover:border-emerald-300 transition-all">
             <div class="flex items-center justify-between mb-3">
@@ -81,12 +68,25 @@
             <p class="text-3xl font-extrabold text-ink tracking-tight">{{ $stats['total'] }}</p>
             <p class="text-[11px] text-slate-400 mt-2 font-medium">Tiket masuk ke {{ $department->name ?? 'bagian' }}</p>
         </div>
+
+        @if($showMutasiAset)
+            {{-- Card 5: Mutasi Menunggu Verifikasi (khusus Bagian Aset) --}}
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs group hover:border-amber-300 transition-all">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Mutasi Menunggu Verifikasi</span>
+                    <span class="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold">
+                        @include('partials.icon', ['name' => 'clipboard', 'class' => 'w-4 h-4'])
+                    </span>
+                </div>
+                <p class="text-3xl font-extrabold text-amber-700 tracking-tight">{{ $mutasiMenungguVerifikasi }}</p>
+                <p class="text-[11px] text-slate-400 mt-2 font-medium">Perlu verifikasi Bagian Aset</p>
+            </div>
+        @endif
     </div>
 
-    {{-- Main Content Grid --}}
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {{-- LEFT (2 COLS): Antrean Disposisi Kabag --}}
-        <div class="lg:col-span-2 space-y-6">
+    {{-- Main Content: full-width stack --}}
+    <div class="space-y-6 mb-6">
+        {{-- Antrean Disposisi Kabag --}}
             <div class="bg-white rounded-2xl border border-slate-200/90 shadow-card overflow-hidden">
                 <div class="p-5 border-b border-slate-100 flex items-center justify-between">
                     <div class="flex items-center gap-2.5">
@@ -152,67 +152,70 @@
                 @endif
             </div>
 
-            {{-- Tiket yang Sedang Ditangani Staf --}}
-            <div class="bg-white rounded-2xl border border-slate-200/90 shadow-card overflow-hidden">
-                <div class="p-5 border-b border-slate-100 flex items-center justify-between">
-                    <div class="flex items-center gap-2.5">
-                        <div class="w-9 h-9 rounded-xl bg-blue-500/10 text-[#114E84] flex items-center justify-center">
-                            @include('partials.icon', ['name' => 'activity', 'class' => 'w-4 h-4 text-[#114E84]'])
+            @if($showMutasiAset)
+                {{-- Antrean Mutasi Menunggu Verifikasi (khusus Bagian Aset) --}}
+                <div class="bg-white rounded-2xl border border-slate-200/90 shadow-card overflow-hidden">
+                    <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-700 flex items-center justify-center">
+                                @include('partials.icon', ['name' => 'clipboard', 'class' => 'w-4 h-4 text-amber-600'])
+                            </div>
+                            <div>
+                                <h2 class="font-bold text-ink text-base">Antrean Mutasi Menunggu Verifikasi</h2>
+                                <p class="text-xs text-slate-500">Pengajuan mutasi aset yang perlu diverifikasi Bagian Aset &mdash; tertua di atas</p>
+                            </div>
                         </div>
-                        <div>
-                            <h2 class="font-bold text-ink text-base">Progress Tiket di Tim Staf</h2>
-                            <p class="text-xs text-slate-500">Tiket yang telah didisposisikan dan sedang ditangani oleh staf pelaksana</p>
-                        </div>
+                        <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                            {{ $mutasiMenungguVerifikasi }} Menunggu
+                        </span>
                     </div>
-                </div>
 
-                @if ($tiketBerjalan->isEmpty())
-                    <div class="p-6 text-center text-xs text-slate-400">
-                        Belum ada tiket yang sedang berjalan di tim staf.
-                    </div>
-                @else
-                    <div class="divide-y divide-slate-100">
-                        @foreach ($tiketBerjalan as $tb)
-                            <div class="p-4 hover:bg-slate-50/60 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                <div class="min-w-0">
-                                    <div class="flex items-center gap-2 flex-wrap mb-1">
-                                        <span class="font-mono font-bold text-xs text-[#114E84]">{{ $tb->ticket_number }}</span>
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-semibold border {{ $tb->status_badge }}">
-                                            {{ $tb->status_label }}
-                                        </span>
+                    @if ($antreanMutasiVerifikasi->isEmpty())
+                        <div class="p-8 text-center">
+                            <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3">
+                                @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-6 h-6'])
+                            </div>
+                            <h3 class="font-bold text-ink text-sm">Tidak Ada Mutasi Menunggu Verifikasi</h3>
+                            <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                                Semua pengajuan mutasi sudah diproses. Pengajuan baru akan langsung muncul di sini.
+                            </p>
+                        </div>
+                    @else
+                        <div class="divide-y divide-slate-100">
+                            @foreach ($antreanMutasiVerifikasi as $m)
+                                @php $badge = $m->status_badge; @endphp
+                                <div class="p-4 sm:p-5 hover:bg-slate-50/70 transition flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <span class="font-mono font-bold text-[#114E84] text-sm">{{ $m->no_mutasi }}</span>
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium border {{ $badge['class'] }}">{{ $badge['label'] }}</span>
+                                        </div>
+                                        <p class="text-xs text-slate-500 mt-1.5">
+                                            {{ $m->aset?->nama_aset ?? '-' }} &bull; {{ $m->pengaju?->nama_lengkap ?? $m->nama_pemohon ?? '-' }} &rarr; {{ $m->lokasiTujuan?->nama_lokasi ?? $m->ke_lokasi ?? '-' }}
+                                        </p>
+                                        <p class="text-[11px] text-slate-400 mt-0.5">Diajukan {{ $m->created_at->format('d M Y, H:i') }}</p>
                                     </div>
-                                    <p class="text-xs text-slate-700 line-clamp-1">{{ $tb->description }}</p>
-                                    <div class="flex items-center gap-1.5 mt-1.5 text-[11px] text-slate-500">
-                                        <span>Staf Penanggung Jawab:</span>
-                                        <span class="font-bold text-ink">{{ $tb->assignedStaff?->nama_lengkap ?? 'Belum Ditunjuk' }}</span>
-                                        <span class="text-slate-400 font-mono">({{ $tb->assignedStaff?->username ?? '-' }})</span>
+                                    <div class="flex items-center gap-2 flex-shrink-0">
+                                        <a href="{{ route('mutasi-aset.show', $m) }}"
+                                           class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 text-xs font-bold transition">
+                                            @include('partials.icon', ['name' => 'pencil', 'class' => 'w-3 h-3'])
+                                            <span>Review &amp; Verifikasi</span>
+                                        </a>
                                     </div>
                                 </div>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+            @endif
 
-                                <a href="{{ route('tickets.show', $tb) }}"
-                                   class="text-xs font-semibold text-[#114E84] hover:underline flex items-center gap-1 flex-shrink-0">
-                                    <span>Lihat Detail</span>
-                                    @include('partials.icon', ['name' => 'chevron-right', 'class' => 'w-3 h-3'])
-                                </a>
-                            </div>
-                        @endforeach
-                    </div>
-                @endif
-            </div>
-        </div>
-
-        {{-- RIGHT (1 COL): Monitoring Tim Staf & Modul Operasional --}}
-        <div class="space-y-6">
-            {{-- Tim Staf Bagian --}}
-           
-
-            {{-- Ringkasan Modul Operasional Sesuai Bagian --}}
+        {{-- Ringkasan Modul Operasional Sesuai Bagian (paling bawah, full-width) --}}
             @if (!empty($deptMetrics))
                 <div class="bg-white rounded-2xl border border-slate-200/90 shadow-card p-5 sm:p-6">
                     <h2 class="font-bold text-ink text-sm sm:text-base mb-1">{{ $deptMetrics['label'] }}</h2>
                     <p class="text-xs text-slate-500 mb-4">Pemantauan data operasional inti divisi</p>
 
-                    <div class="space-y-3.5">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                         @if (isset($deptMetrics['biaya_bulan_ini']))
                             <div class="p-3 rounded-xl bg-blue-50/60 border border-blue-100 flex items-center justify-between">
                                 <span class="text-xs text-slate-600 font-medium">Beban Biaya Bulan Ini:</span>
@@ -257,6 +260,5 @@
                     </div>
                 </div>
             @endif
-        </div>
     </div>
 @endsection

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AsAset;
+use App\Models\AsMutasiAset;
 use App\Models\AsPks;
 use App\Models\FactPengadaan;
 use App\Models\InternalDepartment;
@@ -31,7 +32,6 @@ class KabagDashboardController extends Controller
         $stats = [
             'total'            => (clone $baseQuery)->count(),
             'perlu_disposisi'  => (clone $baseQuery)->whereIn('status', ['Dialokasikan', 'Diverifikasi'])->count(),
-            'sedang_dikerjakan'=> (clone $baseQuery)->whereIn('status', ['Didistribusikan', 'Dalam Proses'])->count(),
             'selesai'          => (clone $baseQuery)->whereIn('status', ['Selesai', 'Ditutup Pemohon', 'Ditutup Otomatis (Sistem)'])->count(),
             'ditolak'          => (clone $baseQuery)->where('status', 'Ditolak')->count(),
         ];
@@ -42,14 +42,6 @@ class KabagDashboardController extends Controller
             ->with(['user', 'category'])
             ->latest()
             ->take(8)
-            ->get();
-
-        // Tiket yang sedang dikerjakan / dalam proses
-        $tiketBerjalan = (clone $baseQuery)
-            ->whereIn('status', ['Didistribusikan', 'Dalam Proses'])
-            ->with(['user', 'assignedStaff', 'category'])
-            ->latest()
-            ->take(6)
             ->get();
 
         // Rekan tim di bagian yang sama
@@ -93,11 +85,30 @@ class KabagDashboardController extends Controller
                 ->count();
         }
 
+        // Antrean mutasi khusus Kabag/Staf Bagian Aset (verifikasi Bagian Aset).
+        // Hanya ditampilkan untuk bagian aset agar dashboard bagian lain tetap bersih.
+        // Scope ketat: hanya status 'Diproses' yang memang giliran verifikasi
+        // Bagian Aset. 'Diajukan' = antrean operator, 'Menunggu Approval' =
+        // antrean Kadiv; keduanya bukan giliran Bagian Aset.
+        $showMutasiAset = in_array($roleNama, ['bagian_aset', 'kabag_aset']) || $deptId === 2;
+        $mutasiMenungguVerifikasi = 0;
+        $antreanMutasiVerifikasi = collect();
+        if ($showMutasiAset) {
+            $mutasiMenungguVerifikasi = AsMutasiAset::where('status', 'Diproses')->count();
+            $antreanMutasiVerifikasi = AsMutasiAset::where('status', 'Diproses')
+                ->with(['pengaju', 'aset', 'lokasiTujuan'])
+                ->oldest()
+                ->take(8)
+                ->get();
+        }
+
         return view('kabag.dashboard', compact(
             'department',
             'stats',
+            'showMutasiAset',
+            'mutasiMenungguVerifikasi',
+            'antreanMutasiVerifikasi',
             'antreanDisposisi',
-            'tiketBerjalan',
             'staffMembers',
             'deptMetrics'
         ));
