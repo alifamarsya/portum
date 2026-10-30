@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AsMutasiAset;
 use App\Models\Ticket;
 use Illuminate\Http\Request;
 
@@ -53,6 +54,22 @@ class UserDashboardController extends Controller
             })
             ->values();
 
-        return view('user.dashboard', compact('stats', 'recentTickets', 'importantNotifications'));
+        // 5. Mutasi menunggu konfirmasi penutupan oleh pemohon
+        // Status 'Disetujui' = sudah di-approve Kadiv dan menunggu konfirmasi
+        // penutupan pengaju (konfirmasiPengaju mensyaratkan status 'Disetujui').
+        // Aturan sistem mutasi tidak mengenal batas waktu konfirmasi/auto-close,
+        // jadi antrean ini mencegah pengajuan mandek tanpa terpantau.
+        $mutasiMenungguKonfirmasi = AsMutasiAset::where('pengaju_id', $user->id)
+            ->where('status', 'Disetujui')
+            ->count();
+
+        $antreanMutasiKonfirmasi = AsMutasiAset::where('pengaju_id', $user->id)
+            ->where('status', 'Disetujui')
+            ->with(['aset', 'lokasiTujuan'])
+            ->oldest()
+            ->take(5)
+            ->get();
+
+        return view('user.dashboard', compact('stats', 'recentTickets', 'importantNotifications', 'mutasiMenungguKonfirmasi', 'antreanMutasiKonfirmasi'));
     }
 }
