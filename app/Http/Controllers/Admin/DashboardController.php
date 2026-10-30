@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AsMutasiAset;
 use App\Models\AuditLog;
 use App\Models\Role;
 use App\Models\RolePermission;
@@ -73,8 +74,19 @@ class DashboardController extends Controller
             'server_time' => now()->format('H:i:s T'),
         ];
 
+        // 5. Ringkasan Mutasi Aset (overview sistem; antrean aksi ditangani
+        // di dashboard masing-masing peran)
+        $mutasiStats = [
+            'total'               => AsMutasiAset::count(),
+            'menunggu_verifikasi' => AsMutasiAset::whereIn('status', ['Diajukan', 'Diproses', 'Menunggu Approval'])->count(),
+            'disetujui'           => AsMutasiAset::where('status', 'Disetujui')->count(),
+            'selesai'             => AsMutasiAset::where('status', 'Ditutup')->where('status_hasil', 'Disetujui')->count(),
+            'ditolak'             => AsMutasiAset::where('status', 'Ditutup')->whereIn('status_hasil', ['Ditolak', 'Tidak Valid'])->count(),
+        ];
+
         return view('admin.dashboard', compact(
             'totalUsers',
+            'mutasiStats',
             'activeUsers',
             'inactiveUsers',
             'mustChangePwdUsers',

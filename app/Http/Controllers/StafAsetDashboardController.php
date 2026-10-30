@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AsAset;
 use App\Models\AsMemoSewaCabang;
+use App\Models\AsMutasiAset;
 use App\Models\AsPks;
 use App\Models\Ticket;
 use Illuminate\Http\Request;
@@ -71,8 +72,22 @@ class StafAsetDashboardController extends Controller
         $memoSewaPending = $totalMemoSewa;
         $memoSewaTerbaru = AsMemoSewaCabang::latest('tanggal')->latest('id')->take(4)->get();
 
+        // 5. Antrean Mutasi Menunggu Verifikasi Bagian Aset
+        // Bagian Aset dapat memverifikasi pengajuan berstatus Diajukan/Diproses/
+        // Menunggu Approval (guard verifikasiBagianAset); antrean ini menutup
+        // celah yang sama seperti dashboard operator sebelum PR #27.
+        $mutasiMenungguVerifikasi = AsMutasiAset::whereIn('status', ['Diajukan', 'Diproses', 'Menunggu Approval'])->count();
+
+        $antreanMutasiVerifikasi = AsMutasiAset::whereIn('status', ['Diajukan', 'Diproses', 'Menunggu Approval'])
+            ->with(['pengaju', 'aset', 'lokasiTujuan'])
+            ->oldest()
+            ->take(15)
+            ->get();
+
         return view('staf.aset.dashboard', compact(
             'user',
+            'mutasiMenungguVerifikasi',
+            'antreanMutasiVerifikasi',
             'ticketStats',
             'antreanTiket',
             'tiketSelesai',
