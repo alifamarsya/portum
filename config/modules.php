@@ -702,9 +702,12 @@ return array (
       'penanggung_jawab' => 
       array (
         'label' => 'Penanggung Jawab',
-        'type' => 'text',
+        'type' => 'select',
         'list' => false,
         'req' => true,
+        'opts' => 
+        array (
+        ),
       ),
       'keterangan' => 
       array (

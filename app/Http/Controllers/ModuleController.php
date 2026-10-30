@@ -6,6 +6,7 @@ use App\Concerns\LogsAudit;
 use App\Models\AsCustomField;
 use App\Models\AsMasterKodeAset;
 use App\Models\AsMasterLokasi;
+use App\Models\AsMasterPersonel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
@@ -78,6 +79,12 @@ class ModuleController extends Controller
                     ? AsMasterLokasi::active()->orderBy('sort_order')->orderBy('nama_lokasi')->pluck('nama_lokasi')->all()
                     : [];
             }
+            if (isset($cfg['fields']['penanggung_jawab'])) {
+                $cfg['fields']['penanggung_jawab']['type'] = 'select';
+                $cfg['fields']['penanggung_jawab']['opts'] = \Illuminate\Support\Facades\Schema::hasTable('as_master_personel')
+                    ? AsMasterPersonel::active()->orderBy('nama_personel')->pluck('nama_personel')->unique()->values()->all()
+                    : [];
+            }
         }
 
         return $cfg;
@@ -95,6 +102,29 @@ class ModuleController extends Controller
         }
 
         return AsMasterKodeAset::active()->orderBy('sort_order')->orderBy('kode')->get();
+    }
+
+    /**
+     * Personel aktif dikelompokkan per nama lokasi (hanya lokasi aktif),
+     * untuk dropdown Penanggung Jawab yang mengikuti pilihan Lokasi.
+     * Array kosong bila tabel master belum ada.
+     */
+    private function personelAktifByLokasi(): array
+    {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('as_master_personel')
+            || !\Illuminate\Support\Facades\Schema::hasTable('as_master_lokasi')) {
+            return [];
+        }
+
+        return AsMasterPersonel::active()
+            ->whereHas('lokasi', fn($q) => $q->where('is_active', true))
+            ->with('lokasi')
+            ->orderBy('nama_personel')
+            ->get()
+            ->groupBy(fn($p) => $p->lokasi?->nama_lokasi)
+            ->filter(fn($g, $nama) => $nama !== null && $nama !== '')
+            ->map(fn($g) => $g->pluck('nama_personel')->unique()->values()->all())
+            ->all();
     }
 
     private function authorizeModule(string $key, string $mode = 'read'): array
@@ -145,6 +175,7 @@ class ModuleController extends Controller
         $viewData = ['cfg' => $cfg, 'key' => $key, 'item' => null];
         if ($key === 'aset') {
             $viewData['masterKodeAset'] = $this->masterKodeAsetAktif();
+            $viewData['personelByLokasi'] = $this->personelAktifByLokasi();
         }
         return view('modules.form', $viewData);
     }
@@ -156,6 +187,7 @@ class ModuleController extends Controller
         $data = $this->hitungAmortisasiJikaPerlu($key, $data);
         $data = $this->resolveAsetMasterRefs($key, $data);
         $this->validateAsetTahun($key, $data);
+        $this->validateAsetPenanggungJawab($key, $data);
 
         // Pisahkan kolom SQL asli dan custom JSON fields untuk modul aset
         if (in_array($key, ['aset', 'aset_history'])) {
@@ -234,6 +266,7 @@ class ModuleController extends Controller
         $viewData = ['cfg' => $cfg, 'key' => $key, 'item' => $item];
         if ($key === 'aset') {
             $viewData['masterKodeAset'] = $this->masterKodeAsetAktif();
+            $viewData['personelByLokasi'] = $this->personelAktifByLokasi();
         }
         return view('modules.form', $viewData);
     }
@@ -246,6 +279,7 @@ class ModuleController extends Controller
         $data = $this->hitungAmortisasiJikaPerlu($key, $data);
         $data = $this->resolveAsetMasterRefs($key, $data);
         $this->validateAsetTahun($key, $data);
+        $this->validateAsetPenanggungJawab($key, $data);
 
         // Pisahkan kolom SQL asli dan custom JSON fields untuk modul aset
         if (in_array($key, ['aset', 'aset_history'])) {
@@ -438,6 +472,42 @@ class ModuleController extends Controller
 
         if ($errors !== []) {
             throw ValidationException::withMessages($errors);
+        }
+    }
+
+    /**
+     * Pasangan Lokasi–Penanggung Jawab khusus modul aset: nama yang dipilih
+     * harus personel aktif dari lokasi yang dipilih. Dropdown PJ di form
+     * memang sudah difilter JS per lokasi; ini menegakkannya di server agar
+     * tidak bisa diloloskan lewat request buatan.
+     */
+    private function validateAsetPenanggungJawab(string $key, array $data): void
+    {
+        if ($key !== 'aset') {
+            return;
+        }
+
+        $lokasi = $data['lokasi'] ?? null;
+        $pj = $data['penanggung_jawab'] ?? null;
+        if ($lokasi === null || $lokasi === '' || $pj === null || $pj === '') {
+            return;
+        }
+
+        if (!\Illuminate\Support\Facades\Schema::hasTable('as_master_personel')
+            || !\Illuminate\Support\Facades\Schema::hasTable('as_master_lokasi')) {
+            return;
+        }
+
+        $lokasiIds = AsMasterLokasi::where('nama_lokasi', $lokasi)->pluck('id');
+        $ok = AsMasterPersonel::active()
+            ->where('nama_personel', $pj)
+            ->whereIn('lokasi_id', $lokasiIds)
+            ->exists();
+
+        if (!$ok) {
+            throw ValidationException::withMessages([
+                'penanggung_jawab' => 'Penanggung Jawab harus personel aktif dari lokasi yang dipilih.',
+            ]);
         }
     }
 

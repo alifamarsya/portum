@@ -157,6 +157,57 @@
             </script>
         @endif
 
+        {{-- Cascading Lokasi -> Penanggung Jawab (modul aset saja, pola yang
+             sama dengan form mutasi): PJ hanya berisi personel aktif dari
+             lokasi yang dipilih, dan dinonaktifkan sampai lokasi dipilih. --}}
+        @if (($key ?? '') === 'aset' && isset($personelByLokasi))
+            <script>
+                (function () {
+                    const personelByLokasi = @json($personelByLokasi);
+                    const selectLokasi = document.querySelector('select[name="lokasi"]');
+                    const selectPj = document.querySelector('select[name="penanggung_jawab"]');
+                    if (!selectLokasi || !selectPj) return;
+                    const defaultPj = @json(old('penanggung_jawab', $item?->penanggung_jawab ?? ''));
+                    function setDisabled(placeholder) {
+                        selectPj.disabled = true;
+                        selectPj.classList.add('bg-slate-50', 'opacity-60', 'cursor-not-allowed');
+                        selectPj.replaceChildren();
+                        const opt = document.createElement('option');
+                        opt.value = '';
+                        opt.textContent = placeholder;
+                        selectPj.appendChild(opt);
+                    }
+                    function updatePjDropdown(lokasiNama, defaultVal) {
+                        if (!lokasiNama) {
+                            setDisabled('-- Pilih lokasi terlebih dahulu --');
+                            return;
+                        }
+                        const daftar = personelByLokasi[lokasiNama] || [];
+                        if (daftar.length === 0) {
+                            setDisabled('-- Belum ada personel terdaftar di lokasi ini --');
+                            return;
+                        }
+                        selectPj.disabled = false;
+                        selectPj.classList.remove('bg-slate-50', 'opacity-60', 'cursor-not-allowed');
+                        selectPj.replaceChildren();
+                        const placeholder = document.createElement('option');
+                        placeholder.value = '';
+                        placeholder.textContent = '-- Pilih penanggung jawab --';
+                        selectPj.appendChild(placeholder);
+                        daftar.forEach(function (nama) {
+                            const opt = document.createElement('option');
+                            opt.value = nama;
+                            opt.textContent = nama;
+                            if (defaultVal && defaultVal === nama) opt.selected = true;
+                            selectPj.appendChild(opt);
+                        });
+                    }
+                    selectLokasi.addEventListener('change', function () { updatePjDropdown(selectLokasi.value, null); });
+                    updatePjDropdown(selectLokasi.value, defaultPj);
+                })();
+            </script>
+        @endif
+
         <div class="pt-6 mt-6 border-t border-slate-100 flex gap-3">
             <button type="submit" class="bg-brand text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-brand-light transition">Simpan</button>
             <a href="{{ route('modul.index', $key) }}" class="text-sm text-slate-500 px-5 py-2.5 hover:text-ink transition">Batal</a>

@@ -151,13 +151,13 @@ return new class extends Migration
             [
                 'field_name'   => 'penanggung_jawab',
                 'label'        => 'Penanggung Jawab',
-                'field_type'   => 'text',
+                'field_type'   => 'select',
                 'options'      => null,
                 'is_system'    => true,
                 'is_required'  => false,
                 'show_in_list' => false,
                 'sort_order'   => 11,
-                'help_text'    => 'Nama pegawai atau unit yang bertanggung jawab',
+                'help_text'    => 'Pilih personel dari lokasi yang dipilih',
                 'is_active'    => true,
             ],
             [
