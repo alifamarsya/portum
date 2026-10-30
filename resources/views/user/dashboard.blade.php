@@ -22,7 +22,7 @@
     </div>
 
     {{-- 4 Stat Cards --}}
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         {{-- Total Tiket --}}
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-card flex items-center justify-between">
             <div>
@@ -69,6 +69,80 @@
             <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
                 @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-6 h-6'])
             </div>
+        </div>
+
+        {{-- Mutasi Menunggu Konfirmasi --}}
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-card flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Mutasi Menunggu Konfirmasi</p>
+                <p class="text-3xl font-extrabold text-amber-700">{{ $mutasiMenungguKonfirmasi }}</p>
+                <p class="text-[11px] text-slate-400 mt-1">Perlu konfirmasi penutupan Anda</p>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+                @include('partials.icon', ['name' => 'clipboard', 'class' => 'w-6 h-6'])
+            </div>
+        </div>
+    </div>
+
+    {{-- Mutasi Menunggu Konfirmasi Anda --}}
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-card overflow-hidden mb-8">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+            <div>
+                <h2 class="text-base font-bold text-ink">Mutasi Menunggu Konfirmasi Anda</h2>
+                <p class="text-xs text-slate-400">Sudah disetujui pimpinan &mdash; perlu konfirmasi penutupan dari Anda agar aset resmi berpindah</p>
+            </div>
+            <a href="{{ route('mutasi-aset.index') }}" class="text-xs font-semibold text-[#114E84] hover:underline flex items-center gap-1">
+                Lihat Semua Mutasi &rarr;
+            </a>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-slate-50 border-b border-slate-200 text-left text-[11.5px] uppercase tracking-wider text-slate-500">
+                        <th class="px-5 py-3.5 font-semibold">No. Mutasi</th>
+                        <th class="px-5 py-3.5 font-semibold">Tanggal Disetujui</th>
+                        <th class="px-5 py-3.5 font-semibold">Aset</th>
+                        <th class="px-5 py-3.5 font-semibold">Lokasi Tujuan</th>
+                        <th class="px-5 py-3.5 font-semibold text-right">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse ($antreanMutasiKonfirmasi as $m)
+                        <tr class="hover:bg-slate-50/70 transition">
+                            <td class="px-5 py-4 font-mono font-bold text-[#114E84] whitespace-nowrap">
+                                <a href="{{ route('mutasi-aset.show', $m) }}" class="hover:underline">
+                                    {{ $m->no_mutasi }}
+                                </a>
+                            </td>
+                            <td class="px-5 py-4 text-xs text-slate-500 whitespace-nowrap">
+                                {{ $m->approved_at?->format('d M Y, H:i') ?? $m->updated_at->format('d M Y, H:i') }}
+                            </td>
+                            <td class="px-5 py-4 whitespace-nowrap">
+                                <span class="text-xs font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md">
+                                    {{ $m->aset?->nama_aset ?? '-' }}
+                                </span>
+                            </td>
+                            <td class="px-5 py-4 text-xs text-slate-600 whitespace-nowrap">
+                                {{ $m->lokasiTujuan?->nama_lokasi ?? $m->ke_lokasi ?? '-' }}
+                            </td>
+                            <td class="px-5 py-4 text-right whitespace-nowrap">
+                                <a href="{{ route('mutasi-aset.show', $m) }}"
+                                   class="inline-flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 text-xs font-semibold px-3 py-1.5 rounded-lg transition">
+                                    Konfirmasi &amp; Tutup &rarr;
+                                </a>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="px-5 py-8 text-center">
+                                <p class="text-slate-500 font-semibold text-sm mb-1">Tidak ada mutasi yang menunggu konfirmasi Anda</p>
+                                <p class="text-slate-400 text-xs">Semua pengajuan mutasi Anda sudah selesai diproses.</p>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
     </div>
 
