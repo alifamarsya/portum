@@ -207,11 +207,6 @@ class Ticket extends Model
         return in_array($this->status, ['Diverifikasi', 'Dialokasikan']);
     }
 
-    public function isAwaitingKabagDisposition(): bool
-    {
-        return in_array($this->status, ['Diverifikasi', 'Dialokasikan', 'Didistribusikan']) && is_null($this->assigned_to);
-    }
-
     /**
      * Get CSS badge classes for status.
      */

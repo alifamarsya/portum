@@ -79,7 +79,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/tickets/{ticket}/accept', [TicketController::class, 'accept'])->name('tickets.accept');
     Route::post('/tickets/{ticket}/add-progress', [TicketController::class, 'addProgress'])->name('tickets.add-progress');
     Route::post('/tickets/{ticket}/complete', [TicketController::class, 'complete'])->name('tickets.complete');
-    Route::post('/tickets/{ticket}/dispose', [TicketController::class, 'dispose'])->name('tickets.dispose');
     Route::post('/tickets/{ticket}/reject', [TicketController::class, 'reject'])->name('tickets.reject');
     Route::post('/tickets/{ticket}/confirm-close', [TicketController::class, 'confirmClose'])
         ->name('tickets.confirm-close');

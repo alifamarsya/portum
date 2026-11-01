@@ -8,7 +8,6 @@ use App\Models\Ticket;
 use App\Models\TicketAttachment;
 use App\Models\TicketCategory;
 use App\Models\UnitKerja;
-use App\Models\User;
 use App\Services\TicketService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -191,15 +190,6 @@ class TicketController extends Controller
 
         $departments = InternalDepartment::all();
 
-        // Staf / rekan kerja di bagian ini
-        $departmentStaff = collect();
-        if ($ticket->department_id) {
-            $departmentStaff = User::where('department_id', $ticket->department_id)
-                ->where('is_active', true)
-                ->orderBy('nama_lengkap')
-                ->get();
-        }
-
         // Audit: Pemohon membuka detail tiket miliknya
         if ($user->isUser() && $ticket->user_id === $user->id) {
             $this->audit(
@@ -213,7 +203,7 @@ class TicketController extends Controller
 
         $unitKerjaList = UnitKerja::where('is_active', true)->get();
 
-        return view('tickets.show', compact('ticket', 'departments', 'departmentStaff', 'unitKerjaList'));
+        return view('tickets.show', compact('ticket', 'departments', 'unitKerjaList'));
     }
 
     /**
@@ -442,30 +432,6 @@ class TicketController extends Controller
 
         return redirect()->route('tickets.show', $ticket)
             ->with('status', "Tiket {$ticket->ticket_number} berhasil diperbarui.");
-    }
-
-    /**
-     * Disposisi tiket (kompatibilitas).
-     */
-    public function dispose(Request $request, Ticket $ticket)
-    {
-        $user = auth()->user();
-
-        $isAuthorized = ($user->isBagian() && $user->effectiveDepartmentId() == $ticket->department_id) || $user->isSuperAdmin();
-        if (!$isAuthorized) {
-            abort(403, 'Akses ditolak.');
-        }
-
-        $validated = $request->validate([
-            'assigned_to' => 'required|exists:users,id',
-            'disposition_notes' => 'required|string|min:5|max:1000',
-        ]);
-
-        $staff = User::findOrFail($validated['assigned_to']);
-        $this->ticketService->disposeTicket($ticket, $staff, $validated['disposition_notes'], $user);
-
-        return redirect()->route('tickets.show', $ticket)
-            ->with('status', "Tiket {$ticket->ticket_number} berhasil didisposisikan kepada {$staff->nama_lengkap}.");
     }
 
     /**

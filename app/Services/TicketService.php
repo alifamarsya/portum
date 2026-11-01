@@ -394,37 +394,6 @@ class TicketService
     }
 
     /**
-     * Dispose ticket (kompatibilitas jika dibutuhkan pembagian spesifik ke rekan tim).
-     */
-    public function disposeTicket(Ticket $ticket, User $staff, string $notes, User $kabag, array $resolutionData = []): Ticket
-    {
-        return DB::transaction(function () use ($ticket, $staff, $notes, $kabag, $resolutionData) {
-            $oldStatus = $ticket->status;
-            $newStatus = 'Didistribusikan';
-
-            $ticket->update([
-                'assigned_to' => $staff->id,
-                'disposed_by' => $kabag->id,
-                'disposed_at' => now(),
-                'disposition_notes' => $notes,
-                'status' => $newStatus,
-            ]);
-
-            app(TicketSlaService::class)->startResolutionSla($ticket, $resolutionData, $kabag);
-
-            TicketHistory::create([
-                'ticket_id' => $ticket->id,
-                'user_id' => $kabag->id,
-                'old_status' => $oldStatus,
-                'new_status' => $newStatus,
-                'notes' => "Ditugaskan ke {$staff->nama_lengkap} ({$staff->username}). Catatan: {$notes}",
-            ]);
-
-            return $ticket;
-        });
-    }
-
-    /**
      * Otomatis menutup tiket berstatus 'Selesai' yang telah melewati confirmation_deadline (2 hari kerja).
      */
     public function autoCloseExpiredTickets(): int

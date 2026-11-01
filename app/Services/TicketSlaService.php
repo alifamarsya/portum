@@ -338,7 +338,7 @@ class TicketSlaService
     }
 
     /**
-     * Mulai timer SLA Resolusi secara otomatis saat tiket disetujui & didisposisikan oleh Kabag.
+     * Mulai timer SLA Resolusi secara otomatis saat tiket diterima & mulai dikerjakan anggota Bagian.
      */
     public function startResolutionSla(Ticket $ticket, array $dispositionData, User $kabag): void
     {
@@ -404,7 +404,7 @@ class TicketSlaService
         $targetHours = $ticket->sla_resolution_hours ?? $this->getDefaultResolutionHours($priority);
         $maxMinutes = $targetHours * 60;
 
-        // Jika belum disetujui / didisposisikan oleh Kabag
+        // Jika belum diterima / mulai dikerjakan anggota Bagian
         if (is_null($ticket->sla_resolution_start_at) && is_null($ticket->disposed_at)) {
             return [
                 'is_started'          => false,
