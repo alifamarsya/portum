@@ -10,7 +10,6 @@ use App\Models\InternalDepartment;
 use App\Models\PgReminder;
 use App\Models\Ticket;
 use App\Models\UmBiayaHarian;
-use App\Models\User;
 use Illuminate\Http\Request;
 
 class KabagDashboardController extends Controller
@@ -30,33 +29,19 @@ class KabagDashboardController extends Controller
         $baseQuery = Ticket::where('department_id', $deptId);
 
         $stats = [
-            'total'            => (clone $baseQuery)->count(),
-            'perlu_disposisi'  => (clone $baseQuery)->whereIn('status', ['Dialokasikan', 'Diverifikasi'])->count(),
-            'selesai'          => (clone $baseQuery)->whereIn('status', ['Selesai', 'Ditutup Pemohon', 'Ditutup Otomatis (Sistem)'])->count(),
-            'ditolak'          => (clone $baseQuery)->where('status', 'Ditolak')->count(),
+            'total'       => (clone $baseQuery)->count(),
+            'tiket_baru'  => (clone $baseQuery)->whereIn('status', ['Dialokasikan', 'Diverifikasi'])->count(),
+            'selesai'     => (clone $baseQuery)->whereIn('status', ['Selesai', 'Ditutup Pemohon', 'Ditutup Otomatis (Sistem)'])->count(),
+            'ditolak'     => (clone $baseQuery)->where('status', 'Ditolak')->count(),
         ];
 
-        // Antrean tiket yang membutuhkan tindakan dari Bagian (Terima / Tolak)
-        $antreanDisposisi = (clone $baseQuery)
+        // Antrean tiket baru yang menunggu diterima & dikerjakan oleh anggota Bagian (multi-user).
+        // Alur disposisi kepala bagian + penunjukan staf sudah dihapus.
+        $antreanTiket = (clone $baseQuery)
             ->whereIn('status', ['Dialokasikan', 'Diverifikasi'])
             ->with(['user', 'category'])
             ->latest()
             ->take(8)
-            ->get();
-
-        // Rekan tim di bagian yang sama
-        $staffMembers = User::where('department_id', $deptId)
-            ->where('is_active', true)
-            ->whereDoesntHave('role', fn($q) => $q->whereIn('nama', ['admin', 'superadmin', 'operator', 'user', 'pimpinan']))
-            ->withCount([
-                'assignedTickets as active_tickets_count' => function ($q) {
-                    $q->whereIn('status', ['Didistribusikan', 'Dalam Proses']);
-                },
-                'assignedTickets as completed_tickets_count' => function ($q) {
-                    $q->whereIn('status', ['Selesai', 'Ditutup Pemohon', 'Ditutup Otomatis (Sistem)']);
-                }
-            ])
-            ->orderBy('nama_lengkap')
             ->get();
 
         // Data spesifik per bagian
@@ -108,8 +93,7 @@ class KabagDashboardController extends Controller
             'showMutasiAset',
             'mutasiMenungguVerifikasi',
             'antreanMutasiVerifikasi',
-            'antreanDisposisi',
-            'staffMembers',
+            'antreanTiket',
             'deptMetrics'
         ));
     }

@@ -31,18 +31,18 @@
 
     {{-- Stats Grid --}}
     <div class="grid grid-cols-2 {{ $showMutasiAset ? 'lg:grid-cols-4' : 'lg:grid-cols-3' }} gap-4 mb-6">
-        {{-- Card 1: Perlu Disposisi --}}
+        {{-- Card 1: Tiket Baru (menunggu diterima anggota Bagian) --}}
         <div class="bg-gradient-to-br from-amber-50 to-orange-50/40 rounded-2xl p-5 border border-amber-200/80 shadow-2xs relative overflow-hidden group hover:border-amber-400 transition-all">
             <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-amber-800">Butuh Disposisi</span>
+                <span class="text-xs font-bold uppercase tracking-wider text-amber-800">Tiket Baru</span>
                 <span class="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-700 flex items-center justify-center font-bold">
                     @include('partials.icon', ['name' => 'clock', 'class' => 'w-4 h-4'])
                 </span>
             </div>
-            <p class="text-3xl font-extrabold text-amber-900 tracking-tight">{{ $stats['perlu_disposisi'] }}</p>
+            <p class="text-3xl font-extrabold text-amber-900 tracking-tight">{{ $stats['tiket_baru'] }}</p>
             <div class="flex items-center gap-1.5 mt-2 text-[11px] font-semibold text-amber-700">
                 <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
-                <span>Pengecekan RBB &amp; Pagu Anggaran</span>
+                <span>Menunggu diterima &amp; dikerjakan</span>
             </div>
         </div>
         {{-- Card 3: Tiket Selesai --}}
@@ -87,7 +87,7 @@
     {{-- Main Content [TEST]: full-width untuk Bagian Aset, 2 kolom (sidebar) untuk lainnya --}}
     <div class="grid grid-cols-1 gap-6 mb-6 {{ $showMutasiAset ? '' : 'lg:grid-cols-3' }}">
         <div class="space-y-6 {{ $showMutasiAset ? '' : 'lg:col-span-2' }}">
-        {{-- Antrean Disposisi Kabag --}}
+        {{-- Antrean Tiket Bagian (multi-user: diterima langsung oleh anggota Bagian) --}}
             <div class="bg-white rounded-2xl border border-slate-200/90 shadow-card overflow-hidden">
                 <div class="p-5 border-b border-slate-100 flex items-center justify-between">
                     <div class="flex items-center gap-2.5">
@@ -95,28 +95,28 @@
                             @include('partials.icon', ['name' => 'clock', 'class' => 'w-4 h-4 text-amber-600'])
                         </div>
                         <div>
-                            <h2 class="font-bold text-ink text-base">Antrean Disposisi Kepala Bagian</h2>
-                            <p class="text-xs text-slate-500">Tiket dari Operator yang membutuhkan verifikasi RBB, anggaran, dan penunjukan staf</p>
+                            <h2 class="font-bold text-ink text-base">Antrean Tiket Bagian</h2>
+                            <p class="text-xs text-slate-500">Tiket dari Operator yang menunggu diterima dan dikerjakan anggota Bagian</p>
                         </div>
                     </div>
                     <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                        {{ $antreanDisposisi->count() }} Menunggu
+                        {{ $antreanTiket->count() }} Menunggu
                     </span>
                 </div>
 
-                @if ($antreanDisposisi->isEmpty())
+                @if ($antreanTiket->isEmpty())
                     <div class="p-8 text-center">
                         <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3">
                             @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-6 h-6'])
                         </div>
-                        <h3 class="font-bold text-ink text-sm">Semua Tiket Telah Didisposisikan</h3>
+                        <h3 class="font-bold text-ink text-sm">Semua Tiket Sudah Diterima</h3>
                         <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                            Tidak ada tiket tertunda di meja Kepala Bagian saat ini. Tiket baru dari Operator akan langsung muncul di sini.
+                            Tidak ada tiket tertunda di Bagian saat ini. Tiket baru dari Operator akan langsung muncul di sini.
                         </p>
                     </div>
                 @else
                     <div class="divide-y divide-slate-100">
-                        @foreach ($antreanDisposisi as $t)
+                        @foreach ($antreanTiket as $t)
                             <div class="p-4 sm:p-5 hover:bg-slate-50/70 transition flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                 <div class="min-w-0 flex-1">
                                     <div class="flex items-center gap-2 flex-wrap mb-1">
@@ -144,7 +144,7 @@
                                     <a href="{{ route('tickets.show', $t) }}"
                                        class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#114E84] hover:bg-[#0E4272] text-white text-xs font-bold shadow-xs transition">
                                         @include('partials.icon', ['name' => 'pencil', 'class' => 'w-3 h-3 text-amber-300'])
-                                        <span>Review &amp; Disposisi</span>
+                                        <span>Lihat &amp; Terima</span>
                                     </a>
                                 </div>
                             </div>

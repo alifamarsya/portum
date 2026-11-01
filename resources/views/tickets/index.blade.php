@@ -184,14 +184,7 @@
                         @endif
                             <td class="px-4 py-3.5 text-right whitespace-nowrap">
                                 <div class="inline-flex items-center gap-2">
-                                    {{-- Tombol Disposisi Cepat untuk Kabag --}}
-                                    @if (auth()->user()->isKabag() && auth()->user()->effectiveDepartmentId() == $t->department_id && $t->isAwaitingKabagDisposition())
-                                        <a href="{{ route('tickets.show', $t) }}"
-                                           class="inline-flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg shadow-xs transition">
-                                            @include('partials.icon', ['name' => 'pencil', 'class' => 'w-3 h-3'])
-                                            Disposisi
-                                        </a>
-                                    @elseif (auth()->user()->isUser() && $t->user_id === auth()->id() && $t->status === 'Selesai')
+                                    @if (auth()->user()->isUser() && $t->user_id === auth()->id() && $t->status === 'Selesai')
                                         <a href="{{ route('tickets.show', $t) }}"
                                            class="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg shadow-xs transition animate-pulse">
                                             @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-3 h-3 text-white'])
