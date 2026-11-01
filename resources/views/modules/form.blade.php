@@ -65,8 +65,12 @@
                         @endphp
                         <input type="date" name="{{ $field }}" value="{{ $dateVal }}" {{ $isReq ? 'required' : '' }}
                                class="w-full border @error($field) border-rose-400 focus:border-rose-500 focus:ring-rose-200 @else border-slate-300 focus:border-brand focus:ring-brand @enderror rounded-lg px-3.5 py-2.5 text-sm focus:ring-1 transition">
-                    @elseif (in_array($meta['type'] ?? '', ['number', 'money']))
-                        <input type="number" step="{{ ($meta['type'] ?? '') === 'money' ? '1' : '0.01' }}" name="{{ $field }}" value="{{ old($field, $item?->$field) }}" {{ $isReq ? 'required' : '' }}
+                    @elseif (($meta['type'] ?? '') === 'money')
+                        <input type="text" inputmode="numeric" data-money-input name="{{ $field }}" value="{{ old($field, $item?->$field) }}" {{ $isReq ? 'required' : '' }}
+                               class="w-full border @error($field) border-rose-400 focus:border-rose-500 focus:ring-rose-200 @else border-slate-300 focus:border-brand focus:ring-brand @enderror rounded-lg px-3.5 py-2.5 text-sm font-mono focus:ring-1 transition">
+                        <p class="text-[12px] text-slate-400 mt-1">Pisah ribuan otomatis (1.000.000); desimal pakai koma.</p>
+                    @elseif (($meta['type'] ?? '') === 'number')
+                        <input type="number" step="0.01" name="{{ $field }}" value="{{ old($field, $item?->$field) }}" {{ $isReq ? 'required' : '' }}
                                class="w-full border @error($field) border-rose-400 focus:border-rose-500 focus:ring-rose-200 @else border-slate-300 focus:border-brand focus:ring-brand @enderror rounded-lg px-3.5 py-2.5 text-sm font-mono focus:ring-1 transition">
                     @else
                         <input type="text" name="{{ $field }}" value="{{ old($field, $item?->$field) }}" {{ $isReq ? 'required' : '' }}
@@ -207,6 +211,115 @@
                 })();
             </script>
         @endif
+
+        {{-- Format ribuan otomatis untuk field money: tampil bertitik
+             (1.000.000), simpan angka polos (1000000). Titik selalu dianggap
+             pemisah ribuan; desimal gaya Indonesia memakai koma. --}}
+        <script>
+            (function () {
+                const inputs = document.querySelectorAll('input[data-money-input]');
+                if (inputs.length === 0) return;
+
+                function grupRibuan(digit) {
+                    return digit.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                }
+
+                // Nilai dari server (angka polos, desimal pakai titik):
+                // "1000000" -> "1.000.000"; "1500000.50" -> "1.500.000,50"
+                function formatDariServer(nilai) {
+                    if (nilai === null || nilai === undefined) return '';
+                    const teks = String(nilai).trim();
+                    if (teks === '') return '';
+                    const bersih = teks.replace(/[^0-9.]/g, '');
+                    const titik = bersih.lastIndexOf('.');
+                    let bulat = bersih;
+                    let desimal = '';
+                    if (titik !== -1) {
+                        const pecahan = bersih.slice(titik + 1);
+                        if (pecahan.length <= 2) {
+                            bulat = bersih.slice(0, titik);
+                            desimal = pecahan;
+                        }
+                    }
+                    bulat = bulat.replace(/[^0-9]/g, '');
+                    if (bulat === '') return '';
+                    let hasil = grupRibuan(bulat);
+                    if (desimal !== '' && desimal !== '00' && desimal !== '0') {
+                        hasil += ',' + desimal;
+                    }
+                    return hasil;
+                }
+
+                // Nilai ketikan pengguna (titik = pemisah ribuan, koma = desimal):
+                // "1.000.000" -> "1.000.000"; "1.500.000,50" -> "1.500.000,50"
+                function formatDariKetik(tampilan) {
+                    if (tampilan === null || tampilan === undefined) return '';
+                    const teks = String(tampilan);
+                    if (teks === '') return '';
+                    const koma = teks.indexOf(',');
+                    let bulat = teks;
+                    let desimal = '';
+                    if (koma !== -1) {
+                        desimal = teks.slice(koma + 1).replace(/[^0-9]/g, '').slice(0, 2);
+                        bulat = teks.slice(0, koma);
+                    }
+                    bulat = bulat.replace(/[^0-9]/g, '');
+                    if (bulat === '') return desimal ? '0,' + desimal : '';
+                    let hasil = grupRibuan(bulat);
+                    if (desimal !== '') hasil += ',' + desimal;
+                    return hasil;
+                }
+
+                // Tampilan -> angka polos untuk server: "1.000.000,50" -> "1000000.50"
+                function keAngkaPolos(tampilan) {
+                    if (tampilan === null || tampilan === undefined) return '';
+                    const teks = String(tampilan);
+                    if (teks === '') return '';
+                    const koma = teks.indexOf(',');
+                    let bulat = teks;
+                    let desimal = '';
+                    if (koma !== -1) {
+                        desimal = teks.slice(koma + 1).replace(/[^0-9]/g, '').slice(0, 2);
+                        bulat = teks.slice(0, koma);
+                    }
+                    bulat = bulat.replace(/[^0-9]/g, '');
+                    if (bulat === '') return '';
+                    return desimal ? bulat + '.' + desimal : bulat;
+                }
+
+                function formatSaatKetik(input) {
+                    const sebelum = input.value;
+                    const posKursor = input.selectionStart === null ? sebelum.length : input.selectionStart;
+                    let digitSebelumKursor = 0;
+                    for (let i = 0; i < posKursor; i++) {
+                        if (sebelum[i] >= '0' && sebelum[i] <= '9') digitSebelumKursor++;
+                    }
+                    const sesudah = formatDariKetik(sebelum);
+                    input.value = sesudah;
+                    let hitung = 0;
+                    let posBaru = sesudah.length;
+                    for (let i = 0; i < sesudah.length; i++) {
+                        if (sesudah[i] >= '0' && sesudah[i] <= '9') hitung++;
+                        if (hitung === digitSebelumKursor) { posBaru = i + 1; break; }
+                    }
+                    if (digitSebelumKursor === 0) posBaru = 0;
+                    try { input.setSelectionRange(posBaru, posBaru); } catch (e) {}
+                }
+
+                inputs.forEach(function (input) {
+                    input.value = formatDariServer(input.value);
+                    input.addEventListener('input', function () { formatSaatKetik(input); });
+                    input.addEventListener('blur', function () { input.value = formatDariKetik(input.value); });
+                    const form = input.closest('form');
+                    if (form && !form.dataset.moneyFormatBound) {
+                        form.dataset.moneyFormatBound = '1';
+                        form.addEventListener('submit', function () {
+                            inputs.forEach(function (el) { el.value = keAngkaPolos(el.value); });
+                        });
+                    }
+                });
+            })();
+        </script>
 
         <div class="pt-6 mt-6 border-t border-slate-100 flex gap-3">
             <button type="submit" class="bg-brand text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-brand-light transition">Simpan</button>
