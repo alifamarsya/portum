@@ -13,14 +13,6 @@
 
         {{-- Actions: Tombol Pengajuan Baru & Kelola Dynamic Fields --}}
         <div class="flex items-center gap-2 flex-wrap">
-            @if (auth()->user()->isSuperAdmin() || auth()->user()->isUkAdministrasiAset() || auth()->user()->hasRole(['aset', 'uk_administrasi_aset', 'kabag_aset']) || auth()->user()->canAccess('administrasi_aset'))
-                <a href="{{ route('admin.custom-fields.index', ['module' => 'mutasi']) }}"
-                   class="inline-flex items-center gap-1.5 bg-white border border-slate-300 text-slate-700 text-xs font-semibold px-3.5 py-2.5 rounded-xl hover:bg-slate-50 transition shadow-2xs">
-                    @include('partials.icon', ['name' => 'sliders', 'class' => 'w-4 h-4 text-[#114E84]'])
-                    Kelola Field Form Mutasi
-                </a>
-            @endif
-
             @if (auth()->user()->isUser())
                 <a href="{{ route('mutasi-aset.create') }}"
                    class="inline-flex items-center gap-2 bg-[#114E84] hover:bg-[#0E4272] text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-md hover:shadow-lg transition duration-200">

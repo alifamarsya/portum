@@ -294,63 +294,6 @@
                 </a>
             </div>
         </div>
-
-        {{-- Card: Status Keamanan & Server Environment --}}
-        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-card p-5 sm:p-6">
-            <div class="flex items-center justify-between mb-4">
-                <div>
-                    <h2 class="text-sm sm:text-base font-bold text-ink flex items-center gap-2">
-                        @include('partials.icon', ['name' => 'sliders', 'class' => 'w-4 h-4 text-[#114E84]'])
-                        Status Sistem & Integritas
-                    </h2>
-                    <p class="text-xs text-slate-500 mt-0.5">Informasi status server dan enkripsi data</p>
-                </div>
-                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-100"></span>
-            </div>
-
-            <div class="space-y-2.5 text-xs">
-                <div class="flex items-center justify-between py-1.5 border-b border-slate-100">
-                    <span class="text-slate-500">Integritas Hash Chain</span>
-                    @if (!$hasTamperedLogs)
-                        <span class="font-semibold text-emerald-700 flex items-center gap-1">
-                            @include('partials.icon', ['name' => 'check-circle', 'class' => 'w-3.5 h-3.5 text-emerald-500'])
-                            SHA-256 Tamper-Evident
-                        </span>
-                    @else
-                        <span class="font-semibold text-rose-600 flex items-center gap-1">
-                            @include('partials.icon', ['name' => 'alert', 'class' => 'w-3.5 h-3.5 text-rose-500'])
-                            Perlu Verifikasi
-                        </span>
-                    @endif
-                </div>
-                <div class="flex items-center justify-between py-1.5 border-b border-slate-100">
-                    <span class="text-slate-500">Framework Engine</span>
-                    <span class="font-mono font-medium text-slate-800">Laravel v{{ $systemInfo['laravel_version'] }}</span>
-                </div>
-                <div class="flex items-center justify-between py-1.5 border-b border-slate-100">
-                    <span class="text-slate-500">PHP Runtime</span>
-                    <span class="font-mono font-medium text-slate-800">v{{ $systemInfo['php_version'] }}</span>
-                </div>
-                <div class="flex items-center justify-between py-1.5 border-b border-slate-100">
-                    <span class="text-slate-500">Basis Data Driver</span>
-                    <span class="font-mono font-medium text-slate-800 uppercase">{{ $systemInfo['db_driver'] }}</span>
-                </div>
-                <div class="flex items-center justify-between py-1.5">
-                    <span class="text-slate-500">Lingkungan Aplikasi</span>
-                    <span class="font-semibold text-slate-700 uppercase">{{ $systemInfo['app_env'] }}</span>
-                </div>
-            </div>
-
-            <div class="mt-4 pt-3 border-t border-slate-100">
-                <form method="POST" action="{{ route('admin.audit-log.rehash') }}" onsubmit="return confirm('Jalankan kalkulasi ulang rantai hash (rehash) untuk seluruh audit log?')">
-                    @csrf
-                    <button type="submit" class="w-full py-2 px-3 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold transition flex items-center justify-center gap-1.5">
-                        @include('partials.icon', ['name' => 'shield', 'class' => 'w-3.5 h-3.5 text-slate-500'])
-                        <span>Jalankan Rekalkulasi Hash Integritas</span>
-                    </button>
-                </form>
-            </div>
-        </div>
     </div>
 </div>
-@endsection
+@endsection 

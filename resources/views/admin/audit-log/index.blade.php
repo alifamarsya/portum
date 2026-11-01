@@ -105,9 +105,4 @@
         </div>
     </div>
     <div class="mt-4">{{ $items->links() }}</div>
-
-    <p class="text-xs text-slate-400 mt-3 flex items-center gap-1.5">
-        @include('partials.icon', ['name' => 'lock', 'class' => 'w-3.5 h-3.5 flex-shrink-0'])
-        Jalankan <code class="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-[11px]">php artisan audit:verify-chain</code> untuk memverifikasi integritas seluruh rantai hash di atas.
-    </p>
 @endsection

@@ -19,32 +19,6 @@
     </p>
 </div>
 
-{{-- Banner Panduan Format Password Default --}}
-<div class="mb-6 bg-gradient-to-r from-blue-50/90 via-sky-50/70 to-indigo-50/60 border border-blue-200/90 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xs">
-    <div class="flex items-start gap-3.5">
-        <div class="w-10 h-10 rounded-xl bg-[#114E84] text-white flex items-center justify-center flex-shrink-0 shadow-xs mt-0.5">
-            @include('partials.icon', ['name' => 'key', 'class' => 'w-5 h-5 text-white'])
-        </div>
-        <div>
-            <div class="flex flex-wrap items-center gap-2">
-                <h3 class="font-bold text-ink text-sm sm:text-base">Format Password Default Akun</h3>
-                <span class="px-2.5 py-0.5 rounded-lg bg-white border border-blue-200 text-[#114E84] font-mono font-bold text-xs shadow-2xs">
-                    {username}2026
-                </span>
-            </div>
-            <p class="text-xs text-slate-600 mt-1 leading-relaxed">
-                Setiap pengguna yang password-nya direset oleh admin atau akun yang baru dibuat otomatis menggunakan pola <span class="font-mono text-[#114E84] font-bold">{username}2026</span> (misal: user <span class="font-mono text-slate-800 font-semibold">operator</span> &rarr; password <span class="font-mono text-[#114E84] font-bold">operator2026</span>). Pengguna diwajibkan membuat password baru saat pertama kali login.
-            </p>
-        </div>
-    </div>
-    <div class="flex items-center gap-2 flex-shrink-0">
-        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/90 border border-blue-200 text-xs font-semibold text-[#114E84] shadow-2xs">
-            @include('partials.icon', ['name' => 'shield', 'class' => 'w-3.5 h-3.5 text-[#114E84]'])
-            Wajib Ganti Saat Login
-        </span>
-    </div>
-</div>
-
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     {{-- Left: Users Table --}}
     <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 shadow-card overflow-hidden">
