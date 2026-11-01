@@ -2,19 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AsAset;
 use App\Models\AsDisposalAset;
 use App\Models\AsMutasiAset;
-use App\Models\DimKategori;
-use App\Models\DimVendor;
-use App\Models\DimWaktu;
+use App\Models\AsPks;
 use App\Models\FactAmortisasiAset;
 use App\Models\FactBiayaBulanan;
 use App\Models\FactPengadaan;
 use App\Models\InternalDepartment;
+use App\Models\PgSpk;
+use App\Models\PmJadwalPemeliharaan;
 use App\Models\Ticket;
 use App\Models\TicketHistory;
+use App\Models\UmBiayaHarian;
+use App\Models\UmFasilitasKantor;
+use App\Models\UmKendaraan;
 use App\Models\UnitKerja;
-use App\Services\TicketSlaService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -74,31 +77,6 @@ class PimpinanDashboardController extends Controller
         // tiket yang pernah overdue tetap terhitung meski sudah ditutup.
         $totalOverdue = $this->everOverdueResolution(clone $base)->count();
 
-        // Tiket mendekati deadline SLA resolusi — aturan SAMA dengan
-        // TicketSlaService::checkAndNotifyStaffSlaWarning(): timer sudah
-        // berjalan, belum selesai, belum overdue, sisa > 0 dan <= 120 menit
-        // (SLA_WARNING_THRESHOLD_MINUTES). Global (tanpa filter periode /
-        // bagian), persis seperti service-nya.
-        $nearDeadlineCount = 0;
-        $slaService = app(TicketSlaService::class);
-        $warningCandidates = Ticket::whereIn('status', ['Didistribusikan', 'Dalam Proses'])
-            ->whereNotNull('assigned_to')
-            ->where(function ($q) {
-                $q->whereNotNull('sla_resolution_start_at')
-                  ->orWhereNotNull('disposed_at');
-            })
-            ->get();
-        foreach ($warningCandidates as $candidate) {
-            $slaInfo = $slaService->getSlaResolutionInfo($candidate);
-            if ($slaInfo['is_started']
-                && !$slaInfo['is_resolved']
-                && !$slaInfo['is_overdue']
-                && $slaInfo['remaining_minutes'] > 0
-                && $slaInfo['remaining_minutes'] <= TicketSlaService::SLA_WARNING_THRESHOLD_MINUTES) {
-                $nearDeadlineCount++;
-            }
-        }
-
         /* ──────────────────────────────────────────────
          * 3. MONITORING BEBAN KERJA & OVERDUE PER BAGIAN
          *    (3 Bagian Utama Divisi Umum)
@@ -106,13 +84,6 @@ class PimpinanDashboardController extends Controller
         $departments = InternalDepartment::orderBy('id')->get();
         $deptCards = [];
         $workload = [];
-        $chartDeptLabels  = [];
-        $chartDeptAktif   = [];
-        $chartDeptSelesai = [];
-        $chartDeptOverdue = [];
-
-        $totalOverdueResolutionGlobal = 0;
-        $totalOverdueResponseGlobal = 0;
 
         foreach ($departments as $dept) {
             $deptQ = (clone $base)->where('department_id', $dept->id);
@@ -138,13 +109,6 @@ class PimpinanDashboardController extends Controller
                 ->count();
 
             $totalOverdueDept = $overdueRes + $overdueResp;
-            $totalOverdueResolutionGlobal += $overdueRes;
-            $totalOverdueResponseGlobal += $overdueResp;
-
-            $chartDeptLabels[]  = $this->shortenDeptName($dept->name);
-            $chartDeptAktif[]   = $aktifDept;
-            $chartDeptSelesai[] = $selesaiDept;
-            $chartDeptOverdue[] = $overdueRes;
 
             // Unit Kerja breakdown di bawah bagian ini
             $unitKerjas = Schema::hasTable('unit_kerja')
@@ -292,8 +256,6 @@ class PimpinanDashboardController extends Controller
                 ->take(5)
                 ->get();
         }
-        $mutasiPending = $mutasiStats['diajukan'] + $mutasiStats['diproses'];
-        $mutasiSelesai = $mutasiStats['selesai'];
 
         // Antrean approval disposal — kriteria SAMA dengan
         // DisposalAsetController::approvalQueue().
@@ -321,40 +283,6 @@ class PimpinanDashboardController extends Controller
             ? (float) FactAmortisasiAset::where('dim_waktu_id', $latestWaktuId)->sum('nilai_buku')
             : 0;
 
-        // Data Chart DW 1: Tren Pengeluaran Biaya Operasional per Bulan
-        $dwBiayaLabels = [];
-        $dwBiayaData = [];
-        if (Schema::hasTable('fact_biaya_bulanan') && Schema::hasTable('dim_waktu')) {
-            $dwBiayaRows = FactBiayaBulanan::join('dim_waktu', 'fact_biaya_bulanan.dim_waktu_id', '=', 'dim_waktu.id')
-                ->selectRaw('dim_waktu.nama_bulan, dim_waktu.tahun, dim_waktu.bulan, sum(fact_biaya_bulanan.total_biaya) as total')
-                ->groupBy('dim_waktu.tahun', 'dim_waktu.bulan', 'dim_waktu.nama_bulan')
-                ->orderBy('dim_waktu.tahun')
-                ->orderBy('dim_waktu.bulan')
-                ->take(6)
-                ->get();
-
-            foreach ($dwBiayaRows as $row) {
-                $dwBiayaLabels[] = substr($row->nama_bulan, 0, 3) . ' ' . $row->tahun;
-                $dwBiayaData[]   = (float) $row->total;
-            }
-        }
-
-        // Data Chart DW 2: Realisasi Pengadaan per Vendor Rekanan (Doughnut)
-        $dwVendorLabels = [];
-        $dwVendorData = [];
-        if (Schema::hasTable('fact_pengadaan') && Schema::hasTable('dim_vendor')) {
-            $dwVendorRows = FactPengadaan::join('dim_vendor', 'fact_pengadaan.dim_vendor_id', '=', 'dim_vendor.id')
-                ->selectRaw('dim_vendor.nama_vendor, sum(fact_pengadaan.total_nilai) as total')
-                ->groupBy('dim_vendor.nama_vendor')
-                ->orderByDesc('total')
-                ->take(5)
-                ->get();
-
-            foreach ($dwVendorRows as $row) {
-                $dwVendorLabels[] = \Str::limit($row->nama_vendor ?: 'Lainnya', 20);
-                $dwVendorData[]   = (float) $row->total;
-            }
-        }
 
         // Data Chart 3: Tren Tiket Masuk vs Selesai (Periode Aktif)
         //
@@ -407,32 +335,44 @@ class PimpinanDashboardController extends Controller
             }
         }
 
-        $chartTrenData = $chartTrenMasuk;
-        $chartStatusLabels = ['Menunggu', 'Dalam Proses', 'Selesai', 'Ditolak'];
-        $chartStatusData = [
-            (clone $base)->whereIn('status', ['Menunggu Verifikasi', 'Dialokasikan'])->count(),
-            (clone $base)->whereIn('status', ['Dalam Proses', 'Menunggu Approval'])->count(),
-            (clone $base)->whereIn('status', self::DONE_STATUSES)->count(),
-            (clone $base)->whereIn('status', ['Ditolak', 'Dibatalkan'])->count(),
+        /* ──────────────────────────────────────────────
+         * CATATAN OPERASIONAL INTERNAL BAGIAN
+         * (diadopsi dari portal-umum-aset: ringkasan modul
+         * operasional Umum & RT, Aset & Logistik, Pengadaan)
+         * Angka tidak mengikuti filter periode — sama seperti
+         * panel Ringkasan Finansial. Hanya 9 angka yang tampil
+         * di blade yang dihitung, sisanya tidak ikut dihitung.
+         * ────────────────────────────────────────────── */
+        $operasional = [
+            'umum' => [
+                'kendaraan'        => UmKendaraan::count(),
+                'biaya_bulan_ini'  => (float) UmBiayaHarian::whereMonth('tanggal', now()->month)->whereYear('tanggal', now()->year)->sum('jumlah'),
+                'fasilitas_kantor' => UmFasilitasKantor::count(),
+            ],
+            'aset' => [
+                'total_aset'      => AsAset::count(),
+                'nilai_perolehan' => (float) AsAset::sum('nilai_perolehan'),
+                'pks_aktif'       => AsPks::count(),
+            ],
+            'pengadaan' => [
+                'total_spk'           => PgSpk::count(),
+                'nilai_spk'           => (float) PgSpk::sum('nilai'),
+                'jadwal_pemeliharaan' => PmJadwalPemeliharaan::count(),
+            ],
         ];
 
         return view('pimpinan.dashboard', compact(
-            'periode', 'deptFilter', 'startDate', 'endDate', 'dateFrom', 'dateTo',
+            'periode', 'deptFilter', 'dateFrom', 'dateTo',
             'departments',
             'totalMasuk', 'totalAktif', 'totalSelesai', 'totalOverdue',
-            'totalOverdueResolutionGlobal', 'totalOverdueResponseGlobal',
             'deptCards',
             'workload',
             'overdueTickets',
-            'mutasiPending', 'mutasiSelesai',
             'mutasiStats', 'recentMutations',
-            'disposalPending', 'nearDeadlineCount',
+            'disposalPending',
             'dwTotalBiaya', 'dwTotalPengadaan', 'dwTotalNilaiBuku',
-            'dwBiayaLabels', 'dwBiayaData',
-            'dwVendorLabels', 'dwVendorData',
-            'chartTrenLabels', 'chartTrenMasuk', 'chartTrenSelesai', 'chartTrenData',
-            'chartStatusLabels', 'chartStatusData',
-            'chartDeptLabels', 'chartDeptAktif', 'chartDeptSelesai', 'chartDeptOverdue'
+            'chartTrenLabels', 'chartTrenMasuk', 'chartTrenSelesai',
+            'operasional'
         ));
     }
 

@@ -518,6 +518,97 @@
 </div>
 
 {{-- ========================================================================= --}}
+{{-- CATATAN OPERASIONAL INTERNAL BAGIAN (diadopsi dari portal-umum-aset)  --}}
+{{-- ========================================================================= --}}
+<details class="group bg-white rounded-2xl border border-slate-200/80 shadow-card mb-6 overflow-hidden transition">
+    <summary class="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition list-none select-none">
+        <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold">
+                @include('partials.icon', ['name' => 'layers', 'class' => 'w-4 h-4 text-slate-600'])
+            </div>
+            <div>
+                <h3 class="text-xs sm:text-sm font-bold text-ink">Catatan Operasional Internal Bagian</h3>
+                <p class="text-[11px] text-slate-400">Pencatatan aktivitas kerja internal submodul operasional (klik untuk melihat rincian)</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 text-xs font-semibold text-[#114E84]">
+            <span class="group-open:hidden">Lihat Rincian Modul &darr;</span>
+            <span class="hidden group-open:inline">Tutup Rincian Modul &uarr;</span>
+        </div>
+    </summary>
+    <div class="p-5 border-t border-slate-100 bg-slate-50/40 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+        {{-- Umum & RT --}}
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-card space-y-2">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                <span class="font-bold text-ink">Umum &amp; RT</span>
+                <span class="text-[11px] text-slate-400 font-mono">{{ $operasional['umum']['kendaraan'] ?? 0 }} Kendaraan</span>
+            </div>
+            <div class="flex justify-between text-slate-600">
+                <span>Biaya Bulan Ini:</span>
+                <span class="font-bold font-mono">Rp {{ number_format($operasional['umum']['biaya_bulan_ini'] ?? 0, 0, ',', '.') }}</span>
+            </div>
+            <div class="flex justify-between text-slate-600">
+                <span>Fasilitas Kantor:</span>
+                <span class="font-mono">{{ $operasional['umum']['fasilitas_kantor'] ?? 0 }} Terdata</span>
+            </div>
+            <div class="pt-2 border-t border-slate-100 flex gap-2 font-medium text-[#114E84] text-[11px]">
+                <a href="{{ route('modul.index', 'kendaraan') }}" class="hover:underline">Kendaraan</a>
+                <span>&bull;</span>
+                <a href="{{ route('modul.index', 'biaya_harian') }}" class="hover:underline">Biaya</a>
+                <span>&bull;</span>
+                <a href="{{ route('modul.index', 'fasilitas_kantor') }}" class="hover:underline">Fasilitas</a>
+            </div>
+        </div>
+
+        {{-- Aset & Logistik --}}
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-card space-y-2">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                <span class="font-bold text-ink">Aset &amp; Logistik</span>
+                <span class="text-[11px] text-slate-400 font-mono">{{ $operasional['aset']['total_aset'] ?? 0 }} Aset</span>
+            </div>
+            <div class="flex justify-between text-slate-600">
+                <span>Nilai Perolehan:</span>
+                <span class="font-bold font-mono">Rp {{ number_format($operasional['aset']['nilai_perolehan'] ?? 0, 0, ',', '.') }}</span>
+            </div>
+            <div class="flex justify-between text-slate-600">
+                <span>PKS Aktif:</span>
+                <span class="font-mono">{{ $operasional['aset']['pks_aktif'] ?? 0 }} PKS</span>
+            </div>
+            <div class="pt-2 border-t border-slate-100 flex gap-2 font-medium text-[#114E84] text-[11px]">
+                <a href="{{ route('modul.index', 'aset') }}" class="hover:underline">Aset</a>
+                <span>&bull;</span>
+                <a href="{{ route('modul.index', 'mutasi_aset') }}" class="hover:underline">Mutasi</a>
+                <span>&bull;</span>
+                <a href="{{ route('modul.index', 'pks') }}" class="hover:underline">PKS</a>
+            </div>
+        </div>
+
+        {{-- Pengadaan & Pemeliharaan --}}
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-card space-y-2">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                <span class="font-bold text-ink">Pengadaan</span>
+                <span class="text-[11px] text-slate-400 font-mono">{{ $operasional['pengadaan']['total_spk'] ?? 0 }} SPK</span>
+            </div>
+            <div class="flex justify-between text-slate-600">
+                <span>Nilai SPK:</span>
+                <span class="font-bold font-mono">Rp {{ number_format($operasional['pengadaan']['nilai_spk'] ?? 0, 0, ',', '.') }}</span>
+            </div>
+            <div class="flex justify-between text-slate-600">
+                <span>Jadwal Pemeliharaan:</span>
+                <span class="font-mono">{{ $operasional['pengadaan']['jadwal_pemeliharaan'] ?? 0 }} Agenda</span>
+            </div>
+            <div class="pt-2 border-t border-slate-100 flex gap-2 font-medium text-[#114E84] text-[11px]">
+                <a href="{{ route('modul.index', 'spk') }}" class="hover:underline">SPK</a>
+                <span>&bull;</span>
+                <a href="{{ route('modul.index', 'perencanaan_kebutuhan') }}" class="hover:underline">Rencana</a>
+                <span>&bull;</span>
+                <a href="{{ route('modul.index', 'jadwal_pemeliharaan') }}" class="hover:underline">Jadwal</a>
+            </div>
+        </div>
+    </div>
+</details>
+
+{{-- ========================================================================= --}}
 {{-- 6. CHART.JS SCRIPT                                                        --}}
 {{-- ========================================================================= --}}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
