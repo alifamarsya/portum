@@ -550,6 +550,14 @@ class TicketController extends Controller
             "Pemohon menyatakan pekerjaan belum selesai pada tiket {$ticket->ticket_number}: {$validated['reason']}"
         );
 
+        // Tandai notifikasi "pekerjaan selesai" untuk tiket ini sebagai sudah dibaca,
+        // supaya card "Butuh Konfirmasi" tidak muncul lagi di dashboard pemohon
+        // padahal tiketnya sudah dilaporkan belum selesai.
+        $user->unreadNotifications()->get()->filter(function ($n) use ($ticket) {
+            return ($n->data['type'] ?? '') === 'ticket_completed'
+                && (int) ($n->data['ticket_id'] ?? 0) === (int) $ticket->id;
+        })->markAsRead();
+
         $newTicketDescription = "[Tindak Lanjut dari Tiket {$ticket->ticket_number}]\n\nKendala yang masih belum terselesaikan:\n{$validated['reason']}\n\nUraian tiket sebelumnya:\n{$ticket->description}";
 
         return redirect()->route('tickets.create', [
