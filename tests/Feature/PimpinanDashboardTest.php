@@ -72,13 +72,11 @@ class PimpinanDashboardTest extends TestCase
         $response->assertStatus(200);
         $response->assertViewHasAll([
             'totalMasuk', 'totalAktif', 'totalSelesai', 'totalOverdue',
-            'chartTrenLabels', 'chartTrenData',
-            'chartStatusLabels', 'chartStatusData',
-            'chartDeptLabels', 'chartDeptAktif', 'chartDeptSelesai', 'chartDeptOverdue',
+            'chartTrenLabels',
             'overdueTickets',
             'workload',
             'departments',
-            'mutasiPending', 'mutasiSelesai',
+            'operasional',
         ]);
     }
 
