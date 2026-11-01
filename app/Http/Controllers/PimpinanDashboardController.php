@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AsAset;
 use App\Models\AsDisposalAset;
 use App\Models\AsMutasiAset;
+use App\Models\AsPks;
 use App\Models\DimKategori;
 use App\Models\DimVendor;
 use App\Models\DimWaktu;
@@ -11,8 +13,13 @@ use App\Models\FactAmortisasiAset;
 use App\Models\FactBiayaBulanan;
 use App\Models\FactPengadaan;
 use App\Models\InternalDepartment;
+use App\Models\PgSpk;
+use App\Models\PmJadwalPemeliharaan;
 use App\Models\Ticket;
 use App\Models\TicketHistory;
+use App\Models\UmBiayaHarian;
+use App\Models\UmFasilitasKantor;
+use App\Models\UmKendaraan;
 use App\Models\UnitKerja;
 use App\Services\TicketSlaService;
 use Carbon\Carbon;
@@ -416,6 +423,32 @@ class PimpinanDashboardController extends Controller
             (clone $base)->whereIn('status', ['Ditolak', 'Dibatalkan'])->count(),
         ];
 
+        /* ──────────────────────────────────────────────
+         * CATATAN OPERASIONAL INTERNAL BAGIAN
+         * (diadopsi dari portal-umum-aset: ringkasan modul
+         * operasional Umum & RT, Aset & Logistik, Pengadaan)
+         * Angka tidak mengikuti filter periode — sama seperti
+         * panel Ringkasan Finansial. Hanya 9 angka yang tampil
+         * di blade yang dihitung, sisanya tidak ikut dihitung.
+         * ────────────────────────────────────────────── */
+        $operasional = [
+            'umum' => [
+                'kendaraan'        => UmKendaraan::count(),
+                'biaya_bulan_ini'  => (float) UmBiayaHarian::whereMonth('tanggal', now()->month)->whereYear('tanggal', now()->year)->sum('jumlah'),
+                'fasilitas_kantor' => UmFasilitasKantor::count(),
+            ],
+            'aset' => [
+                'total_aset'      => AsAset::count(),
+                'nilai_perolehan' => (float) AsAset::sum('nilai_perolehan'),
+                'pks_aktif'       => AsPks::count(),
+            ],
+            'pengadaan' => [
+                'total_spk'           => PgSpk::count(),
+                'nilai_spk'           => (float) PgSpk::sum('nilai'),
+                'jadwal_pemeliharaan' => PmJadwalPemeliharaan::count(),
+            ],
+        ];
+
         return view('pimpinan.dashboard', compact(
             'periode', 'deptFilter', 'startDate', 'endDate', 'dateFrom', 'dateTo',
             'departments',
@@ -432,7 +465,8 @@ class PimpinanDashboardController extends Controller
             'dwVendorLabels', 'dwVendorData',
             'chartTrenLabels', 'chartTrenMasuk', 'chartTrenSelesai', 'chartTrenData',
             'chartStatusLabels', 'chartStatusData',
-            'chartDeptLabels', 'chartDeptAktif', 'chartDeptSelesai', 'chartDeptOverdue'
+            'chartDeptLabels', 'chartDeptAktif', 'chartDeptSelesai', 'chartDeptOverdue',
+            'operasional'
         ));
     }
 
