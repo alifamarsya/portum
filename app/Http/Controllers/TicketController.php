@@ -534,12 +534,21 @@ class TicketController extends Controller
             'reason' => 'required|string|min:5|max:1000',
         ]);
 
+        $oldStatus = $ticket->status;
+
+        // Tutup tiket lama: status -> 'Ditutup Pemohon' supaya tidak lagi
+        // tampil "Menunggu Konfirmasi". Tindak lanjut berjalan di tiket baru.
+        $ticket->update([
+            'status'    => 'Ditutup Pemohon',
+            'closed_at' => now(),
+        ]);
+
         \App\Models\TicketHistory::create([
             'ticket_id' => $ticket->id,
             'user_id'   => $user->id,
-            'old_status'=> $ticket->status,
-            'new_status'=> $ticket->status,
-            'notes'     => "Pemohon melaporkan bahwa pekerjaan belum selesai: \"{$validated['reason']}\". Pemohon diarahkan untuk membuat tiket baru sesuai SOP.",
+            'old_status'=> $oldStatus,
+            'new_status'=> 'Ditutup Pemohon',
+            'notes'     => "Pemohon melaporkan bahwa pekerjaan belum selesai: \"{$validated['reason']}\". Tiket ditutup; tindak lanjut dibuat sebagai tiket baru sesuai SOP.",
         ]);
 
         $this->audit(
